@@ -12,8 +12,7 @@ tinyvec = { version = "1", default-features = false, features = ["alloc", "rustc
     core_intrinsics,
     hint_must_use,
     liballoc_internals,
-    derive_clone_copy_internals,
-    fmt_helpers_for_derive
+    derive_clone_copy_internals
 )]
 extern crate alloc;
 extern crate bytes;
@@ -21,7 +20,9 @@ extern crate std;
 extern crate tinyvec;
 mod buf {
     pub trait ReverseBuf {
-        fn remaining(&self) -> usize { 0 }
+        fn remaining(&self) -> usize {
+            0
+        }
         fn prepend<B>(&mut self, _: B) {
             loop {}
         }
@@ -437,7 +438,7 @@ mod encoding {
             ValueDecoder, ValueEncoder, WireType, Wiretyped,
         };
         use crate::DecodeError;
-        use crate::DecodeErrorKind::{InvalidValue, Truncated};
+        use crate::DecodeErrorKind::Truncated;
         use alloc::boxed::Box;
 
         use bytes::{Buf, BufMut};
@@ -1056,8 +1057,8 @@ mod encoding {
             RawMessageBorrowDecoder, RawMessageDecoder, RestrictedDecodeContext, Unpacked,
             ValueBorrowDecoder, ValueDecoder, ValueEncoder, Varint, WireType, Wiretyped,
         };
+        use crate::DecodeErrorKind;
         use crate::DecodeErrorKind::InvalidValue;
-        use crate::{DecodeErrorKind};
         use alloc::borrow::Cow;
         use alloc::boxed::Box;
         use alloc::collections::{BTreeMap, BTreeSet};
@@ -1448,10 +1449,7 @@ mod encoding {
             (): crate::encoding::ValueEncoder<Packed, Cow<'a, [T]>>,
             T: Clone,
         {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(
-                value: &Cow<'a, [T]>,
-                buf: &mut __B,
-            ) {
+            fn encode_value<__B: bytes::BufMut + ?Sized>(value: &Cow<'a, [T]>, buf: &mut __B) {
                 <() as crate::encoding::ValueEncoder<Packed, _>>::encode_value(value, buf)
             }
             fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
@@ -1556,10 +1554,7 @@ mod encoding {
         where
             (): crate::encoding::ValueEncoder<Packed, BTreeSet<T>>,
         {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(
-                value: &BTreeSet<T>,
-                buf: &mut __B,
-            ) {
+            fn encode_value<__B: bytes::BufMut + ?Sized>(value: &BTreeSet<T>, buf: &mut __B) {
                 <() as crate::encoding::ValueEncoder<Packed, _>>::encode_value(value, buf)
             }
             fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
@@ -1634,10 +1629,7 @@ mod encoding {
             (): crate::encoding::ValueEncoder<Map, BTreeMap<K, V>>,
             K: Ord,
         {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(
-                value: &BTreeMap<K, V>,
-                buf: &mut __B,
-            ) {
+            fn encode_value<__B: bytes::BufMut + ?Sized>(value: &BTreeMap<K, V>, buf: &mut __B) {
                 <() as crate::encoding::ValueEncoder<Map, _>>::encode_value(value, buf)
             }
             fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
@@ -2884,8 +2876,8 @@ mod encoding {
         }
         impl<const P: u8> ValueDecoder<GeneralGeneric<P>, String> for () {
             fn decode_value<B: Buf + ?Sized>(
-                value: &mut String,
-                mut buf: Capped<B>,
+                _value: &mut String,
+                _buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
                 loop {}
@@ -2894,9 +2886,9 @@ mod encoding {
         impl<const P: u8> DistinguishedValueDecoder<GeneralGeneric<P>, String> for () {
             const CHECKS_EMPTY: bool = false;
             fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut String,
-                buf: Capped<impl Buf + ?Sized>,
-                ctx: RestrictedDecodeContext,
+                _value: &mut String,
+                _buf: Capped<impl Buf + ?Sized>,
+                _ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
                 loop {}
             }
@@ -2906,9 +2898,9 @@ mod encoding {
             (): crate::encoding::ValueDecoder<GeneralGeneric<P>, String>,
         {
             fn borrow_decode_value(
-                value: &mut String,
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
+                _value: &mut String,
+                _buf: crate::encoding::Capped<&'__a [u8]>,
+                _ctx: crate::encoding::DecodeContext,
             ) -> Result<(), crate::DecodeError> {
                 loop {}
             }
@@ -19159,10 +19151,7 @@ mod encoding {
         where
             (): crate::encoding::ValueEncoder<(General, General, General, General), (A, B, C, D)>,
         {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(
-                value: &(A, B, C, D),
-                buf: &mut __B,
-            ) {
+            fn encode_value<__B: bytes::BufMut + ?Sized>(value: &(A, B, C, D), buf: &mut __B) {
                 <() as crate::encoding::ValueEncoder<
                     (General, General, General, General),
                     _,
@@ -19301,10 +19290,7 @@ mod encoding {
                 (A, B, C, D, E),
             >,
         {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(
-                value: &(A, B, C, D, E),
-                buf: &mut __B,
-            ) {
+            fn encode_value<__B: bytes::BufMut + ?Sized>(value: &(A, B, C, D, E), buf: &mut __B) {
                 <() as crate::encoding::ValueEncoder<
                     (General, General, General, General, General),
                     _,
@@ -21819,7 +21805,7 @@ mod encoding {
     mod type_support {
         mod additional {
             use crate::encoding::EmptyState;
-            use alloc::vec::Vec;
+
             impl crate::encoding::ForOverwrite<(), bytes::Bytes> for ()
             where
                 bytes::Bytes: ::core::default::Default,
@@ -23191,10 +23177,7 @@ mod encoding {
                     SystemTime,
                 >,
             {
-                fn encode_value<__B: bytes::BufMut + ?Sized>(
-                    value: &SystemTime,
-                    buf: &mut __B,
-                ) {
+                fn encode_value<__B: bytes::BufMut + ?Sized>(value: &SystemTime, buf: &mut __B) {
                     <() as crate::encoding::ValueEncoder<
                         crate::encoding::Proxied<Packed<Varint>, SealedBilrostTag>,
                         _,
@@ -23370,10 +23353,7 @@ mod encoding {
                 (): crate::encoding::ValueEncoder<Packed, HashSet<T, S>>,
                 S: Default + core::hash::BuildHasher,
             {
-                fn encode_value<__B: bytes::BufMut + ?Sized>(
-                    value: &HashSet<T, S>,
-                    buf: &mut __B,
-                ) {
+                fn encode_value<__B: bytes::BufMut + ?Sized>(value: &HashSet<T, S>, buf: &mut __B) {
                     <() as crate::encoding::ValueEncoder<Packed, _>>::encode_value(value, buf)
                 }
                 fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
@@ -25299,7 +25279,7 @@ mod encoding {
             ValueEncoder, WireType, Wiretyped,
         };
         use crate::DecodeError;
-        use crate::DecodeErrorKind::{InvalidValue, OutOfDomainValue};
+        use crate::DecodeErrorKind::OutOfDomainValue;
         use alloc::boxed::Box;
 
         use core::fmt::Display;
@@ -27116,7 +27096,7 @@ mod error {
         pub field: &'static str,
     }
     #[automatically_derived]
-        unsafe impl ::core::clone::TrivialClone for FieldName {}
+    unsafe impl ::core::clone::TrivialClone for FieldName {}
     #[automatically_derived]
     impl ::core::clone::Clone for FieldName {
         fn clone(&self) -> FieldName {
@@ -27137,7 +27117,7 @@ mod error {
     }
     #[automatically_derived]
     impl ::core::cmp::Eq for FieldName {
-                fn assert_fields_are_eq(&self) {
+        fn assert_fields_are_eq(&self) {
             let _: ::core::cmp::AssertParamIsEq<&'static str>;
             let _: ::core::cmp::AssertParamIsEq<&'static str>;
         }
@@ -27165,7 +27145,7 @@ mod error {
     }
     #[automatically_derived]
     impl ::core::cmp::Eq for DecodeError {
-                fn assert_fields_are_eq(&self) {
+        fn assert_fields_are_eq(&self) {
             let _: ::core::cmp::AssertParamIsEq<DecodeErrorKind>;
             let _: ::core::cmp::AssertParamIsEq<Vec<FieldName>>;
         }
@@ -27180,7 +27160,7 @@ mod error {
         pub fn path(&self) -> &[FieldName] {
             loop {}
         }
-                pub fn push(&mut self, _message: &'static str, _field: &'static str) {
+        pub fn push(&mut self, _message: &'static str, _field: &'static str) {
             loop {}
         }
     }
@@ -27296,10 +27276,7 @@ mod types {
     };
     use crate::DecodeError;
 
-    use alloc::vec::Vec;
     use bytes::{Buf, BufMut};
-
-    use core::ops::{Deref, DerefMut};
 
     impl RawMessage for () {
         const __ASSERTIONS: () = ();
@@ -27323,7 +27300,7 @@ mod types {
             _buf: Capped<B>,
             _ctx: DecodeContext,
         ) -> Result<(), DecodeError>
-    where {
+where {
             loop {}
         }
     }
@@ -27403,14 +27380,13 @@ const _: () = {
             fn is_empty(&self) -> bool {
                 loop {}
             }
-            fn clear(&mut self) {
-            }
-            fn raw_encode<__B>(&self, buf: &mut __B)
+            fn clear(&mut self) {}
+            fn raw_encode<__B>(&self, _buf: &mut __B)
             where
                 __B: bytes::BufMut + ?Sized,
             {
             }
-            fn raw_prepend<__B>(&self, buf: &mut __B)
+            fn raw_prepend<__B>(&self, _buf: &mut __B)
             where
                 __B: crate::buf::ReverseBuf + ?Sized,
             {
@@ -27426,11 +27402,11 @@ const _: () = {
         {
             fn raw_decode_field<__B>(
                 &mut self,
-                tag: u32,
-                wire_type: crate::encoding::WireType,
-                duplicated: bool,
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
+                _tag: u32,
+                _wire_type: crate::encoding::WireType,
+                _duplicated: bool,
+                _buf: crate::encoding::Capped<__B>,
+                _ctx: crate::encoding::DecodeContext,
             ) -> ::core::result::Result<(), crate::DecodeError>
             where
                 __B: bytes::Buf + ?Sized,
@@ -27445,11 +27421,11 @@ const _: () = {
         {
             fn raw_borrow_decode_field(
                 &mut self,
-                tag: u32,
-                wire_type: crate::encoding::WireType,
-                duplicated: bool,
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
+                _tag: u32,
+                _wire_type: crate::encoding::WireType,
+                _duplicated: bool,
+                _buf: crate::encoding::Capped<&'__a [u8]>,
+                _ctx: crate::encoding::DecodeContext,
             ) -> ::core::result::Result<(), crate::DecodeError> {
                 loop {}
             }
