@@ -6,8 +6,6 @@ use core::prelude::rust_2021::*;
 pub extern crate alloc;
 extern crate tinyvec;
 extern crate std;
-extern crate bilrost_derive;
-pub use bilrost_derive::{Enumeration, Message, Oneof};
 /// Re-export of the bytes crate for use within derived code.
 pub use bytes;
 pub mod buf {

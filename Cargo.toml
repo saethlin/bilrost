@@ -14,15 +14,6 @@ categories = ["encoding", "no-std"]
 edition = "2021"
 resolver = "2"
 
-[workspace]
-members = ["bilrost-derive"]
-
 [dependencies]
-arrayvec = { version = ">=0.6.0,<0.8", default-features = false, optional = true }
-bilrost-derive = { version = "=0.1015.0", path = "bilrost-derive" }
 bytes = { version = "^1", default-features = false }
 tinyvec = { version = "^1", default-features = false, features = ["alloc", "rustc_1_57"] }
-
-[features]
-derive = []
-std = []
