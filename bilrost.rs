@@ -2977,19 +2977,6 @@ mod encoding {
                     <() as ValueEncoder<GeneralGeneric<P>, _>>::value_encoded_len(&&**value)
                 }
             }
-            impl<const P: u8> ValueDecoder<GeneralGeneric<P>, Cow<'_, str>> for () {
-                fn decode_value<B: Buf + ?Sized>(
-                    value: &mut Cow<str>,
-                    buf: Capped<B>,
-                    ctx: DecodeContext,
-                ) -> Result<(), DecodeError> {
-                    <() as ValueDecoder<GeneralGeneric<P>, _>>::decode_value(
-                        value.to_mut(),
-                        buf,
-                        ctx,
-                    )
-                }
-            }
             impl<const P: u8> DistinguishedValueDecoder<GeneralGeneric<P>, Cow<'_, str>> for () {
                 const CHECKS_EMPTY: bool =
                     <() as DistinguishedValueDecoder<GeneralGeneric<P>, String>>::CHECKS_EMPTY;
@@ -3239,12 +3226,6 @@ mod encoding {
                 crate::encoding::GeneralGeneric<__G>,
                 core::time::Duration,
             > for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<
-                '__a,
-                crate::encoding::Proxied<Packed<Varint>, SealedBilrostTag>,
-                core::time::Duration,
-            >,
         {
             fn borrow_decode_value(
                 value: &mut core::time::Duration,
@@ -4877,12 +4858,6 @@ mod encoding {
         }
         #[automatically_derived]
         impl<'a> ::core::cmp::Eq for OpaqueValue<'a> {
-            fn assert_fields_are_eq(&self) {
-                let _: ::core::cmp::AssertParamIsEq<u64>;
-                let _: ::core::cmp::AssertParamIsEq<Cow<'a, [u8]>>;
-                let _: ::core::cmp::AssertParamIsEq<[u8; 4]>;
-                let _: ::core::cmp::AssertParamIsEq<[u8; 8]>;
-            }
         }
         #[automatically_derived]
         impl<'a> ::core::hash::Hash for OpaqueValue<'a> {
@@ -4907,18 +4882,6 @@ mod encoding {
         impl OpaqueValue<'_> {
             pub fn u64(value: u64) -> OpaqueValue<'static> {
                 Varint(value)
-            }
-            pub fn i64(value: i64) -> OpaqueValue<'static> {
-                Varint(super::varint::i64_to_unsigned(value))
-            }
-            pub fn u32(value: u32) -> OpaqueValue<'static> {
-                Varint(value.into())
-            }
-            pub fn i32(value: i32) -> OpaqueValue<'static> {
-                Varint(super::varint::i64_to_unsigned(value as i64))
-            }
-            pub fn u16(value: u16) -> OpaqueValue<'static> {
-                Varint(value.into())
             }
             pub fn i16(value: i16) -> OpaqueValue<'static> {
                 Varint(super::varint::i64_to_unsigned(value as i64))
@@ -5573,12 +5536,6 @@ mod encoding {
                 _ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
                 let capped = buf.take_length_delimited()?;
-                if match <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size() {
-                    Some(fixed_size) if capped.remaining_before_cap() % fixed_size != 0 => true,
-                    _ => false,
-                } {
-                    return Err(DecodeError::new(Truncated));
-                }
                 let canon = Canonicity::Canonical;
                 while capped.has_remaining()? {
                     let _new_val = <() as ForOverwrite<E, T>>::for_overwrite();
@@ -5651,12 +5608,6 @@ mod encoding {
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
                 let capped = buf.take_length_delimited()?;
-                if match <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size() {
-                    Some(fixed_size) if capped.remaining_before_cap() != fixed_size * N => true,
-                    _ => false,
-                } {
-                    return Err(DecodeError::new(InvalidValue));
-                }
                 if <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size().is_none()
                     && capped.has_remaining()?
                 {
@@ -5885,12 +5836,6 @@ mod encoding {
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
                 let mut capped = buf.take_length_delimited()?;
-                if match <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size() {
-                    Some(fixed_size) if capped.remaining_before_cap() != fixed_size * N => true,
-                    _ => false,
-                } {
-                    return Err(DecodeError::new(InvalidValue));
-                }
                 let mut canon = Canonicity::Canonical;
                 for dest in value.iter_mut() {
                     if <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size().is_none()
@@ -7343,19 +7288,6 @@ mod encoding {
                             }
                             .map_err(|mut error| {
                                 error.push("Range", "start");
-                                error
-                            })?,
-                            1 => if duplicated {
-                                Err(DecodeError::new(UnexpectedlyRepeated))
-                            } else {
-                                <() as Decoder<Eend, _>>::decode(
-                                    wire_type,
-                                    &mut value.end,
-                                    buf.lend(),
-                                    ctx.clone(),
-                                )
-                            }
-                            .map_err(|mut error| {
                                 error.push("Range", "end");
                                 error
                             })?,
@@ -9645,32 +9577,6 @@ mod encoding {
         impl<A, B, C, Ae, Be, Ce> Wiretyped<(Ae, Be, Ce), (A, B, C)> for () {
             const WIRE_TYPE: WireType = WireType::LengthDelimited;
         }
-        impl<A, B, C, Ae, Be, Ce> ValueRepr<(Ae, Be, Ce), (A, B, C)> for ()
-        where
-            TupleIdentity<(Ae, Be, Ce), (A, B, C)>: Any,
-            (): FieldRepr<Ae, A>,
-            (): FieldRepr<Be, B>,
-            (): FieldRepr<Ce, C>,
-        {
-            fn repr(schema: &Schema) -> Box<dyn Display> {
-                schema.register_message::<TupleIdentity<(Ae, Be, Ce), (A, B, C)>>(
-                    "(3-tuple)",
-                    |fields| {
-                        fields.add_field("0", 0, <() as FieldRepr<Ae, A>>::repr(schema));
-                        fields.add_field("1", 1, <() as FieldRepr<Be, B>>::repr(schema));
-                        fields.add_field("2", 2, <() as FieldRepr<Ce, C>>::repr(schema));
-                    },
-                );
-                schema.make_lazy_repr(|schema| {
-                    ::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "delimited tuple message {0}",
-                            schema.type_reference::<TupleIdentity<(Ae, Be, Ce), (A, B, C)>>(),
-                        ))
-                    })
-                })
-            }
-        }
         impl<A, B, C, Ae, Be, Ce> ValueEncoder<(Ae, Be, Ce), (A, B, C)> for ()
         where
             (): EmptyState<Ae, A> + Encoder<Ae, A>,
@@ -11269,19 +11175,6 @@ mod encoding {
                         }
                         .map_err(|mut error| {
                             error.push("(5-tuple)", "0");
-                            error
-                        })?,
-                        1 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Be, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.1,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
                             error.push("(5-tuple)", "1");
                             error
                         })?,
@@ -12114,19 +12007,6 @@ mod encoding {
                         }
                         .map_err(|mut error| {
                             error.push("(6-tuple)", "0");
-                            error
-                        })?,
-                        1 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Be, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.1,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
                             error.push("(6-tuple)", "1");
                             error
                         })?,
@@ -13583,19 +13463,6 @@ mod encoding {
             (): EmptyState<He, H> + Encoder<He, H>,
         {
             fn encode_value<__B: BufMut + ?Sized>(value: &(A, B, C, D, E, F, G, H), buf: &mut __B) {
-                let tm = &mut TrivialTagMeasurer::new();
-                let message_len = 0usize
-                    + <() as Encoder<Ae, _>>::encoded_len(0, &value.0, tm)
-                    + <() as Encoder<Be, _>>::encoded_len(1, &value.1, tm)
-                    + <() as Encoder<Ce, _>>::encoded_len(2, &value.2, tm)
-                    + <() as Encoder<De, _>>::encoded_len(3, &value.3, tm)
-                    + <() as Encoder<Ee, _>>::encoded_len(4, &value.4, tm)
-                    + <() as Encoder<Fe, _>>::encoded_len(5, &value.5, tm)
-                    + <() as Encoder<Ge, _>>::encoded_len(6, &value.6, tm)
-                    + <() as Encoder<He, _>>::encoded_len(7, &value.7, tm);
-                encode_varint(message_len as u64, buf);
-                let tw = &mut TagWriter::new();
-                <() as Encoder<He, _>>::encode(7, &value.7, buf, tw);
             }
             fn prepend_value<__B: ReverseBuf + ?Sized>(
                 value: &(A, B, C, D, E, F, G, H),
@@ -13886,59 +13753,6 @@ mod encoding {
                         0 => if duplicated {
                             Err(DecodeError::new(UnexpectedlyRepeated))
                         } else {
-                            <() as BorrowDecoder<Ae, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.0,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(8-tuple)", "0");
-                            error
-                        })?,
-                        1 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Be, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.1,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|error| error)?,
-                        3 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<De, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.3,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(8-tuple)", "3");
-                            error
-                        })?,
-                        4 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ee, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.4,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(8-tuple)", "4");
-                            error
-                        })?,
-                        5 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
                             <() as BorrowDecoder<Fe, _>>::borrow_decode(
                                 wire_type,
                                 &mut value.5,
@@ -13948,19 +13762,6 @@ mod encoding {
                         }
                         .map_err(|mut error| {
                             error.push("(8-tuple)", "5");
-                            error
-                        })?,
-                        6 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ge, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.6,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
                             error.push("(8-tuple)", "6");
                             error
                         })?,
@@ -14546,19 +14347,6 @@ mod encoding {
                         }
                         .map_err(|mut error| {
                             error.push("(9-tuple)", "1");
-                            error
-                        })?,
-                        2 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as Decoder<Ce, _>>::decode(
-                                wire_type,
-                                &mut value.2,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
                             error.push("(9-tuple)", "2");
                             error
                         })?,
@@ -15901,59 +15689,6 @@ mod encoding {
                             )
                         }
                         .map_err(|mut error| {
-                            error.push("(10-tuple)", "1");
-                            error
-                        })?,
-                        2 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ce, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.2,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(10-tuple)", "2");
-                            error
-                        })?,
-                        3 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<De, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.3,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|error| error)?,
-                        5 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Fe, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.5,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(10-tuple)", "5");
-                            error
-                        })?,
-                        6 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ge, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.6,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
                             error.push("(10-tuple)", "6");
                             error
                         })?,
@@ -16744,59 +16479,6 @@ mod encoding {
                             <() as Decoder<Ee, _>>::decode(
                                 wire_type,
                                 &mut value.4,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(11-tuple)", "4");
-                            error
-                        })?,
-                        5 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as Decoder<Fe, _>>::decode(
-                                wire_type,
-                                &mut value.5,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(11-tuple)", "5");
-                            error
-                        })?,
-                        6 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as Decoder<Ge, _>>::decode(
-                                wire_type,
-                                &mut value.6,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(11-tuple)", "6");
-                            error
-                        })?,
-                        7 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as Decoder<He, _>>::decode(
-                                wire_type,
-                                &mut value.7,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|error| error)?,
-                        9 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as Decoder<Je, _>>::decode(
-                                wire_type,
-                                &mut value.9,
                                 buf.lend(),
                                 ctx.clone(),
                             )
@@ -18487,72 +18169,6 @@ mod encoding {
                         }
                         .map_err(|mut error| {
                             error.push("(12-tuple)", "2");
-                            error
-                        })?,
-                        3 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<De, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.3,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(12-tuple)", "3");
-                            error
-                        })?,
-                        4 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ee, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.4,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(12-tuple)", "4");
-                            error
-                        })?,
-                        5 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Fe, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.5,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|error| error)?,
-                        7 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<He, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.7,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(12-tuple)", "7");
-                            error
-                        })?,
-                        8 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ie, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.8,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
                             error.push("(12-tuple)", "8");
                             error
                         })?,
@@ -18778,3027 +18394,6 @@ mod encoding {
                     }
                 }
                 Ok(canon)
-            }
-        }
-        impl<const P: u8, A> crate::encoding::schema::ValueRepr<GeneralGeneric<P>, (A,)> for ()
-        where
-            (): crate::encoding::schema::ValueRepr<(General,), (A,)>,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<(General,), (A,)>>::repr(schema)
-            }
-        }
-        impl<const P: u8, A> crate::encoding::Wiretyped<GeneralGeneric<P>, (A,)> for ()
-        where
-            (): crate::encoding::Wiretyped<(General,), (A,)>,
-        {
-            const WIRE_TYPE: crate::encoding::WireType =
-                <() as crate::encoding::Wiretyped<(General,), (A,)>>::WIRE_TYPE;
-        }
-        impl<const P: u8, A> crate::encoding::ValueEncoder<GeneralGeneric<P>, (A,)> for ()
-        where
-            (): crate::encoding::ValueEncoder<(General,), (A,)>,
-        {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(value: &(A,), buf: &mut __B) {
-                <() as crate::encoding::ValueEncoder<(General,), _>>::encode_value(value, buf)
-            }
-            fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(value: &(A,), buf: &mut __B) {
-                <() as crate::encoding::ValueEncoder<(General,), _>>::prepend_value(value, buf)
-            }
-            fn value_encoded_len(value: &(A,)) -> usize {
-                <() as crate::encoding::ValueEncoder<(General,), _>>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = (A,)>,
-            {
-                <() as crate::encoding::ValueEncoder<(General,), _>>::many_values_encoded_len(
-                    values,
-                )
-            }
-        }
-        impl<const P: u8, A> crate::encoding::ValueDecoder<GeneralGeneric<P>, (A,)> for ()
-        where
-            (): crate::encoding::ValueDecoder<(General,), (A,)>,
-        {
-            fn decode_value<__B: bytes::Buf + ?Sized>(
-                value: &mut (A,),
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<(General,), _>>::decode_value(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A>
-            crate::encoding::ValueBorrowDecoder<'__a, GeneralGeneric<P>, (A,)> for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<'__a, (General,), (A,)>,
-        {
-            fn borrow_decode_value(
-                value: &mut (A,),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueBorrowDecoder<(General,), _>>::borrow_decode_value(
-                    value, buf, ctx,
-                )
-            }
-        }
-        impl<const P: u8, A> crate::encoding::DistinguishedValueDecoder<GeneralGeneric<P>, (A,)> for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<(General,), (A,)>,
-        {
-            const CHECKS_EMPTY: bool =
-                <() as crate::encoding::DistinguishedValueDecoder<(General,), (A,)>>::CHECKS_EMPTY;
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A,),
-                buf: crate::encoding::Capped<impl bytes::Buf + ?Sized>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueDecoder<
-                    (General,),
-                    _,
-                >>::decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A>
-            crate::encoding::DistinguishedValueBorrowDecoder<'__a, GeneralGeneric<P>, (A,)> for ()
-        where
-            (): crate::encoding::DistinguishedValueBorrowDecoder<'__a, (General,), (A,)>,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (General,),
-                (A,),
-            >>::CHECKS_EMPTY;
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A,),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                    (General,),
-                    _,
-                >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B> crate::encoding::schema::ValueRepr<GeneralGeneric<P>, (A, B)> for ()
-        where
-            (): crate::encoding::schema::ValueRepr<(General, General), (A, B)>,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<(General, General), (A, B)>>::repr(schema)
-            }
-        }
-        impl<const P: u8, A, B> crate::encoding::Wiretyped<GeneralGeneric<P>, (A, B)> for ()
-        where
-            (): crate::encoding::Wiretyped<(General, General), (A, B)>,
-        {
-            const WIRE_TYPE: crate::encoding::WireType =
-                <() as crate::encoding::Wiretyped<(General, General), (A, B)>>::WIRE_TYPE;
-        }
-        impl<const P: u8, A, B> crate::encoding::ValueEncoder<GeneralGeneric<P>, (A, B)> for ()
-        where
-            (): crate::encoding::ValueEncoder<(General, General), (A, B)>,
-        {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(value: &(A, B), buf: &mut __B) {
-                <() as crate::encoding::ValueEncoder<(General, General), _>>::encode_value(
-                    value, buf,
-                )
-            }
-            fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(value: &(A, B), buf: &mut __B) {
-                <() as crate::encoding::ValueEncoder<(General, General), _>>::prepend_value(
-                    value, buf,
-                )
-            }
-            fn value_encoded_len(value: &(A, B)) -> usize {
-                <() as crate::encoding::ValueEncoder<(General, General), _>>::value_encoded_len(
-                    value,
-                )
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = (A, B)>,
-            {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General),
-                    _,
-                >>::many_values_encoded_len(values)
-            }
-        }
-        impl<const P: u8, A, B> crate::encoding::ValueDecoder<GeneralGeneric<P>, (A, B)> for ()
-        where
-            (): crate::encoding::ValueDecoder<(General, General), (A, B)>,
-        {
-            fn decode_value<__B: bytes::Buf + ?Sized>(
-                value: &mut (A, B),
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<(General, General), _>>::decode_value(
-                    value, buf, ctx,
-                )
-            }
-        }
-        impl<'__a, const P: u8, A, B>
-            crate::encoding::ValueBorrowDecoder<'__a, GeneralGeneric<P>, (A, B)> for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<'__a, (General, General), (A, B)>,
-        {
-            fn borrow_decode_value(
-                value: &mut (A, B),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueBorrowDecoder<
-                    (General, General),
-                    _,
-                >>::borrow_decode_value(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B>
-            crate::encoding::DistinguishedValueDecoder<GeneralGeneric<P>, (A, B)> for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<(General, General), (A, B)>,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueDecoder<
-                (General, General),
-                (A, B),
-            >>::CHECKS_EMPTY;
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B),
-                buf: crate::encoding::Capped<impl bytes::Buf + ?Sized>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueDecoder<
-                    (General, General),
-                    _,
-                >>::decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B>
-            crate::encoding::DistinguishedValueBorrowDecoder<'__a, GeneralGeneric<P>, (A, B)> for ()
-        where
-            (): crate::encoding::DistinguishedValueBorrowDecoder<'__a, (General, General), (A, B)>,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (General, General),
-                (A, B),
-            >>::CHECKS_EMPTY;
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                    (General, General),
-                    _,
-                >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C> crate::encoding::schema::ValueRepr<GeneralGeneric<P>, (A, B, C)> for ()
-        where
-            (): crate::encoding::schema::ValueRepr<(General, General, General), (A, B, C)>,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<
-                    (General, General, General),
-                    (A, B, C),
-                >>::repr(schema)
-            }
-        }
-        impl<const P: u8, A, B, C> crate::encoding::Wiretyped<GeneralGeneric<P>, (A, B, C)> for ()
-        where
-            (): crate::encoding::Wiretyped<(General, General, General), (A, B, C)>,
-        {
-            const WIRE_TYPE: crate::encoding::WireType = <() as crate::encoding::Wiretyped<
-                (General, General, General),
-                (A, B, C),
-            >>::WIRE_TYPE;
-        }
-        impl<const P: u8, A, B, C> crate::encoding::ValueEncoder<GeneralGeneric<P>, (A, B, C)> for ()
-        where
-            (): crate::encoding::ValueEncoder<(General, General, General), (A, B, C)>,
-        {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(value: &(A, B, C), buf: &mut __B) {
-                <() as crate::encoding::ValueEncoder<(General, General, General), _>>::encode_value(
-                    value, buf,
-                )
-            }
-            fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
-                value: &(A, B, C),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<(General, General, General), _>>::prepend_value(
-                    value, buf,
-                )
-            }
-            fn value_encoded_len(value: &(A, B, C)) -> usize {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General),
-                    _,
-                >>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = (A, B, C)>,
-            {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General),
-                    _,
-                >>::many_values_encoded_len(values)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C>
-            crate::encoding::ValueBorrowDecoder<'__a, GeneralGeneric<P>, (A, B, C)> for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<'__a, (General, General, General), (A, B, C)>,
-        {
-            fn borrow_decode_value(
-                value: &mut (A, B, C),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueBorrowDecoder<
-                    (General, General, General),
-                    _,
-                >>::borrow_decode_value(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C>
-            crate::encoding::DistinguishedValueDecoder<GeneralGeneric<P>, (A, B, C)> for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<(General, General, General), (A, B, C)>,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueDecoder<
-                (General, General, General),
-                (A, B, C),
-            >>::CHECKS_EMPTY;
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C),
-                buf: crate::encoding::Capped<impl bytes::Buf + ?Sized>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueDecoder<
-                    (General, General, General),
-                    _,
-                >>::decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C>
-            crate::encoding::DistinguishedValueBorrowDecoder<'__a, GeneralGeneric<P>, (A, B, C)>
-            for ()
-        where
-            (): crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (General, General, General),
-                (A, B, C),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (General, General, General),
-                (A, B, C),
-            >>::CHECKS_EMPTY;
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                    (General, General, General),
-                    _,
-                >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D>
-            crate::encoding::schema::ValueRepr<GeneralGeneric<P>, (A, B, C, D)> for ()
-        where
-            (): crate::encoding::schema::ValueRepr<
-                (General, General, General, General),
-                (A, B, C, D),
-            >,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<
-                    (General, General, General, General),
-                    (A, B, C, D),
-                >>::repr(schema)
-            }
-        }
-        impl<const P: u8, A, B, C, D> crate::encoding::Wiretyped<GeneralGeneric<P>, (A, B, C, D)> for ()
-        where
-            (): crate::encoding::Wiretyped<(General, General, General, General), (A, B, C, D)>,
-        {
-            const WIRE_TYPE: crate::encoding::WireType = <() as crate::encoding::Wiretyped<
-                (General, General, General, General),
-                (A, B, C, D),
-            >>::WIRE_TYPE;
-        }
-        impl<const P: u8, A, B, C, D> crate::encoding::ValueEncoder<GeneralGeneric<P>, (A, B, C, D)> for ()
-        where
-            (): crate::encoding::ValueEncoder<(General, General, General, General), (A, B, C, D)>,
-        {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(value: &(A, B, C, D), buf: &mut __B) {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General, General),
-                    _,
-                >>::encode_value(value, buf)
-            }
-            fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
-                value: &(A, B, C, D),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General, General),
-                    _,
-                >>::prepend_value(value, buf)
-            }
-            fn value_encoded_len(value: &(A, B, C, D)) -> usize {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General, General),
-                    _,
-                >>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = (A, B, C, D)>,
-            {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General, General),
-                    _,
-                >>::many_values_encoded_len(values)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D>
-            crate::encoding::ValueBorrowDecoder<'__a, GeneralGeneric<P>, (A, B, C, D)> for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<
-                '__a,
-                (General, General, General, General),
-                (A, B, C, D),
-            >,
-        {
-            fn borrow_decode_value(
-                value: &mut (A, B, C, D),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueBorrowDecoder<
-                    (General, General, General, General),
-                    _,
-                >>::borrow_decode_value(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D>
-            crate::encoding::DistinguishedValueDecoder<GeneralGeneric<P>, (A, B, C, D)> for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<
-                (General, General, General, General),
-                (A, B, C, D),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueDecoder<
-                (General, General, General, General),
-                (A, B, C, D),
-            >>::CHECKS_EMPTY;
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D),
-                buf: crate::encoding::Capped<impl bytes::Buf + ?Sized>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueDecoder<
-                    (General, General, General, General),
-                    _,
-                >>::decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D>
-            crate::encoding::DistinguishedValueBorrowDecoder<'__a, GeneralGeneric<P>, (A, B, C, D)>
-            for ()
-        where
-            (): crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (General, General, General, General),
-                (A, B, C, D),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (General, General, General, General),
-                (A, B, C, D),
-            >>::CHECKS_EMPTY;
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                    (General, General, General, General),
-                    _,
-                >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E>
-            crate::encoding::schema::ValueRepr<GeneralGeneric<P>, (A, B, C, D, E)> for ()
-        where
-            (): crate::encoding::schema::ValueRepr<
-                (General, General, General, General, General),
-                (A, B, C, D, E),
-            >,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<
-                    (General, General, General, General, General),
-                    (A, B, C, D, E),
-                >>::repr(schema)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E>
-            crate::encoding::Wiretyped<GeneralGeneric<P>, (A, B, C, D, E)> for ()
-        where
-            (): crate::encoding::Wiretyped<
-                (General, General, General, General, General),
-                (A, B, C, D, E),
-            >,
-        {
-            const WIRE_TYPE: crate::encoding::WireType = <() as crate::encoding::Wiretyped<
-                (General, General, General, General, General),
-                (A, B, C, D, E),
-            >>::WIRE_TYPE;
-        }
-        impl<const P: u8, A, B, C, D, E>
-            crate::encoding::ValueEncoder<GeneralGeneric<P>, (A, B, C, D, E)> for ()
-        where
-            (): crate::encoding::ValueEncoder<
-                (General, General, General, General, General),
-                (A, B, C, D, E),
-            >,
-        {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(value: &(A, B, C, D, E), buf: &mut __B) {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General, General, General),
-                    _,
-                >>::encode_value(value, buf)
-            }
-            fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
-                value: &(A, B, C, D, E),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General, General, General),
-                    _,
-                >>::prepend_value(value, buf)
-            }
-            fn value_encoded_len(value: &(A, B, C, D, E)) -> usize {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General, General, General),
-                    _,
-                >>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = (A, B, C, D, E)>,
-            {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General, General, General),
-                    _,
-                >>::many_values_encoded_len(values)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E>
-            crate::encoding::ValueDecoder<GeneralGeneric<P>, (A, B, C, D, E)> for ()
-        where
-            (): crate::encoding::ValueDecoder<
-                (General, General, General, General, General),
-                (A, B, C, D, E),
-            >,
-        {
-            fn decode_value<__B: bytes::Buf + ?Sized>(
-                value: &mut (A, B, C, D, E),
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<
-                    (General, General, General, General, General),
-                    _,
-                >>::decode_value(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E>
-            crate::encoding::ValueBorrowDecoder<'__a, GeneralGeneric<P>, (A, B, C, D, E)> for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<
-                '__a,
-                (General, General, General, General, General),
-                (A, B, C, D, E),
-            >,
-        {
-            fn borrow_decode_value(
-                value: &mut (A, B, C, D, E),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueBorrowDecoder<
-                    (General, General, General, General, General),
-                    _,
-                >>::borrow_decode_value(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E>
-            crate::encoding::DistinguishedValueDecoder<GeneralGeneric<P>, (A, B, C, D, E)> for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<
-                (General, General, General, General, General),
-                (A, B, C, D, E),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueDecoder<
-                (General, General, General, General, General),
-                (A, B, C, D, E),
-            >>::CHECKS_EMPTY;
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E),
-                buf: crate::encoding::Capped<impl bytes::Buf + ?Sized>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueDecoder<
-                    (General, General, General, General, General),
-                    _,
-                >>::decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E>
-            crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                GeneralGeneric<P>,
-                (A, B, C, D, E),
-            > for ()
-        where
-            (): crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (General, General, General, General, General),
-                (A, B, C, D, E),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (General, General, General, General, General),
-                (A, B, C, D, E),
-            >>::CHECKS_EMPTY;
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                    (General, General, General, General, General),
-                    _,
-                >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F>
-            crate::encoding::schema::ValueRepr<GeneralGeneric<P>, (A, B, C, D, E, F)> for ()
-        where
-            (): crate::encoding::schema::ValueRepr<
-                (General, General, General, General, General, General),
-                (A, B, C, D, E, F),
-            >,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<
-                    (General, General, General, General, General, General),
-                    (A, B, C, D, E, F),
-                >>::repr(schema)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F>
-            crate::encoding::Wiretyped<GeneralGeneric<P>, (A, B, C, D, E, F)> for ()
-        where
-            (): crate::encoding::Wiretyped<
-                (General, General, General, General, General, General),
-                (A, B, C, D, E, F),
-            >,
-        {
-            const WIRE_TYPE: crate::encoding::WireType = <() as crate::encoding::Wiretyped<
-                (General, General, General, General, General, General),
-                (A, B, C, D, E, F),
-            >>::WIRE_TYPE;
-        }
-        impl<const P: u8, A, B, C, D, E, F>
-            crate::encoding::ValueEncoder<GeneralGeneric<P>, (A, B, C, D, E, F)> for ()
-        where
-            (): crate::encoding::ValueEncoder<
-                (General, General, General, General, General, General),
-                (A, B, C, D, E, F),
-            >,
-        {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(
-                value: &(A, B, C, D, E, F),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General, General, General, General),
-                    _,
-                >>::encode_value(value, buf)
-            }
-            fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
-                value: &(A, B, C, D, E, F),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General, General, General, General),
-                    _,
-                >>::prepend_value(value, buf)
-            }
-            fn value_encoded_len(value: &(A, B, C, D, E, F)) -> usize {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General, General, General, General),
-                    _,
-                >>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = (A, B, C, D, E, F)>,
-            {
-                <() as crate::encoding::ValueEncoder<
-                    (General, General, General, General, General, General),
-                    _,
-                >>::many_values_encoded_len(values)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F>
-            crate::encoding::ValueDecoder<GeneralGeneric<P>, (A, B, C, D, E, F)> for ()
-        where
-            (): crate::encoding::ValueDecoder<
-                (General, General, General, General, General, General),
-                (A, B, C, D, E, F),
-            >,
-        {
-            fn decode_value<__B: bytes::Buf + ?Sized>(
-                value: &mut (A, B, C, D, E, F),
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<
-                    (General, General, General, General, General, General),
-                    _,
-                >>::decode_value(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F>
-            crate::encoding::ValueBorrowDecoder<'__a, GeneralGeneric<P>, (A, B, C, D, E, F)> for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<
-                '__a,
-                (General, General, General, General, General, General),
-                (A, B, C, D, E, F),
-            >,
-        {
-            fn borrow_decode_value(
-                value: &mut (A, B, C, D, E, F),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueBorrowDecoder<
-                    (General, General, General, General, General, General),
-                    _,
-                >>::borrow_decode_value(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F>
-            crate::encoding::DistinguishedValueDecoder<GeneralGeneric<P>, (A, B, C, D, E, F)> for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<
-                (General, General, General, General, General, General),
-                (A, B, C, D, E, F),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueDecoder<
-                (General, General, General, General, General, General),
-                (A, B, C, D, E, F),
-            >>::CHECKS_EMPTY;
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F),
-                buf: crate::encoding::Capped<impl bytes::Buf + ?Sized>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueDecoder<
-                    (General, General, General, General, General, General),
-                    _,
-                >>::decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F>
-            crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F),
-            > for ()
-        where
-            (): crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (General, General, General, General, General, General),
-                (A, B, C, D, E, F),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (General, General, General, General, General, General),
-                (A, B, C, D, E, F),
-            >>::CHECKS_EMPTY;
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                    (General, General, General, General, General, General),
-                    _,
-                >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G>
-            crate::encoding::schema::ValueRepr<GeneralGeneric<P>, (A, B, C, D, E, F, G)> for ()
-        where
-            (): crate::encoding::schema::ValueRepr<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G),
-            >,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    (A, B, C, D, E, F, G),
-                >>::repr(schema)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G>
-            crate::encoding::Wiretyped<GeneralGeneric<P>, (A, B, C, D, E, F, G)> for ()
-        where
-            (): crate::encoding::Wiretyped<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G),
-            >,
-        {
-            const WIRE_TYPE: crate::encoding::WireType = <() as crate::encoding::Wiretyped<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G),
-            >>::WIRE_TYPE;
-        }
-        impl<const P: u8, A, B, C, D, E, F, G>
-            crate::encoding::ValueEncoder<GeneralGeneric<P>, (A, B, C, D, E, F, G)> for ()
-        where
-            (): crate::encoding::ValueEncoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G),
-            >,
-        {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(
-                value: &(A, B, C, D, E, F, G),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::encode_value(value, buf)
-            }
-            fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
-                value: &(A, B, C, D, E, F, G),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::prepend_value(value, buf)
-            }
-            fn value_encoded_len(value: &(A, B, C, D, E, F, G)) -> usize {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = (A, B, C, D, E, F, G)>,
-            {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::many_values_encoded_len(values)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G>
-            crate::encoding::ValueDecoder<GeneralGeneric<P>, (A, B, C, D, E, F, G)> for ()
-        where
-            (): crate::encoding::ValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G),
-            >,
-        {
-            fn decode_value<__B: bytes::Buf + ?Sized>(
-                value: &mut (A, B, C, D, E, F, G),
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::decode_value(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F, G>
-            crate::encoding::ValueBorrowDecoder<'__a, GeneralGeneric<P>, (A, B, C, D, E, F, G)>
-            for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G),
-            >,
-        {
-            fn borrow_decode_value(
-                value: &mut (A, B, C, D, E, F, G),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueBorrowDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::borrow_decode_value(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G>
-            crate::encoding::DistinguishedValueDecoder<GeneralGeneric<P>, (A, B, C, D, E, F, G)>
-            for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G),
-            >>::CHECKS_EMPTY;
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F, G),
-                buf: crate::encoding::Capped<impl bytes::Buf + ?Sized>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F, G>
-            crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G),
-            > for ()
-        where
-            (): crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G),
-            >>::CHECKS_EMPTY;
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F, G),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H>
-            crate::encoding::schema::ValueRepr<GeneralGeneric<P>, (A, B, C, D, E, F, G, H)> for ()
-        where
-            (): crate::encoding::schema::ValueRepr<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H),
-            >,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    (A, B, C, D, E, F, G, H),
-                >>::repr(schema)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H>
-            crate::encoding::Wiretyped<GeneralGeneric<P>, (A, B, C, D, E, F, G, H)> for ()
-        where
-            (): crate::encoding::Wiretyped<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H),
-            >,
-        {
-            const WIRE_TYPE: crate::encoding::WireType = <() as crate::encoding::Wiretyped<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H),
-            >>::WIRE_TYPE;
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H>
-            crate::encoding::ValueEncoder<GeneralGeneric<P>, (A, B, C, D, E, F, G, H)> for ()
-        where
-            (): crate::encoding::ValueEncoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H),
-            >,
-        {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(
-                value: &(A, B, C, D, E, F, G, H),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::encode_value(value, buf)
-            }
-            fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
-                value: &(A, B, C, D, E, F, G, H),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::prepend_value(value, buf)
-            }
-            fn value_encoded_len(value: &(A, B, C, D, E, F, G, H)) -> usize {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = (A, B, C, D, E, F, G, H)>,
-            {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::many_values_encoded_len(values)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H>
-            crate::encoding::ValueDecoder<GeneralGeneric<P>, (A, B, C, D, E, F, G, H)> for ()
-        where
-            (): crate::encoding::ValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H),
-            >,
-        {
-            fn decode_value<__B: bytes::Buf + ?Sized>(
-                value: &mut (A, B, C, D, E, F, G, H),
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::decode_value(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F, G, H>
-            crate::encoding::ValueBorrowDecoder<'__a, GeneralGeneric<P>, (A, B, C, D, E, F, G, H)>
-            for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H),
-            >,
-        {
-            fn borrow_decode_value(
-                value: &mut (A, B, C, D, E, F, G, H),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueBorrowDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::borrow_decode_value(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H>
-            crate::encoding::DistinguishedValueDecoder<GeneralGeneric<P>, (A, B, C, D, E, F, G, H)>
-            for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H),
-            >>::CHECKS_EMPTY;
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F, G, H),
-                buf: crate::encoding::Capped<impl bytes::Buf + ?Sized>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F, G, H>
-            crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H),
-            > for ()
-        where
-            (): crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H),
-            >>::CHECKS_EMPTY;
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F, G, H),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I>
-            crate::encoding::schema::ValueRepr<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I)>
-            for ()
-        where
-            (): crate::encoding::schema::ValueRepr<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I),
-            >,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    (A, B, C, D, E, F, G, H, I),
-                >>::repr(schema)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I>
-            crate::encoding::Wiretyped<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I)> for ()
-        where
-            (): crate::encoding::Wiretyped<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I),
-            >,
-        {
-            const WIRE_TYPE: crate::encoding::WireType = <() as crate::encoding::Wiretyped<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I),
-            >>::WIRE_TYPE;
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I>
-            crate::encoding::ValueEncoder<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I)> for ()
-        where
-            (): crate::encoding::ValueEncoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I),
-            >,
-        {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(
-                value: &(A, B, C, D, E, F, G, H, I),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::encode_value(value, buf)
-            }
-            fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
-                value: &(A, B, C, D, E, F, G, H, I),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::prepend_value(value, buf)
-            }
-            fn value_encoded_len(value: &(A, B, C, D, E, F, G, H, I)) -> usize {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = (A, B, C, D, E, F, G, H, I)>,
-            {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::many_values_encoded_len(values)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I>
-            crate::encoding::ValueDecoder<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I)> for ()
-        where
-            (): crate::encoding::ValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I),
-            >,
-        {
-            fn decode_value<__B: bytes::Buf + ?Sized>(
-                value: &mut (A, B, C, D, E, F, G, H, I),
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::decode_value(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F, G, H, I>
-            crate::encoding::ValueBorrowDecoder<
-                '__a,
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I),
-            > for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I),
-            >,
-        {
-            fn borrow_decode_value(
-                value: &mut (A, B, C, D, E, F, G, H, I),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueBorrowDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::borrow_decode_value(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I>
-            crate::encoding::DistinguishedValueDecoder<
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I),
-            > for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I),
-            >>::CHECKS_EMPTY;
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F, G, H, I),
-                buf: crate::encoding::Capped<impl bytes::Buf + ?Sized>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F, G, H, I>
-            crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I),
-            > for ()
-        where
-            (): crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I),
-            >>::CHECKS_EMPTY;
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F, G, H, I),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J>
-            crate::encoding::schema::ValueRepr<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I, J)>
-            for ()
-        where
-            (): crate::encoding::schema::ValueRepr<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J),
-            >,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    (A, B, C, D, E, F, G, H, I, J),
-                >>::repr(schema)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J>
-            crate::encoding::Wiretyped<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I, J)> for ()
-        where
-            (): crate::encoding::Wiretyped<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J),
-            >,
-        {
-            const WIRE_TYPE: crate::encoding::WireType = <() as crate::encoding::Wiretyped<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J),
-            >>::WIRE_TYPE;
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J>
-            crate::encoding::ValueEncoder<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I, J)> for ()
-        where
-            (): crate::encoding::ValueEncoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J),
-            >,
-        {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(
-                value: &(A, B, C, D, E, F, G, H, I, J),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::encode_value(value, buf)
-            }
-            fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
-                value: &(A, B, C, D, E, F, G, H, I, J),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::prepend_value(value, buf)
-            }
-            fn value_encoded_len(value: &(A, B, C, D, E, F, G, H, I, J)) -> usize {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = (A, B, C, D, E, F, G, H, I, J)>,
-            {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::many_values_encoded_len(values)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J>
-            crate::encoding::ValueDecoder<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I, J)> for ()
-        where
-            (): crate::encoding::ValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J),
-            >,
-        {
-            fn decode_value<__B: bytes::Buf + ?Sized>(
-                value: &mut (A, B, C, D, E, F, G, H, I, J),
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::decode_value(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F, G, H, I, J>
-            crate::encoding::ValueBorrowDecoder<
-                '__a,
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I, J),
-            > for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J),
-            >,
-        {
-            fn borrow_decode_value(
-                value: &mut (A, B, C, D, E, F, G, H, I, J),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueBorrowDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::borrow_decode_value(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J>
-            crate::encoding::DistinguishedValueDecoder<
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I, J),
-            > for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J),
-            >>::CHECKS_EMPTY;
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F, G, H, I, J),
-                buf: crate::encoding::Capped<impl bytes::Buf + ?Sized>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F, G, H, I, J>
-            crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I, J),
-            > for ()
-        where
-            (): crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J),
-            >>::CHECKS_EMPTY;
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F, G, H, I, J),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J, K>
-            crate::encoding::schema::ValueRepr<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I, J, K)>
-            for ()
-        where
-            (): crate::encoding::schema::ValueRepr<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K),
-            >,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    (A, B, C, D, E, F, G, H, I, J, K),
-                >>::repr(schema)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J, K>
-            crate::encoding::Wiretyped<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I, J, K)> for ()
-        where
-            (): crate::encoding::Wiretyped<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K),
-            >,
-        {
-            const WIRE_TYPE: crate::encoding::WireType = <() as crate::encoding::Wiretyped<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K),
-            >>::WIRE_TYPE;
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J, K>
-            crate::encoding::ValueEncoder<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I, J, K)>
-            for ()
-        where
-            (): crate::encoding::ValueEncoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K),
-            >,
-        {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(
-                value: &(A, B, C, D, E, F, G, H, I, J, K),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::encode_value(value, buf)
-            }
-            fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
-                value: &(A, B, C, D, E, F, G, H, I, J, K),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::prepend_value(value, buf)
-            }
-            fn value_encoded_len(value: &(A, B, C, D, E, F, G, H, I, J, K)) -> usize {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = (A, B, C, D, E, F, G, H, I, J, K)>,
-            {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::many_values_encoded_len(values)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J, K>
-            crate::encoding::ValueDecoder<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I, J, K)>
-            for ()
-        where
-            (): crate::encoding::ValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K),
-            >,
-        {
-            fn decode_value<__B: bytes::Buf + ?Sized>(
-                value: &mut (A, B, C, D, E, F, G, H, I, J, K),
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::decode_value(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F, G, H, I, J, K>
-            crate::encoding::ValueBorrowDecoder<
-                '__a,
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I, J, K),
-            > for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K),
-            >,
-        {
-            fn borrow_decode_value(
-                value: &mut (A, B, C, D, E, F, G, H, I, J, K),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueBorrowDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::borrow_decode_value(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J, K>
-            crate::encoding::DistinguishedValueDecoder<
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I, J, K),
-            > for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K),
-            >>::CHECKS_EMPTY;
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F, G, H, I, J, K),
-                buf: crate::encoding::Capped<impl bytes::Buf + ?Sized>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F, G, H, I, J, K>
-            crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I, J, K),
-            > for ()
-        where
-            (): crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K),
-            >>::CHECKS_EMPTY;
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F, G, H, I, J, K),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J, K, L>
-            crate::encoding::schema::ValueRepr<
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            > for ()
-        where
-            (): crate::encoding::schema::ValueRepr<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            >,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    (A, B, C, D, E, F, G, H, I, J, K, L),
-                >>::repr(schema)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J, K, L>
-            crate::encoding::Wiretyped<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I, J, K, L)>
-            for ()
-        where
-            (): crate::encoding::Wiretyped<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            >,
-        {
-            const WIRE_TYPE: crate::encoding::WireType = <() as crate::encoding::Wiretyped<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            >>::WIRE_TYPE;
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J, K, L>
-            crate::encoding::ValueEncoder<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I, J, K, L)>
-            for ()
-        where
-            (): crate::encoding::ValueEncoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            >,
-        {
-            fn encode_value<__B: bytes::BufMut + ?Sized>(
-                value: &(A, B, C, D, E, F, G, H, I, J, K, L),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::encode_value(value, buf)
-            }
-            fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
-                value: &(A, B, C, D, E, F, G, H, I, J, K, L),
-                buf: &mut __B,
-            ) {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::prepend_value(value, buf)
-            }
-            fn value_encoded_len(value: &(A, B, C, D, E, F, G, H, I, J, K, L)) -> usize {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = (A, B, C, D, E, F, G, H, I, J, K, L)>,
-            {
-                <() as crate::encoding::ValueEncoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::many_values_encoded_len(values)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J, K, L>
-            crate::encoding::ValueDecoder<GeneralGeneric<P>, (A, B, C, D, E, F, G, H, I, J, K, L)>
-            for ()
-        where
-            (): crate::encoding::ValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            >,
-        {
-            fn decode_value<__B: bytes::Buf + ?Sized>(
-                value: &mut (A, B, C, D, E, F, G, H, I, J, K, L),
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::decode_value(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F, G, H, I, J, K, L>
-            crate::encoding::ValueBorrowDecoder<
-                '__a,
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            > for ()
-        where
-            (): crate::encoding::ValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            >,
-        {
-            fn borrow_decode_value(
-                value: &mut (A, B, C, D, E, F, G, H, I, J, K, L),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueBorrowDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::borrow_decode_value(value, buf, ctx)
-            }
-        }
-        impl<const P: u8, A, B, C, D, E, F, G, H, I, J, K, L>
-            crate::encoding::DistinguishedValueDecoder<
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            > for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueDecoder<
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            >>::CHECKS_EMPTY;
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F, G, H, I, J, K, L),
-                buf: crate::encoding::Capped<impl bytes::Buf + ?Sized>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
-            }
-        }
-        impl<'__a, const P: u8, A, B, C, D, E, F, G, H, I, J, K, L>
-            crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                GeneralGeneric<P>,
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            > for ()
-        where
-            (): crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            >,
-        {
-            const CHECKS_EMPTY: bool = <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                '__a,
-                (
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                    General,
-                ),
-                (A, B, C, D, E, F, G, H, I, J, K, L),
-            >>::CHECKS_EMPTY;
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut (A, B, C, D, E, F, G, H, I, J, K, L),
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate::encoding::DistinguishedValueBorrowDecoder<
-                    (
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                        General,
-                    ),
-                    _,
-                >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(value, buf, ctx)
             }
         }
     }
@@ -23178,10 +19773,6 @@ mod encoding {
                 >,
             {
                 fn encode_value<__B: bytes::BufMut + ?Sized>(value: &SystemTime, buf: &mut __B) {
-                    <() as crate::encoding::ValueEncoder<
-                        crate::encoding::Proxied<Packed<Varint>, SealedBilrostTag>,
-                        _,
-                    >>::encode_value(value, buf)
                 }
                 fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
                     value: &SystemTime,
@@ -23277,7 +19868,6 @@ mod encoding {
                     buf: &mut B,
                     tw: &mut crate::encoding::TagWriter,
                 ) {
-                    <() as crate::encoding::Encoder<Unpacked, _>>::encode(tag, value, buf, tw)
                 }
                 fn prepend_encode<B: crate::buf::ReverseBuf + ?Sized>(
                     tag: u32,
@@ -23354,7 +19944,6 @@ mod encoding {
                 S: Default + core::hash::BuildHasher,
             {
                 fn encode_value<__B: bytes::BufMut + ?Sized>(value: &HashSet<T, S>, buf: &mut __B) {
-                    <() as crate::encoding::ValueEncoder<Packed, _>>::encode_value(value, buf)
                 }
                 fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
                     value: &HashSet<T, S>,
@@ -23404,19 +19993,6 @@ mod encoding {
                 }
             }
             impl<const P: u8, K, V, S>
-                crate::encoding::schema::ValueRepr<GeneralGeneric<P>, HashMap<K, V, S>> for ()
-            where
-                (): crate::encoding::schema::ValueRepr<Map, HashMap<K, V, S>>,
-                K: Eq + core::hash::Hash,
-                S: Default + core::hash::BuildHasher,
-            {
-                fn repr(
-                    schema: &crate::encoding::schema::Schema,
-                ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                    <() as crate::encoding::schema::ValueRepr<Map, HashMap<K, V, S>>>::repr(schema)
-                }
-            }
-            impl<const P: u8, K, V, S>
                 crate::encoding::Wiretyped<GeneralGeneric<P>, HashMap<K, V, S>> for ()
             where
                 (): crate::encoding::Wiretyped<Map, HashMap<K, V, S>>,
@@ -23437,7 +20013,6 @@ mod encoding {
                     value: &HashMap<K, V, S>,
                     buf: &mut __B,
                 ) {
-                    <() as crate::encoding::ValueEncoder<Map, _>>::encode_value(value, buf)
                 }
                 fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
                     value: &HashMap<K, V, S>,
@@ -23598,7 +20173,6 @@ mod encoding {
                     buf: &mut B,
                     tw: &mut crate::encoding::TagWriter,
                 ) {
-                    <() as crate::encoding::Encoder<Unpacked, _>>::encode(tag, value, buf, tw)
                 }
                 fn prepend_encode<B: crate::buf::ReverseBuf + ?Sized>(
                     tag: u32,
@@ -23682,7 +20256,6 @@ mod encoding {
                     buf: &mut B,
                     tw: &mut crate::encoding::TagWriter,
                 ) {
-                    <() as crate::encoding::Encoder<Unpacked, _>>::encode(tag, value, buf, tw)
                 }
                 fn prepend_encode<B: crate::buf::ReverseBuf + ?Sized>(
                     tag: u32,
@@ -23801,7 +20374,6 @@ mod encoding {
                     value: &tinyvec::ArrayVec<A>,
                     buf: &mut __B,
                 ) {
-                    <() as crate::encoding::ValueEncoder<Packed, _>>::encode_value(value, buf)
                 }
                 fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
                     value: &tinyvec::ArrayVec<A>,
@@ -23935,7 +20507,6 @@ mod encoding {
                     value: &tinyvec::TinyVec<A>,
                     buf: &mut __B,
                 ) {
-                    <() as crate::encoding::ValueEncoder<Packed, _>>::encode_value(value, buf)
                 }
                 fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
                     value: &tinyvec::TinyVec<A>,
@@ -24100,10 +20671,6 @@ mod encoding {
                     value: &tinyvec::TinyVec<A>,
                     buf: &mut B,
                 ) {
-                    <() as crate::encoding::ValueEncoder<
-                        crate::encoding::PlainBytes,
-                        _,
-                    >>::encode_value(&&**value, buf)
                 }
                 fn prepend_value<B: crate::buf::ReverseBuf + ?Sized>(
                     value: &tinyvec::TinyVec<A>,
@@ -24250,19 +20817,11 @@ mod encoding {
                     value: &tinyvec::ArrayVec<A>,
                     buf: &mut B,
                 ) {
-                    <() as crate::encoding::ValueEncoder<
-                        crate::encoding::PlainBytes,
-                        _,
-                    >>::encode_value(&&**value, buf)
                 }
                 fn prepend_value<B: crate::buf::ReverseBuf + ?Sized>(
                     value: &tinyvec::ArrayVec<A>,
                     buf: &mut B,
                 ) {
-                    <() as crate::encoding::ValueEncoder<
-                        crate::encoding::PlainBytes,
-                        _,
-                    >>::prepend_value(&&**value, buf)
                 }
                 fn value_encoded_len(value: &tinyvec::ArrayVec<A>) -> usize {
                     <() as crate::encoding::ValueEncoder<
@@ -24704,9 +21263,6 @@ mod encoding {
             (): EmptyState<(), C> + ForOverwrite<E, T> + ValueEncoder<E, T>,
         {
             fn encode<B: BufMut + ?Sized>(tag: u32, value: &C, buf: &mut B, tw: &mut TagWriter) {
-                for val in value.iter() {
-                    <() as FieldEncoder<E, T>>::encode_field(tag, val, buf, tw);
-                }
             }
             fn prepend_encode<B: ReverseBuf + ?Sized>(
                 tag: u32,
@@ -24755,9 +21311,6 @@ mod encoding {
                 buf: &mut B,
                 tw: &mut TagWriter,
             ) {
-                if !<() as EmptyState<E, _>>::is_empty(value) {
-                    <() as Encoder<Unpacked<E>, [T]>>::encode(tag, value, buf, tw);
-                }
             }
             fn prepend_encode<B: ReverseBuf + ?Sized>(
                 tag: u32,
@@ -24797,9 +21350,6 @@ mod encoding {
             (): ValueEncoder<E, T>,
         {
             fn encode<B: BufMut + ?Sized>(tag: u32, value: &[T], buf: &mut B, tw: &mut TagWriter) {
-                for val in value.iter() {
-                    <() as FieldEncoder<E, T>>::encode_field(tag, val, buf, tw);
-                }
             }
             fn prepend_encode<B: ReverseBuf + ?Sized>(
                 tag: u32,
@@ -24848,11 +21398,6 @@ mod encoding {
                 buf: &mut B,
                 tw: &mut TagWriter,
             ) {
-                if let Some(values) = value.as_ref() {
-                    for val in values {
-                        <() as FieldEncoder<E, T>>::encode_field(tag, val, buf, tw);
-                    }
-                }
             }
             fn prepend_encode<B: ReverseBuf + ?Sized>(
                 tag: u32,
@@ -24922,19 +21467,6 @@ mod encoding {
                 } else {
                     owned::decode_distinguished::<C, E>(wire_type, value, buf, ctx)
                 }
-            }
-        }
-        impl<T, const N: usize, E> Decoder<Unpacked<E>, [T; N]> for ()
-        where
-            (): ValueDecoder<E, T> + EmptyState<E, [T; N]>,
-        {
-            fn decode<__B: bytes::Buf + ?Sized>(
-                wire_type: WireType,
-                value: &mut [T; N],
-                buf: Capped<__B>,
-                ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                owned::decode_array_either_repr(wire_type, value, buf, ctx)
             }
         }
         impl<T, const N: usize, E> DistinguishedDecoder<Unpacked<E>, [T; N]> for ()
@@ -25327,11 +21859,6 @@ mod encoding {
                 buf: &mut B,
                 tw: &mut crate::encoding::TagWriter,
             ) {
-                if !<() as crate::encoding::EmptyState<Varint, T>>::is_empty(value) {
-                    <() as crate::encoding::FieldEncoder<Varint, T>>::encode_field(
-                        tag, value, buf, tw,
-                    );
-                }
             }
             fn prepend_encode<B: crate::buf::ReverseBuf + ?Sized>(
                 tag: u32,
@@ -25480,13 +22007,11 @@ mod encoding {
         }
         impl ValueEncoder<Varint, bool> for () {
             fn encode_value<B: BufMut + ?Sized>(value: &bool, buf: &mut B) {
-                encode_varint(u64::from(*value), buf);
             }
             fn prepend_value<B: ReverseBuf + ?Sized>(value: &bool, buf: &mut B) {
-                prepend_varint(u64::from(*value), buf);
             }
             fn value_encoded_len(value: &bool) -> usize {
-                encoded_len_varint(u64::from(*value))
+                0
             }
         }
         impl ValueDecoder<Varint, bool> for () {
@@ -25572,13 +22097,11 @@ mod encoding {
         }
         impl ValueEncoder<Varint, u8> for () {
             fn encode_value<B: BufMut + ?Sized>(value: &u8, buf: &mut B) {
-                encode_varint(*value as u64, buf);
             }
             fn prepend_value<B: ReverseBuf + ?Sized>(value: &u8, buf: &mut B) {
-                prepend_varint(*value as u64, buf);
             }
             fn value_encoded_len(value: &u8) -> usize {
-                encoded_len_varint(*value as u64)
+                0
             }
         }
         impl ValueDecoder<Varint, u8> for () {
@@ -25641,13 +22164,11 @@ mod encoding {
         }
         impl ValueEncoder<Varint, u32> for () {
             fn encode_value<B: BufMut + ?Sized>(value: &u32, buf: &mut B) {
-                encode_varint(*value as u64, buf);
             }
             fn prepend_value<B: ReverseBuf + ?Sized>(value: &u32, buf: &mut B) {
-                prepend_varint(*value as u64, buf);
             }
             fn value_encoded_len(value: &u32) -> usize {
-                encoded_len_varint(*value as u64)
+                0
             }
         }
         impl ValueDecoder<Varint, u32> for () {
@@ -25727,13 +22248,11 @@ mod encoding {
         }
         impl ValueEncoder<Varint, u64> for () {
             fn encode_value<B: BufMut + ?Sized>(value: &u64, buf: &mut B) {
-                encode_varint(*value, buf);
             }
             fn prepend_value<B: ReverseBuf + ?Sized>(value: &u64, buf: &mut B) {
-                prepend_varint(*value, buf);
             }
             fn value_encoded_len(value: &u64) -> usize {
-                encoded_len_varint(*value)
+                0
             }
         }
         impl ValueDecoder<Varint, u64> for () {
@@ -25796,13 +22315,11 @@ mod encoding {
         }
         impl ValueEncoder<Varint, usize> for () {
             fn encode_value<B: BufMut + ?Sized>(value: &usize, buf: &mut B) {
-                encode_varint(*value as u64, buf);
             }
             fn prepend_value<B: ReverseBuf + ?Sized>(value: &usize, buf: &mut B) {
-                prepend_varint(*value as u64, buf);
             }
             fn value_encoded_len(value: &usize) -> usize {
-                encoded_len_varint(*value as u64)
+                0
             }
         }
         impl ValueDecoder<Varint, usize> for () {
@@ -25883,13 +22400,11 @@ mod encoding {
         }
         impl ValueEncoder<Varint, i8> for () {
             fn encode_value<B: BufMut + ?Sized>(value: &i8, buf: &mut B) {
-                encode_varint(i8_to_unsigned(*value) as u64, buf);
             }
             fn prepend_value<B: ReverseBuf + ?Sized>(value: &i8, buf: &mut B) {
-                prepend_varint(i8_to_unsigned(*value) as u64, buf);
             }
             fn value_encoded_len(value: &i8) -> usize {
-                encoded_len_varint(i8_to_unsigned(*value) as u64)
+                0
             }
         }
         impl ValueDecoder<Varint, i8> for () {
@@ -25956,13 +22471,11 @@ mod encoding {
         }
         impl ValueEncoder<Varint, i16> for () {
             fn encode_value<B: BufMut + ?Sized>(value: &i16, buf: &mut B) {
-                encode_varint(i16_to_unsigned(*value) as u64, buf);
             }
             fn prepend_value<B: ReverseBuf + ?Sized>(value: &i16, buf: &mut B) {
-                prepend_varint(i16_to_unsigned(*value) as u64, buf);
             }
             fn value_encoded_len(value: &i16) -> usize {
-                encoded_len_varint(i16_to_unsigned(*value) as u64)
+                0
             }
         }
         impl ValueDecoder<Varint, i16> for () {
@@ -26046,13 +22559,11 @@ mod encoding {
         }
         impl ValueEncoder<Varint, i32> for () {
             fn encode_value<B: BufMut + ?Sized>(value: &i32, buf: &mut B) {
-                encode_varint(i32_to_unsigned(*value) as u64, buf);
             }
             fn prepend_value<B: ReverseBuf + ?Sized>(value: &i32, buf: &mut B) {
-                prepend_varint(i32_to_unsigned(*value) as u64, buf);
             }
             fn value_encoded_len(value: &i32) -> usize {
-                encoded_len_varint(i32_to_unsigned(*value) as u64)
+                0
             }
         }
         impl ValueDecoder<Varint, i32> for () {
@@ -26136,13 +22647,11 @@ mod encoding {
         }
         impl ValueEncoder<Varint, i64> for () {
             fn encode_value<B: BufMut + ?Sized>(value: &i64, buf: &mut B) {
-                encode_varint(i64_to_unsigned(*value), buf);
             }
             fn prepend_value<B: ReverseBuf + ?Sized>(value: &i64, buf: &mut B) {
-                prepend_varint(i64_to_unsigned(*value), buf);
             }
             fn value_encoded_len(value: &i64) -> usize {
-                encoded_len_varint(i64_to_unsigned(*value))
+                0
             }
         }
         impl ValueDecoder<Varint, i64> for () {
@@ -26205,13 +22714,11 @@ mod encoding {
         }
         impl ValueEncoder<Varint, isize> for () {
             fn encode_value<B: BufMut + ?Sized>(value: &isize, buf: &mut B) {
-                encode_varint(i64_to_unsigned(*value as i64), buf);
             }
             fn prepend_value<B: ReverseBuf + ?Sized>(value: &isize, buf: &mut B) {
-                prepend_varint(i64_to_unsigned(*value as i64), buf);
             }
             fn value_encoded_len(value: &isize) -> usize {
-                encoded_len_varint(i64_to_unsigned(*value as i64))
+                0
             }
         }
         impl ValueDecoder<Varint, isize> for () {
@@ -26311,19 +22818,6 @@ mod encoding {
         0x102_0408_1020_4080,
     ];
     pub fn encode_varint<B: BufMut + ?Sized>(value: u64, buf: &mut B) {
-        fn encode_varint_inner<const N: usize>(mut value: u64, buf: &mut (impl BufMut + ?Sized)) {
-            let mut varint_data = [0u8; N];
-            for b in &mut varint_data[..N - 1] {
-                *b = ((value & 0x7F) | 0x80) as u8;
-                value = (value >> 7) - 1;
-            }
-            varint_data[N - 1] = value as u8;
-            buf.put_slice(&varint_data);
-        }
-        if value < VARINT_LIMIT[1] {
-        } else {
-            encode_varint_inner::<9>(value, buf);
-        }
     }
     pub fn prepend_varint<B: ReverseBuf + ?Sized>(value: u64, buf: &mut B) {
         fn prepend_varint_inner<const N: usize>(
@@ -26340,19 +22834,6 @@ mod encoding {
         }
         if value < VARINT_LIMIT[1] {
             buf.prepend_u8(value as u8);
-        } else if value < VARINT_LIMIT[5] {
-            if value < VARINT_LIMIT[3] {
-                if value < VARINT_LIMIT[2] {
-                    prepend_varint_inner::<2>(value, buf);
-                } else {
-                    prepend_varint_inner::<3>(value, buf);
-                }
-            } else if value < VARINT_LIMIT[4] {
-            } else {
-                prepend_varint_inner::<7>(value, buf);
-            }
-        } else if value < VARINT_LIMIT[8] {
-            prepend_varint_inner::<8>(value, buf);
         } else {
             prepend_varint_inner::<9>(value, buf);
         }
@@ -26620,11 +23101,6 @@ mod encoding {
             wire_type: WireType,
             buf: &mut B,
         ) {
-            let tag_delta = tag
-                .checked_sub(self.last_tag)
-                .expect("fields encoded out of order");
-            self.last_tag = tag;
-            encode_varint(((tag_delta as u64) << 2) | (wire_type as u64), buf);
         }
     }
     pub struct TagRevWriter {
@@ -27185,19 +23661,6 @@ mod error {
         }
     }
     impl EncodeError {
-        pub fn required_capacity(&self) -> usize {
-            loop {}
-        }
-        pub fn remaining(&self) -> usize {
-            loop {}
-        }
-    }
-    impl fmt::Display for EncodeError {
-        fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            loop {}
-        }
-    }
-    impl From<EncodeError> for std::io::Error {
         fn from(_error: EncodeError) -> std::io::Error {
             loop {}
         }
@@ -27288,19 +23751,6 @@ mod types {
         fn raw_encode<B: BufMut + ?Sized>(&self, _buf: &mut B) {}
         fn raw_prepend<B: ReverseBuf + ?Sized>(&self, _buf: &mut B) {}
         fn raw_encoded_len(&self) -> usize {
-            loop {}
-        }
-    }
-    impl RawMessageDecoder for () {
-        fn raw_decode_field<B: Buf + ?Sized>(
-            &mut self,
-            _tag: u32,
-            _wire_type: WireType,
-            _duplicated: bool,
-            _buf: Capped<B>,
-            _ctx: DecodeContext,
-        ) -> Result<(), DecodeError>
-where {
             loop {}
         }
     }
