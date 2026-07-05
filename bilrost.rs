@@ -333,8 +333,6 @@ mod encoding {
                 T: Any + RegisterFields,
             {
                 fn register(schema: &Schema) {
-                    schema.register_message_wrapper::<Option<T>, T>();
-                    T::register(schema);
                 }
             }
 
@@ -343,7 +341,7 @@ mod encoding {
                 (): ValueRepr<E, T>,
             {
                 fn repr(schema: &Schema) -> Box<dyn Display> {
-                    <() as ValueRepr<E, T>>::repr(schema)
+                    loop {}
                 }
             }
 
@@ -357,17 +355,10 @@ mod encoding {
                     buf: &mut B,
                     tw: &mut TagRevWriter,
                 ) {
-                    if let Some(value) = value {
-                        <() as FieldEncoder<E, T>>::prepend_field(tag, value, buf, tw)
-                    }
                 }
 
                 fn encoded_len(tag: u32, value: &Option<T>, tm: &mut impl TagMeasurer) -> usize {
-                    if let Some(value) = value {
-                        <() as FieldEncoder<E, T>>::field_encoded_len(tag, value, tm)
-                    } else {
-                        0
-                    }
+                    0
                 }
             }
 
@@ -381,12 +372,7 @@ mod encoding {
                     buf: Capped<B>,
                     ctx: DecodeContext,
                 ) -> Result<(), DecodeError> {
-                    <() as FieldDecoder<E, T>>::decode_field(
-                        wire_type,
-                        value.get_or_insert_with(<() as ForOverwrite<E, T>>::for_overwrite),
-                        buf,
-                        ctx,
-                    )
+                    Ok(())
                 }
             }
 
@@ -401,12 +387,7 @@ mod encoding {
                     buf: Capped<B>,
                     ctx: RestrictedDecodeContext,
                 ) -> Result<Canonicity, DecodeError> {
-                    check_wire_type(<() as Wiretyped<E, T>>::WIRE_TYPE, wire_type)?;
-                    <() as DistinguishedValueDecoder<E, T>>::decode_value_distinguished::<true>(
-                        value.get_or_insert_with(<() as ForOverwrite<E, T>>::for_overwrite),
-                        buf,
-                        ctx,
-                    )
+                    loop {}
                 }
             }
 
@@ -420,12 +401,7 @@ mod encoding {
                     buf: Capped<&'a [u8]>,
                     ctx: DecodeContext,
                 ) -> Result<(), DecodeError> {
-                    <() as FieldBorrowDecoder<E, T>>::borrow_decode_field(
-                        wire_type,
-                        value.get_or_insert_with(<() as ForOverwrite<E, T>>::for_overwrite),
-                        buf,
-                        ctx,
-                    )
+                    loop {}
                 }
             }
 
@@ -440,14 +416,7 @@ mod encoding {
                     buf: Capped<&'a [u8]>,
                     ctx: RestrictedDecodeContext,
                 ) -> Result<Canonicity, DecodeError> {
-                    check_wire_type(<() as Wiretyped<E, T>>::WIRE_TYPE, wire_type)?;
-                    <() as DistinguishedValueBorrowDecoder<E, T>>::borrow_decode_value_distinguished::<
-                        true,
-                    >(
-                        value.get_or_insert_with(<() as ForOverwrite<E, T>>::for_overwrite),
-                        buf,
-                        ctx,
-                    )
+                    loop {}
                 }
             }
         }
@@ -468,155 +437,7 @@ mod encoding {
         use core::mem;
 
         pub(crate) struct Fixed;
-
-        impl<__T> crate::encoding::ForOverwrite<Fixed, __T> for ()
-        where
-            (): crate::encoding::ForOverwrite<(), __T>,
-        {
-            fn for_overwrite() -> __T {
-                <() as crate::encoding::ForOverwrite<(), _>>::for_overwrite()
-            }
-        }
-
-        impl<__T> crate::encoding::EmptyState<Fixed, __T> for ()
-        where
-            (): crate::encoding::EmptyState<(), __T>,
-        {
-            fn empty() -> __T {
-                <() as crate::encoding::EmptyState<(), _>>::empty()
-            }
-
-            fn is_empty(__val: &__T) -> bool {
-                <() as crate::encoding::EmptyState<(), _>>::is_empty(__val)
-            }
-
-            fn clear(__val: &mut __T) {
-                <() as crate::encoding::EmptyState<(), _>>::clear(__val);
-            }
-        }
-
-        impl<T> crate::encoding::Encoder<Fixed, T> for ()
-        where
-            (): crate::encoding::EmptyState<Fixed, T> + crate::encoding::ValueEncoder<Fixed, T>,
-        {
-            fn prepend_encode<B: crate::buf::ReverseBuf + ?Sized>(
-                tag: u32,
-                value: &T,
-                buf: &mut B,
-                tw: &mut crate::encoding::TagRevWriter,
-            ) {
-                if !<() as crate::encoding::EmptyState<Fixed, T>>::is_empty(value) {
-                    <() as crate::encoding::FieldEncoder<Fixed, T>>::prepend_field(
-                        tag, value, buf, tw,
-                    );
-                }
-            }
-
-            fn encoded_len(
-                tag: u32,
-                value: &T,
-                tm: &mut impl crate::encoding::TagMeasurer,
-            ) -> usize {
-                if !<() as crate::encoding::EmptyState<Fixed, T>>::is_empty(value) {
-                    <() as crate::encoding::FieldEncoder<Fixed, T>>::field_encoded_len(
-                        tag, value, tm,
-                    )
-                } else {
-                    0
-                }
-            }
-        }
-
-        impl<T> crate::encoding::Decoder<Fixed, T> for ()
-        where
-            (): crate::encoding::EmptyState<Fixed, T> + crate::encoding::ValueDecoder<Fixed, T>,
-        {
-            fn decode<__B: Buf + ?Sized>(
-                wire_type: crate::encoding::WireType,
-                value: &mut T,
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> ::core::result::Result<(), crate::DecodeError> {
-                <() as crate::encoding::FieldDecoder<Fixed, _>>::decode_field(
-                    wire_type, value, buf, ctx,
-                )
-            }
-        }
-
-        impl<T> crate::encoding::DistinguishedDecoder<Fixed, T> for ()
-        where
-            T: ::core::cmp::Eq,
-            (): crate::encoding::EmptyState<Fixed, T>
-                + crate::encoding::DistinguishedValueDecoder<Fixed, T>,
-        {
-            fn decode_distinguished<__B: Buf + ?Sized>(
-                wire_type: crate::encoding::WireType,
-                value: &mut T,
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> ::core::result::Result<crate::Canonicity, crate::DecodeError> {
-                let mut canon =
-                    <() as crate
-                    ::encoding
-                    ::DistinguishedFieldDecoder<Fixed, _>>::decode_field_distinguished::<false>(
-                        wire_type,
-                        value,
-                        buf,
-                        ctx.clone(),
-                    )?;
-                if !<() as crate::encoding::DistinguishedValueDecoder<Fixed, T>>::CHECKS_EMPTY
-                    && <() as crate::encoding::EmptyState<Fixed, _>>::is_empty(value)
-                {
-                    canon.update(ctx.check(crate::Canonicity::NotCanonical)?);
-                }
-                Ok(canon)
-            }
-        }
-
-        impl<'__a, T> crate::encoding::BorrowDecoder<'__a, Fixed, T> for ()
-        where
-            (): crate::encoding::EmptyState<Fixed, T>
-                + crate::encoding::ValueBorrowDecoder<'__a, Fixed, T>,
-        {
-            fn borrow_decode(
-                wire_type: crate::encoding::WireType,
-                value: &mut T,
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> ::core::result::Result<(), crate::DecodeError> {
-                <() as crate::encoding::FieldBorrowDecoder<Fixed, _>>::borrow_decode_field(
-                    wire_type, value, buf, ctx,
-                )
-            }
-        }
-
-        impl<'__a, T> crate::encoding::DistinguishedBorrowDecoder<'__a, Fixed, T> for ()
-        where
-            T: ::core::cmp::Eq,
-            (): crate::encoding::EmptyState<Fixed, T>
-                + crate::encoding::DistinguishedValueBorrowDecoder<'__a, Fixed, T>,
-        {
-            fn borrow_decode_distinguished(
-                wire_type: crate::encoding::WireType,
-                value: &mut T,
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> ::core::result::Result<crate::Canonicity, crate::DecodeError> {
-                let mut canon = <() as crate::encoding::DistinguishedFieldBorrowDecoder<
-                    Fixed,
-                    _,
-                >>::borrow_decode_field_distinguished::<false>(
-                    wire_type, value, buf, ctx.clone()
-                )?;
-                if !<() as crate::encoding::DistinguishedValueBorrowDecoder<Fixed, T>>::CHECKS_EMPTY
-                    && <() as crate::encoding::EmptyState<Fixed, _>>::is_empty(value)
-                {
-                    canon.update(ctx.check(crate::Canonicity::NotCanonical)?);
-                }
-                Ok(canon)
-            }
-        }
-
+        
         impl Wiretyped<Fixed, u64> for () {
             const WIRE_TYPE: WireType = WireType::SixtyFourBit;
         }
@@ -684,300 +505,6 @@ mod encoding {
 
             fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
                 value: &mut u64,
-                buf: Capped<impl Buf + ?Sized>,
-                ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
-                <() as ValueDecoder<Fixed, _>>::decode_value(value, buf, ctx.into_inner())?;
-                Ok(Canonicity::Canonical)
-            }
-        }
-
-        impl Wiretyped<Fixed, i32> for () {
-            const WIRE_TYPE: WireType = WireType::ThirtyTwoBit;
-        }
-
-        impl ValueRepr<Fixed, i32> for () {
-            fn repr(_schema: &Schema) -> Box<dyn Display> {
-                Box::new(::alloc::__export::must_use({
-                    ::alloc::fmt::format(format_args!(
-                        "fixed {0} bytes, {1} integer",
-                        mem::size_of::<i32>(),
-                        "signed"
-                    ))
-                }))
-            }
-        }
-
-        impl ValueEncoder<Fixed, i32> for () {
-            fn prepend_value<B: ReverseBuf + ?Sized>(value: &i32, buf: &mut B) {
-                buf.prepend_i32_le(*value);
-            }
-
-            fn value_encoded_len(_value: &i32) -> usize {
-                WireType::ThirtyTwoBit.fixed_size().unwrap()
-            }
-        }
-
-        impl ValueDecoder<Fixed, i32> for () {
-            fn decode_value<B: Buf + ?Sized>(
-                _value: &mut i32,
-                mut buf: Capped<B>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                if buf.remaining_before_cap() < WireType::ThirtyTwoBit.fixed_size().unwrap() {
-                    return Err(DecodeError::new(Truncated));
-                }
-                let _gotten_value = buf.get_i32_le();
-                Ok(())
-            }
-        }
-
-        impl<'__a> crate::encoding::ValueBorrowDecoder<'__a, Fixed, i32> for ()
-        where
-            (): crate::encoding::ValueDecoder<Fixed, i32>,
-        {
-            fn borrow_decode_value(
-                value: &mut i32,
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<Fixed, _>>::decode_value(value, buf, ctx)
-            }
-        }
-
-        impl DistinguishedValueDecoder<Fixed, i32> for () {
-            const CHECKS_EMPTY: bool = false;
-
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut i32,
-                buf: Capped<impl Buf + ?Sized>,
-                ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
-                <() as ValueDecoder<Fixed, _>>::decode_value(value, buf, ctx.into_inner())?;
-                Ok(Canonicity::Canonical)
-            }
-        }
-
-        impl Wiretyped<Fixed, i64> for () {
-            const WIRE_TYPE: WireType = WireType::SixtyFourBit;
-        }
-
-        impl ValueRepr<Fixed, i64> for () {
-            fn repr(_schema: &Schema) -> Box<dyn Display> {
-                Box::new(::alloc::__export::must_use({
-                    ::alloc::fmt::format(format_args!(
-                        "fixed {0} bytes, {1} integer",
-                        mem::size_of::<i64>(),
-                        "signed"
-                    ))
-                }))
-            }
-        }
-
-        impl ValueEncoder<Fixed, i64> for () {
-            fn prepend_value<B: ReverseBuf + ?Sized>(value: &i64, buf: &mut B) {
-                buf.prepend_i64_le(*value);
-            }
-
-            fn value_encoded_len(_value: &i64) -> usize {
-                WireType::SixtyFourBit.fixed_size().unwrap()
-            }
-        }
-
-        impl ValueDecoder<Fixed, i64> for () {
-            fn decode_value<B: Buf + ?Sized>(
-                _value: &mut i64,
-                _buf: Capped<B>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                Ok(())
-            }
-        }
-
-        impl<'__a> crate::encoding::ValueBorrowDecoder<'__a, Fixed, i64> for ()
-        where
-            (): crate::encoding::ValueDecoder<Fixed, i64>,
-        {
-            fn borrow_decode_value(
-                value: &mut i64,
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<Fixed, _>>::decode_value(value, buf, ctx)
-            }
-        }
-
-        impl<'__a> crate::encoding::DistinguishedValueBorrowDecoder<'__a, Fixed, i64> for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<Fixed, i64>,
-        {
-            const CHECKS_EMPTY: bool =
-                <() as crate::encoding::DistinguishedValueDecoder<Fixed, i64>>::CHECKS_EMPTY;
-
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut i64,
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate
-                ::encoding
-                ::DistinguishedValueDecoder<Fixed, _>>::decode_value_distinguished::<ALLOW_EMPTY>(
-                    value,
-                    buf,
-                    ctx,
-                )
-            }
-        }
-
-        impl DistinguishedValueDecoder<Fixed, i64> for () {
-            const CHECKS_EMPTY: bool = false;
-
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut i64,
-                buf: Capped<impl Buf + ?Sized>,
-                ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
-                <() as ValueDecoder<Fixed, _>>::decode_value(value, buf, ctx.into_inner())?;
-                Ok(Canonicity::Canonical)
-            }
-        }
-
-        impl<'__a> crate::encoding::ValueBorrowDecoder<'__a, Fixed, [u8; 4]> for ()
-        where
-            (): crate::encoding::ValueDecoder<Fixed, [u8; 4]>,
-        {
-            fn borrow_decode_value(
-                value: &mut [u8; 4],
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<Fixed, _>>::decode_value(value, buf, ctx)
-            }
-        }
-
-        impl<'__a> crate::encoding::DistinguishedValueBorrowDecoder<'__a, Fixed, [u8; 4]> for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<Fixed, [u8; 4]>,
-        {
-            const CHECKS_EMPTY: bool =
-                <() as crate::encoding::DistinguishedValueDecoder<Fixed, [u8; 4]>>::CHECKS_EMPTY;
-
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut [u8; 4],
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate
-                ::encoding
-                ::DistinguishedValueDecoder<Fixed, _>>::decode_value_distinguished::<ALLOW_EMPTY>(
-                    value,
-                    buf,
-                    ctx,
-                )
-            }
-        }
-
-        impl Wiretyped<Fixed, [u8; 4]> for () {
-            const WIRE_TYPE: WireType = WireType::ThirtyTwoBit;
-        }
-
-        impl ValueEncoder<Fixed, [u8; 4]> for () {
-            fn prepend_value<B: ReverseBuf + ?Sized>(value: &[u8; 4], buf: &mut B) {
-                buf.prepend_slice(value.as_slice());
-            }
-
-            fn value_encoded_len(_value: &[u8; 4]) -> usize {
-                4
-            }
-        }
-
-        impl ValueDecoder<Fixed, [u8; 4]> for () {
-            fn decode_value<B: Buf + ?Sized>(
-                value: &mut [u8; 4],
-                mut buf: Capped<B>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                buf.copy_to_slice(value.as_mut_slice());
-                Ok(())
-            }
-        }
-
-        impl DistinguishedValueDecoder<Fixed, [u8; 4]> for () {
-            const CHECKS_EMPTY: bool = false;
-
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut [u8; 4],
-                buf: Capped<impl Buf + ?Sized>,
-                ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
-                <() as ValueDecoder<Fixed, _>>::decode_value(value, buf, ctx.into_inner())?;
-                Ok(Canonicity::Canonical)
-            }
-        }
-
-        impl<'__a> crate::encoding::DistinguishedValueBorrowDecoder<'__a, Fixed, [u8; 8]> for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<Fixed, [u8; 8]>,
-        {
-            const CHECKS_EMPTY: bool =
-                <() as crate::encoding::DistinguishedValueDecoder<Fixed, [u8; 8]>>::CHECKS_EMPTY;
-
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut [u8; 8],
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate
-                ::encoding
-                ::DistinguishedValueDecoder<Fixed, _>>::decode_value_distinguished::<ALLOW_EMPTY>(
-                    value,
-                    buf,
-                    ctx,
-                )
-            }
-        }
-
-        impl Wiretyped<Fixed, [u8; 8]> for () {
-            const WIRE_TYPE: WireType = WireType::SixtyFourBit;
-        }
-
-        impl ValueRepr<Fixed, [u8; 8]> for () {
-            fn repr(_: &Schema) -> Box<dyn Display> {
-                Box::new(::alloc::__export::must_use({
-                    ::alloc::fmt::format(format_args!("fixed {0} bytes, plain", 8))
-                }))
-            }
-        }
-
-        impl ValueEncoder<Fixed, [u8; 8]> for () {
-            fn prepend_value<B: ReverseBuf + ?Sized>(value: &[u8; 8], buf: &mut B) {
-                buf.prepend_slice(value.as_slice());
-            }
-
-            fn value_encoded_len(_value: &[u8; 8]) -> usize {
-                8
-            }
-        }
-
-        impl ValueDecoder<Fixed, [u8; 8]> for () {
-            fn decode_value<B: Buf + ?Sized>(
-                value: &mut [u8; 8],
-                mut buf: Capped<B>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                if buf.remaining() < 8 {
-                    return Err(DecodeError::new(Truncated));
-                }
-                buf.copy_to_slice(value.as_mut_slice());
-                Ok(())
-            }
-        }
-
-        impl DistinguishedValueDecoder<Fixed, [u8; 8]> for () {
-            const CHECKS_EMPTY: bool = false;
-
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut [u8; 8],
                 buf: Capped<impl Buf + ?Sized>,
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
