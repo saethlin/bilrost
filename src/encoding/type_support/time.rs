@@ -8,7 +8,6 @@ use crate::encoding::{
 use crate::Canonicity::Canonical;
 use crate::DecodeErrorKind::{InvalidValue, OutOfDomainValue};
 use time::{Date, Duration, OffsetDateTime, PrimitiveDateTime, Time, UtcOffset};
-
 #[cfg(all(test, feature = "chrono"))]
 pub(super) use {
     date::test_dates,
@@ -87,9 +86,9 @@ impl DistinguishedProxiable<SealedBilrostTag> for Date {
 }
 
 delegate_proxied_encoding!(
-    use encoding (Packed<Varint>) to encode proxied type (Date)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        Packed < Varint >
+    ) to encode proxied type(Date) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -121,6 +120,7 @@ mod date {
     }
 
     check_type_empty!(Date, via proxy with tag SealedBilrostTag);
+
     check_type_empty!(Date, via distinguished proxy with tag SealedBilrostTag);
 }
 
@@ -185,9 +185,9 @@ impl DistinguishedProxiable<SealedBilrostTag> for Time {
 }
 
 delegate_proxied_encoding!(
-    use encoding (Packed<Varint>) to encode proxied type (Time)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        Packed < Varint >
+    ) to encode proxied type(Time) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -218,6 +218,7 @@ mod time_ty {
     }
 
     check_type_empty!(Time, via proxy with tag SealedBilrostTag);
+
     check_type_empty!(Time, via distinguished proxy with tag SealedBilrostTag);
 }
 
@@ -280,9 +281,11 @@ impl DistinguishedProxiable<SealedBilrostTag> for PrimitiveDateTime {
 }
 
 delegate_proxied_encoding!(
-    use encoding (Packed<Varint>) to encode proxied type (PrimitiveDateTime)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        Packed < Varint >
+    ) to encode proxied type(
+        PrimitiveDateTime
+    ) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -325,6 +328,7 @@ mod primitivedatetime {
     }
 
     check_type_empty!(PrimitiveDateTime, via proxy with tag SealedBilrostTag);
+
     check_type_empty!(PrimitiveDateTime, via distinguished proxy with tag SealedBilrostTag);
 }
 
@@ -353,12 +357,6 @@ impl Proxiable<SealedBilrostTag> for UtcOffset {
 
     fn decode_proxy(&mut self, proxy: Self::Proxy) -> Result<(), DecodeErrorKind> {
         let (hours, mins, secs) = proxy;
-
-        // offsets should always have the same sign for all three components; we don't want
-        // any two offsets to have the same total via different combinations.
-        //
-        // we enforce this even in relaxed mode because dealing with time is already bad
-        // enough.
         let mut signums = [false; 3];
         for component in [hours, mins, secs] {
             signums[(component.signum() + 1) as usize] = true;
@@ -366,7 +364,6 @@ impl Proxiable<SealedBilrostTag> for UtcOffset {
         if let [true, _, true] = signums {
             return Err(InvalidValue);
         }
-
         *self = Self::from_hms(hours, mins, secs).map_err(|_| OutOfDomainValue)?;
         Ok(())
     }
@@ -383,9 +380,9 @@ impl DistinguishedProxiable<SealedBilrostTag> for UtcOffset {
 }
 
 delegate_proxied_encoding!(
-    use encoding ((Varint, Varint, Varint)) to encode proxied type (UtcOffset)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        (Varint, Varint, Varint)
+    ) to encode proxied type(UtcOffset) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -422,6 +419,7 @@ mod utcoffset {
     }
 
     check_type_empty!(UtcOffset, via proxy with tag SealedBilrostTag);
+
     check_type_empty!(UtcOffset, via distinguished proxy with tag SealedBilrostTag);
 
     #[test]
@@ -507,9 +505,11 @@ impl DistinguishedProxiable<SealedBilrostTag> for OffsetDateTime {
 }
 
 delegate_proxied_encoding!(
-    use encoding (General) to encode proxied type (OffsetDateTime)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        General
+    ) to encode proxied type(
+        OffsetDateTime
+    ) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -534,6 +534,7 @@ mod offsetdatetime {
     }
 
     check_type_empty!(OffsetDateTime, via proxy with tag SealedBilrostTag);
+
     check_type_empty!(OffsetDateTime, via distinguished proxy with tag SealedBilrostTag);
 }
 
@@ -572,9 +573,9 @@ impl DistinguishedProxiable<SealedBilrostTag> for Duration {
 }
 
 delegate_proxied_encoding!(
-    use encoding (General) to encode proxied type (Duration)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        General
+    ) to encode proxied type(Duration) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -606,5 +607,6 @@ mod duration {
     }
 
     check_type_empty!(Duration, via proxy with tag SealedBilrostTag);
+
     check_type_empty!(Duration, via distinguished proxy with tag SealedBilrostTag);
 }

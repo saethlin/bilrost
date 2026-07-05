@@ -14,15 +14,15 @@ use bytes::{Buf, BufMut};
 use core::any::Any;
 use core::fmt::Display;
 
-/// Encoding that performs the actual value-encoding of messages, to and from `RawMessage`-family
-/// traits into length-delimited values on the wire. By default this is directly delegated to by
-/// the general encodings.
+#[doc = " Encoding that performs the actual value-encoding of messages, to and from `RawMessage`-family"]
+#[doc = " traits into length-delimited values on the wire. By default this is directly delegated to by"]
+#[doc = " the general encodings."]
 pub struct MessageEncoding;
 
 implement_core_empty_state_rules!(MessageEncoding);
 
-/// Merges fields from the given buffer, to its cap, into the given owned message value.
-/// Implemented as a private standalone method to discourage "merging" as a usage pattern.
+#[doc = " Merges fields from the given buffer, to its cap, into the given owned message value."]
+#[doc = " Implemented as a private standalone method to discourage \"merging\" as a usage pattern."]
 #[inline]
 pub(crate) fn merge<T: RawMessageDecoder, B: Buf + ?Sized>(
     value: &mut T,
@@ -40,8 +40,8 @@ pub(crate) fn merge<T: RawMessageDecoder, B: Buf + ?Sized>(
     Ok(())
 }
 
-/// Merges fields from the given buffer, to its cap, into the given distinguished owned message
-/// value. Implemented as a private standalone method to discourage "merging" as a usage pattern.
+#[doc = " Merges fields from the given buffer, to its cap, into the given distinguished owned message"]
+#[doc = " value. Implemented as a private standalone method to discourage \"merging\" as a usage pattern."]
 #[inline]
 pub(crate) fn merge_distinguished<T: RawDistinguishedMessageDecoder, B: Buf + ?Sized>(
     value: &mut T,
@@ -71,8 +71,8 @@ pub(crate) fn merge_distinguished<T: RawDistinguishedMessageDecoder, B: Buf + ?S
     Ok(canon)
 }
 
-/// Merges fields from the given buffer, to its cap, into the given borrowed message value.
-/// Implemented as a private standalone method to discourage "merging" as a usage pattern.
+#[doc = " Merges fields from the given buffer, to its cap, into the given borrowed message value."]
+#[doc = " Implemented as a private standalone method to discourage \"merging\" as a usage pattern."]
 #[inline]
 pub(crate) fn borrow_merge<'a, T: RawMessageBorrowDecoder<'a>>(
     value: &mut T,
@@ -90,8 +90,8 @@ pub(crate) fn borrow_merge<'a, T: RawMessageBorrowDecoder<'a>>(
     Ok(())
 }
 
-/// Merges fields from the given buffer, to its cap, into the given distinguished borrowed message
-/// value. Implemented as a private standalone method to discourage "merging" as a usage pattern.
+#[doc = " Merges fields from the given buffer, to its cap, into the given distinguished borrowed message"]
+#[doc = " value. Implemented as a private standalone method to discourage \"merging\" as a usage pattern."]
 #[inline]
 pub(crate) fn borrow_merge_distinguished<'a, T: RawDistinguishedMessageBorrowDecoder<'a>>(
     value: &mut T,
@@ -121,38 +121,33 @@ pub(crate) fn borrow_merge_distinguished<'a, T: RawDistinguishedMessageBorrowDec
     Ok(canon)
 }
 
-/// Encoding trait to be implemented by messages. The methods of this trait are meant to only be
-/// used by the `Message` implementation.
+#[doc = " Encoding trait to be implemented by messages. The methods of this trait are meant to only be"]
+#[doc = " used by the `Message` implementation."]
 pub trait RawMessage {
     const __ASSERTIONS: ();
 
-    /// Returns an initialized message in an empty state.
+    #[doc = " Returns an initialized message in an empty state."]
     fn empty() -> Self
     where
         Self: Sized;
-
-    /// Returns whether the message is currently empty.
+    #[doc = " Returns whether the message is currently empty."]
     fn is_empty(&self) -> bool;
-
-    /// Resets the message to an empty state.
+    #[doc = " Resets the message to an empty state."]
     fn clear(&mut self);
-
-    /// Encodes the message to a buffer.
-    ///
-    /// This method will panic if the buffer has insufficient capacity.
+    #[doc = " Encodes the message to a buffer."]
+    #[doc = ""]
+    #[doc = " This method will panic if the buffer has insufficient capacity."]
     fn raw_encode<B: BufMut + ?Sized>(&self, buf: &mut B);
-
-    /// Prepends the message to a prepend buffer.
+    #[doc = " Prepends the message to a prepend buffer."]
     fn raw_prepend<B: ReverseBuf + ?Sized>(&self, buf: &mut B);
-
-    /// Returns the encoded length of the message without a length delimiter.
+    #[doc = " Returns the encoded length of the message without a length delimiter."]
     fn raw_encoded_len(&self) -> usize;
 }
 
-/// Decoding trait to be implemented by messages. The methods of this trait are meant to only be
-/// used by the `OwnedMessage` implementation.
+#[doc = " Decoding trait to be implemented by messages. The methods of this trait are meant to only be"]
+#[doc = " used by the `OwnedMessage` implementation."]
 pub trait RawMessageDecoder: RawMessage {
-    /// Decodes a field from a buffer into `self`.
+    #[doc = " Decodes a field from a buffer into `self`."]
     fn raw_decode_field<B: Buf + ?Sized>(
         &mut self,
         tag: u32,
@@ -165,8 +160,8 @@ pub trait RawMessageDecoder: RawMessage {
         Self: Sized;
 }
 
-/// Distinguished decoding trait to be implemented by messages. The methods of this trait are meant
-/// to only be used by the `DistinguishedOwnedMessage` implementation.
+#[doc = " Distinguished decoding trait to be implemented by messages. The methods of this trait are meant"]
+#[doc = " to only be used by the `DistinguishedOwnedMessage` implementation."]
 pub trait RawDistinguishedMessageDecoder: RawMessage + Eq {
     fn raw_decode_field_distinguished<B: Buf + ?Sized>(
         &mut self,
@@ -180,10 +175,10 @@ pub trait RawDistinguishedMessageDecoder: RawMessage + Eq {
         Self: Sized;
 }
 
-/// Borrowed decoding trait to be implemented by messages. The methods of this trait are meant to
-/// only be used by the `BorrowedMessage` implementation.
+#[doc = " Borrowed decoding trait to be implemented by messages. The methods of this trait are meant to"]
+#[doc = " only be used by the `BorrowedMessage` implementation."]
 pub trait RawMessageBorrowDecoder<'a>: RawMessage {
-    /// Decodes a field from a buffer into `self` from a borrowed slice.
+    #[doc = " Decodes a field from a buffer into `self` from a borrowed slice."]
     fn raw_borrow_decode_field(
         &mut self,
         tag: u32,
@@ -196,8 +191,8 @@ pub trait RawMessageBorrowDecoder<'a>: RawMessage {
         Self: Sized;
 }
 
-/// Borrowed distinguished decoding trait to be implemented by messages. The methods of this trait
-/// are meant to only be used by the `DistinguishedBorrowedMessage` implementation.
+#[doc = " Borrowed distinguished decoding trait to be implemented by messages. The methods of this trait"]
+#[doc = " are meant to only be used by the `DistinguishedBorrowedMessage` implementation."]
 pub trait RawDistinguishedMessageBorrowDecoder<'a>: RawMessage + Eq {
     fn raw_borrow_decode_field_distinguished(
         &mut self,
@@ -372,7 +367,7 @@ where
         schema.make_lazy_repr(|schema| {
             format!(
                 "delimited message {message_type}",
-                message_type = schema.type_reference::<T>(),
+                message_type = schema.type_reference::<T>()
             )
         })
     }
@@ -421,7 +416,7 @@ impl<T> DistinguishedValueDecoder<MessageEncoding, T> for ()
 where
     T: RawDistinguishedMessageDecoder + Eq,
 {
-    const CHECKS_EMPTY: bool = true; // Empty messages are always zero-length
+    const CHECKS_EMPTY: bool = true;
 
     #[inline]
     fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
@@ -431,9 +426,6 @@ where
     ) -> Result<Canonicity, DecodeError> {
         ctx.limit_reached()?;
         let buf = buf.take_length_delimited()?;
-        // Empty message types always encode and decode from zero bytes. It is far cheaper to check
-        // here than to check after the value has been decoded and checking the message's
-        // `is_empty()`.
         if !ALLOW_EMPTY && buf.remaining_before_cap() == 0 {
             return ctx.check(Canonicity::NotCanonical);
         }
@@ -460,7 +452,7 @@ impl<'a, T> DistinguishedValueBorrowDecoder<'a, MessageEncoding, T> for ()
 where
     T: RawDistinguishedMessageBorrowDecoder<'a> + Eq,
 {
-    const CHECKS_EMPTY: bool = true; // Empty messages are always zero-length
+    const CHECKS_EMPTY: bool = true;
 
     #[inline]
     fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
@@ -470,9 +462,6 @@ where
     ) -> Result<Canonicity, DecodeError> {
         ctx.limit_reached()?;
         let buf = buf.take_length_delimited()?;
-        // Empty message types always encode and decode from zero bytes. It is far cheaper to check
-        // here than to check after the value has been decoded and checking the message's
-        // `is_empty()`.
         if !ALLOW_EMPTY && buf.remaining_before_cap() == 0 {
             return ctx.check(Canonicity::NotCanonical);
         }

@@ -34,22 +34,22 @@ pub(crate) mod time_proxies {
     impl<const P: u8> ValueEncoder<GeneralGeneric<P>, TimeDeltaProxy> for () {
         fn encode_value<B: BufMut + ?Sized>(value: &TimeDeltaProxy, buf: &mut B) {
             underived_encode!(TimeDelta {
-                1: General => secs: &value.secs,
-                2: Fixed => nanos: &value.nanos,
+                1: General => secs: & value.secs,
+                2: Fixed => nanos: & value.nanos,
             }, buf)
         }
 
         fn prepend_value<B: ReverseBuf + ?Sized>(value: &TimeDeltaProxy, buf: &mut B) {
             underived_prepend!(TimeDelta {
-                2: Fixed => nanos: &value.nanos,
-                1: General => secs: &value.secs,
+                2: Fixed => nanos: & value.nanos,
+                1: General => secs: & value.secs,
             }, buf)
         }
 
         fn value_encoded_len(value: &TimeDeltaProxy) -> usize {
             underived_encoded_len!(TimeDelta {
-                1: General => secs: &value.secs,
-                2: Fixed => nanos: &value.nanos,
+                1: General => secs: & value.secs,
+                2: Fixed => nanos: & value.nanos,
             })
         }
     }
@@ -61,8 +61,8 @@ pub(crate) mod time_proxies {
             ctx: DecodeContext,
         ) -> Result<(), DecodeError> {
             underived_decode!(TimeDelta {
-                1: General => secs: &mut value.secs,
-                2: Fixed => nanos: &mut value.nanos,
+                1: General => secs: & mut value.secs,
+                2: Fixed => nanos: & mut value.nanos,
             }, owned, buf, ctx)?;
             if value.secs.signum() as i32 * value.nanos.signum() == -1 {
                 Err(DecodeError::new(InvalidValue))
@@ -81,19 +81,20 @@ pub(crate) mod time_proxies {
             ctx: RestrictedDecodeContext,
         ) -> Result<Canonicity, DecodeError> {
             underived_decode_distinguished!(TimeDelta {
-                1: General => secs: &mut value.secs,
-                2: Fixed => nanos: &mut value.nanos,
+                1: General => secs: & mut value.secs,
+                2: Fixed => nanos: & mut value.nanos,
             }, owned, buf, ctx)
         }
     }
 
     delegate_value_encoding!(
-        encoding (GeneralGeneric<P>) borrows type (TimeDeltaProxy) as owned including distinguished
-        with generics (const P: u8)
+        encoding(
+            GeneralGeneric < P >
+        ) borrows type(TimeDeltaProxy) as owned including distinguished with generics(const P: u8)
     );
 }
 
-/// This is where we show that we have equivalent encodings for the time and chrono crate types.
+#[doc = " This is where we show that we have equivalent encodings for the time and chrono crate types."]
 #[cfg(all(test, feature = "chrono", feature = "time"))]
 mod chrono_time_value_compat {
     use crate::encoding::type_support::time::with_random_values;

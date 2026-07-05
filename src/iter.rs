@@ -1,9 +1,9 @@
-//! Iterator adapters used by the crate that are not available elsewhere.
+#![doc = " Iterator adapters used by the crate that are not available elsewhere."]
 
-/// Adapter that allows flattening an iterator of (K: Clone, V: IntoIter) into (K, V::Item).
-/// This is useful as where the type of core::iter::FlatMap cannot be named (because its function
-/// type is always anonymous), the type of FlatAdapter(..).flatten() can be named any time the type
-/// of its iterator can.
+#[doc = " Adapter that allows flattening an iterator of (K: Clone, V: IntoIter) into (K, V::Item)."]
+#[doc = " This is useful as where the type of core::iter::FlatMap cannot be named (because its function"]
+#[doc = " type is always anonymous), the type of FlatAdapter(..).flatten() can be named any time the type"]
+#[doc = " of its iterator can."]
 pub struct FlatAdapter<I>(pub I);
 
 impl<I, K, Vs> Iterator for FlatAdapter<I>
@@ -15,7 +15,7 @@ where
     type Item = Flattening<K, Vs::IntoIter>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|(k, v)| Flattening(k, v.into_iter()))
+        loop {}
     }
 }
 
@@ -26,7 +26,7 @@ where
     Vs: IntoIterator,
 {
     fn len(&self) -> usize {
-        self.0.len()
+        loop {}
     }
 }
 
@@ -37,13 +37,11 @@ where
     Vs: IntoIterator,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.0
-            .next_back()
-            .map(|(k, v)| Flattening(k, v.into_iter()))
+        loop {}
     }
 }
 
-/// Iterator for an individual (K: Clone, V: Iterator) that produces (K, V::Item).
+#[doc = " Iterator for an individual (K: Clone, V: Iterator) that produces (K, V::Item)."]
 pub struct Flattening<K, Vi>(K, Vi);
 
 impl<K, Vi> Iterator for Flattening<K, Vi>
@@ -54,7 +52,7 @@ where
     type Item = (K, Vi::Item);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.1.next().map(|v| (self.0.clone(), v))
+        loop {}
     }
 }
 
@@ -64,7 +62,7 @@ where
     Vi: ExactSizeIterator,
 {
     fn len(&self) -> usize {
-        self.1.len()
+        loop {}
     }
 }
 
@@ -74,6 +72,6 @@ where
     Vi: DoubleEndedIterator,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.1.next_back().map(|v| (self.0.clone(), v))
+        loop {}
     }
 }

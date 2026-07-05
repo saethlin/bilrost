@@ -7,11 +7,7 @@ use crate::encoding::{
 use crate::DecodeErrorKind;
 use bytes::Buf;
 
-for_overwrite_via_default!(
-    smallvec::SmallVec<A>,
-    with generics(A),
-    with where clause (A: smallvec::Array)
-);
+for_overwrite_via_default!(smallvec:: SmallVec < A >, with generics(A), with where clause(A: smallvec:: Array));
 
 impl<A: smallvec::Array> EmptyState<(), smallvec::SmallVec<A>> for () {
     #[inline]
@@ -63,28 +59,33 @@ impl<T, A: smallvec::Array<Item = T>> Collection for smallvec::SmallVec<A> {
 impl<A: smallvec::Array> TriviallyDistinguishedCollection for smallvec::SmallVec<A> {}
 
 delegate_encoding!(
-    delegate from (General) to (Unpacked)
-    for type (smallvec::SmallVec<A>)
-    including distinguished
-    with where clause (A: smallvec::Array<Item = T>)
-    with generics (T, A)
+    delegate from(
+        General
+    ) to(
+        Unpacked
+    ) for type(
+        smallvec:: SmallVec < A >
+    ) including distinguished with where clause(A: smallvec:: Array < Item = T >) with generics(T, A)
 );
+
 delegate_value_encoding!(
-    delegate from (GeneralPacked) to (Packed)
-    for type (smallvec::SmallVec<A>)
-    including distinguished
-    with where clause for relaxed (A: smallvec::Array<Item = T>)
-    with generics (T, A)
+    delegate from(
+        GeneralPacked
+    ) to(
+        Packed
+    ) for type(
+        smallvec:: SmallVec < A >
+    ) including distinguished with where clause for relaxed(A: smallvec:: Array < Item = T >) with generics(T, A)
 );
 
 plain_bytes_vec_impl!(
-    smallvec::SmallVec<A>,
+    smallvec:: SmallVec < A >,
     value,
     buf,
     chunk,
     value.reserve(buf.remaining()),
     value.extend_from_slice(chunk),
-    with generics (A: smallvec::Array<Item = u8>)
+    with generics(A: smallvec:: Array < Item = u8 >)
 );
 
 #[cfg(test)]

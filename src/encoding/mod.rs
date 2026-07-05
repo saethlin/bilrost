@@ -1,124 +1,125 @@
-//! This is the module that defines the core encoding implementation for bilrost, including the
-//! traits that dispatch it.
-//!
-//! <div class="warning">
-//!
-//! All of the things beneath this module are "under the hood" and are intended for consumption
-//! of `bilrost` itself, in the output of the derive macros of the exactly matching version of the
-//! library. Historically these have undergone significant evolution, and stability of outside use
-//! of anything in or under this module is to be considered **EXPERIMENTAL** until further notice.
-//! That said, the changes that have been made over time are all aimed at eventual stability and a
-//! useful set of features for advanced external users to have a set of tools to work around
-//! annoyances and end up with a result that is as pleasing, ergonomic, and performant as possible.
-//!
-//! </div>
-//!
-//! There are a whole product of traits for encoding and decoding in bilrost, based on the type of
-//! value and the capability.
-//!
-//! Values:
-//!
-//! * supported value that has an empty state (and can be a message field)
-//! * any supported value (may be nested)
-//! * (a helper trait that encodes/decodes fields for anything that implements value encoding)
-//! * oneof with no empty state of its own (must be nested in Option)
-//! * oneof with an empty state
-//! * message
-//!
-//! Capabilities:
-//!
-//! * encode
-//! * decode to owned value, relaxed mode
-//! * decode to owned value, distinguished mode
-//! * decode from borrowed slice, relaxed mode
-//! * decode from borrowed slice, distinguished mode
-//!
-//! ...And here are the names of the traits we define for all the above combinations:
-//!
-//! * Value with an empty state:
-//!     * `Encoder<E, T>`
-//!     * `Decoder<E, T>`
-//!     * `DistinguishedDecoder<E, T>`
-//!     * `BorrowDecoder<'a, E, T>`
-//!     * `DistinguishedBorrowDecoder<'a, E, T>`
-//! * Value with the ability to be nested:
-//!     * `ValueEncoder<E, T>`
-//!     * `ValueDecoder<E, T>`
-//!     * `DistinguishedValueDecoder<E, T>`
-//!     * `ValueBorrowDecoder<'a, E, T>`
-//!     * `DistinguishedValueBorrowDecoder<'a, E, T>`
-//! * Oneof with no empty state:
-//!     * `NonEmptyOneof`
-//!     * `NonEmptyOneofDecoder`
-//!     * `NonEmptyDistinguishedOneofDecoder`
-//!     * `NonEmptyOneofBorrowDecoder<'a>`
-//!     * `NonEmptyDistinguishedOneofBorrowDecoder<'a>`
-//! * Oneof:
-//!     * `Oneof`
-//!     * `OneofDecoder`
-//!     * `DistinguishedOneofDecoder`
-//!     * `OneofBorrowDecoder<'a>`
-//!     * `DistinguishedOneofBorrowDecoder<'a>`
-//! * Message:
-//!     * `RawMessage`
-//!     * `RawMessageDecoder`
-//!     * `RawDistinguishedMessageDecoder`
-//!     * `RawMessageBorrowDecoder<'a>`
-//!     * `RawDistinguishedMessageBorrowDecoder<'a>`
-//!
-//! These traits and their main generic implementations are defined in this module and in its
-//! `message` and `oneof` sub-modules.
-//!
-//! The traits for values are parametrized by "encodings", marker structs which denote *how* the
-//! value is to be encoded, whose implementations are also defined in sub-modules here. These
-//! include:
-//!
-//! * `Fixed`, for fixed-width encodings of either 4 or 8 bytes
-//! * `General`, the default encoding in messages
-//! * `GeneralPacked`, the default encoding in oneofs and inside already-packed values
-//! * `Map<KE, VE>`, which encodes key/value mappings where the keys are encoded by the given
-//!   encodings `KE` and `VE`
-//! * `Packed<E>`, which encodes homogenous containers as a value packed in a single field with the
-//!   given encoding `E`
-//! * `PlainBytes`, which implements encodings for `[u8]`-like types
-//! * `Proxied<E>`, which encodes values with the given encoding `E` after translating them to and
-//!   from a proxy type using the Proxiable traits
-//! * `(T1, T2, ...)`, which implements encoding for tuples which have corresponding fields
-//! * `Unpacked<E>`, which encodes homogenous containers as zero or more values each encoded as
-//!   their own message field with the given encoding `E`
-//! * `Varint`, which encodes all integers in the varint format (even `u8` and `i8`)
-//!
-//! Type support for third party types and for many common aspects of core type implementations can
-//! be found in the `type_support` sub-module tree.
-//!
-//! In addition to the ability to encode and decode, values also have traits for initialized
-//! states:
-//!
-//! * `ForOverwrite<E, T>`: Cheaply create an owned value
-//! * `EmptyState<E, T>`: Create an owned value that is guaranteed to be empty, detect whether a
-//!   value is currently empty, and reset a mut value to an empty state
-//!
-//! For every value type implemented in `bilrost`, these traits are defined in terms of the
-//! encoding type `()`, which we call the "base empty state" implementation. All the encodings in
-//! the library delegate to this base implementation. However, it is possible for a third-party
-//! encoding type to implement empty states differently for its supported values rather than
-//! delegating this way; the logic of when a value is empty or not is entirely up to the encoding.
-//!
-//! Additionally, there are traits for homogenous collections and associative mappings. Anything
-//! that implements these traits will be naturally supported by the appropriate encoding (packed,
-//! unpacked, and map encodings):
-//!
-//! * `Collection`
-//! * `DistinguishedCollection`
-//! * `Mapping`
-//! * `DistinguishedMapping`
-//!
-//! Note that these traits must be able to provide iterators *and* reversed iterators, for purposes
-//! of encoding. These do not have to be double-ended, and these only need to truly be correct and
-//! the reverse of each other if the distinguished trait is implemented; otherwise, it doesn't
-//! really matter what order the items are produced in. Implementations of unordered collections
-//! and mappings like `std::collections::HashSet` never bother to iterate their items in any
-//! special order, nor do they support distinguished decoding as a result.
+#![doc = " This is the module that defines the core encoding implementation for bilrost, including the"]
+#![doc = " traits that dispatch it."]
+#![doc = ""]
+#![doc = " <div class=\"warning\">"]
+#![doc = ""]
+#![doc = " All of the things beneath this module are \"under the hood\" and are intended for consumption"]
+#![doc = " of `bilrost` itself, in the output of the derive macros of the exactly matching version of the"]
+#![doc = " library. Historically these have undergone significant evolution, and stability of outside use"]
+#![doc = " of anything in or under this module is to be considered **EXPERIMENTAL** until further notice."]
+#![doc = " That said, the changes that have been made over time are all aimed at eventual stability and a"]
+#![doc = " useful set of features for advanced external users to have a set of tools to work around"]
+#![doc = " annoyances and end up with a result that is as pleasing, ergonomic, and performant as possible."]
+#![doc = ""]
+#![doc = " </div>"]
+#![doc = ""]
+#![doc = " There are a whole product of traits for encoding and decoding in bilrost, based on the type of"]
+#![doc = " value and the capability."]
+#![doc = ""]
+#![doc = " Values:"]
+#![doc = ""]
+#![doc = " * supported value that has an empty state (and can be a message field)"]
+#![doc = " * any supported value (may be nested)"]
+#![doc = " * (a helper trait that encodes/decodes fields for anything that implements value encoding)"]
+#![doc = " * oneof with no empty state of its own (must be nested in Option)"]
+#![doc = " * oneof with an empty state"]
+#![doc = " * message"]
+#![doc = ""]
+#![doc = " Capabilities:"]
+#![doc = ""]
+#![doc = " * encode"]
+#![doc = " * decode to owned value, relaxed mode"]
+#![doc = " * decode to owned value, distinguished mode"]
+#![doc = " * decode from borrowed slice, relaxed mode"]
+#![doc = " * decode from borrowed slice, distinguished mode"]
+#![doc = ""]
+#![doc = " ...And here are the names of the traits we define for all the above combinations:"]
+#![doc = ""]
+#![doc = " * Value with an empty state:"]
+#![doc = "     * `Encoder<E, T>`"]
+#![doc = "     * `Decoder<E, T>`"]
+#![doc = "     * `DistinguishedDecoder<E, T>`"]
+#![doc = "     * `BorrowDecoder<'a, E, T>`"]
+#![doc = "     * `DistinguishedBorrowDecoder<'a, E, T>`"]
+#![doc = " * Value with the ability to be nested:"]
+#![doc = "     * `ValueEncoder<E, T>`"]
+#![doc = "     * `ValueDecoder<E, T>`"]
+#![doc = "     * `DistinguishedValueDecoder<E, T>`"]
+#![doc = "     * `ValueBorrowDecoder<'a, E, T>`"]
+#![doc = "     * `DistinguishedValueBorrowDecoder<'a, E, T>`"]
+#![doc = " * Oneof with no empty state:"]
+#![doc = "     * `NonEmptyOneof`"]
+#![doc = "     * `NonEmptyOneofDecoder`"]
+#![doc = "     * `NonEmptyDistinguishedOneofDecoder`"]
+#![doc = "     * `NonEmptyOneofBorrowDecoder<'a>`"]
+#![doc = "     * `NonEmptyDistinguishedOneofBorrowDecoder<'a>`"]
+#![doc = " * Oneof:"]
+#![doc = "     * `Oneof`"]
+#![doc = "     * `OneofDecoder`"]
+#![doc = "     * `DistinguishedOneofDecoder`"]
+#![doc = "     * `OneofBorrowDecoder<'a>`"]
+#![doc = "     * `DistinguishedOneofBorrowDecoder<'a>`"]
+#![doc = " * Message:"]
+#![doc = "     * `RawMessage`"]
+#![doc = "     * `RawMessageDecoder`"]
+#![doc = "     * `RawDistinguishedMessageDecoder`"]
+#![doc = "     * `RawMessageBorrowDecoder<'a>`"]
+#![doc = "     * `RawDistinguishedMessageBorrowDecoder<'a>`"]
+#![doc = ""]
+#![doc = " These traits and their main generic implementations are defined in this module and in its"]
+#![doc = " `message` and `oneof` sub-modules."]
+#![doc = ""]
+#![doc = " The traits for values are parametrized by \"encodings\", marker structs which denote *how* the"]
+#![doc = " value is to be encoded, whose implementations are also defined in sub-modules here. These"]
+#![doc = " include:"]
+#![doc = ""]
+#![doc = " * `Fixed`, for fixed-width encodings of either 4 or 8 bytes"]
+#![doc = " * `General`, the default encoding in messages"]
+#![doc = " * `GeneralPacked`, the default encoding in oneofs and inside already-packed values"]
+#![doc = " * `Map<KE, VE>`, which encodes key/value mappings where the keys are encoded by the given"]
+#![doc = "   encodings `KE` and `VE`"]
+#![doc = " * `Packed<E>`, which encodes homogenous containers as a value packed in a single field with the"]
+#![doc = "   given encoding `E`"]
+#![doc = " * `PlainBytes`, which implements encodings for `[u8]`-like types"]
+#![doc = " * `Proxied<E>`, which encodes values with the given encoding `E` after translating them to and"]
+#![doc = "   from a proxy type using the Proxiable traits"]
+#![doc = " * `(T1, T2, ...)`, which implements encoding for tuples which have corresponding fields"]
+#![doc = " * `Unpacked<E>`, which encodes homogenous containers as zero or more values each encoded as"]
+#![doc = "   their own message field with the given encoding `E`"]
+#![doc = " * `Varint`, which encodes all integers in the varint format (even `u8` and `i8`)"]
+#![doc = ""]
+#![doc = " Type support for third party types and for many common aspects of core type implementations can"]
+#![doc = " be found in the `type_support` sub-module tree."]
+#![doc = ""]
+#![doc = " In addition to the ability to encode and decode, values also have traits for initialized"]
+#![doc = " states:"]
+#![doc = ""]
+#![doc = " * `ForOverwrite<E, T>`: Cheaply create an owned value"]
+#![doc = " * `EmptyState<E, T>`: Create an owned value that is guaranteed to be empty, detect whether a"]
+#![doc = "   value is currently empty, and reset a mut value to an empty state"]
+#![doc = ""]
+#![doc = " For every value type implemented in `bilrost`, these traits are defined in terms of the"]
+#![doc = " encoding type `()`, which we call the \"base empty state\" implementation. All the encodings in"]
+#![doc = " the library delegate to this base implementation. However, it is possible for a third-party"]
+#![doc = " encoding type to implement empty states differently for its supported values rather than"]
+#![doc = " delegating this way; the logic of when a value is empty or not is entirely up to the encoding."]
+#![doc = ""]
+#![doc = " Additionally, there are traits for homogenous collections and associative mappings. Anything"]
+#![doc = " that implements these traits will be naturally supported by the appropriate encoding (packed,"]
+#![doc = " unpacked, and map encodings):"]
+#![doc = ""]
+#![doc = " * `Collection`"]
+#![doc = " * `DistinguishedCollection`"]
+#![doc = " * `Mapping`"]
+#![doc = " * `DistinguishedMapping`"]
+#![doc = ""]
+#![doc = " Note that these traits must be able to provide iterators *and* reversed iterators, for purposes"]
+#![doc = " of encoding. These do not have to be double-ended, and these only need to truly be correct and"]
+#![doc = " the reverse of each other if the distinguished trait is implemented; otherwise, it doesn't"]
+#![doc = " really matter what order the items are produced in. Implementations of unordered collections"]
+#![doc = " and mappings like `std::collections::HashSet` never bother to iterate their items in any"]
+#![doc = " special order, nor do they support distinguished decoding as a result."]
+
 use crate::buf::ReverseBuf;
 use crate::DecodeErrorKind::{
     InvalidVarint, NotCanonical, Oversize, TagOverflowed, Truncated, UnknownField, WrongWireType,
@@ -140,7 +141,7 @@ mod macros;
 mod map;
 pub(crate) mod message;
 mod oneof;
-/// Tools for opaque encoding and decoding of any valid Bilrost data.
+#[doc = " Tools for opaque encoding and decoding of any valid Bilrost data."]
 pub mod opaque;
 mod packed;
 mod plain_bytes;
@@ -168,11 +169,18 @@ pub use encoding_traits::{
     DistinguishedValueBorrowDecoder, DistinguishedValueDecoder, ValueBorrowDecoder, ValueDecoder,
     ValueEncoder,
 };
+#[doc = " Fixed-size encoder. Encodes integers in fixed-size format."]
+pub use fixed::Fixed;
+#[doc = " General encoder. Encodes strings and byte blobs, numbers as varints, floats as fixed size,"]
+#[doc = " repeated types unpacked, maps with its own encoding for keys and values, and message types."]
+pub use general::{General, GeneralGeneric, GeneralPacked};
 pub use macros::{delegate_encoding, delegate_proxied_encoding, delegate_value_encoding};
 pub(crate) use macros::{
     encoding_implemented_via_value_encoding, encoding_uses_base_empty_state,
     impl_cow_value_encoding, implement_core_empty_state_rules,
 };
+#[doc = " Encoder for mapping types. Encodes alternating keys and values in packed format."]
+pub use map::Map;
 pub use message::{
     MessageEncoding, RawDistinguishedMessageBorrowDecoder, RawDistinguishedMessageDecoder,
     RawMessage, RawMessageBorrowDecoder, RawMessageDecoder,
@@ -185,34 +193,21 @@ pub use oneof::{
     NonEmptyDistinguishedOneofBorrowDecoder, NonEmptyDistinguishedOneofDecoder, NonEmptyOneof,
     NonEmptyOneofBorrowDecoder, NonEmptyOneofDecoder,
 };
+#[doc = " Packed encoder. Encodes repeated types in packed format."]
+pub use packed::Packed;
+#[doc = " Encoder that decodes bytes data directly into `Vec<u8>`, rather than requiring it to be wrapped"]
+#[doc = " in `Blob`."]
+pub use plain_bytes::PlainBytes;
+pub use proxy::{DistinguishedProxiable, Proxiable, Proxied};
+#[doc = " Unpacked encoder. Encodes repeated types in unpacked format, writing repeated fields."]
+pub use unpacked::Unpacked;
 pub use value_traits::{
     empty_state_via_default, empty_state_via_for_overwrite, for_overwrite_via_default, Collection,
     DistinguishedCollection, DistinguishedMapping, EmptyState, Enumeration, ForOverwrite, Mapping,
 };
-
-/// Fixed-size encoder. Encodes integers in fixed-size format.
-pub use fixed::Fixed;
-/// General encoder. Encodes strings and byte blobs, numbers as varints, floats as fixed size,
-/// repeated types unpacked, maps with its own encoding for keys and values, and message types.
-pub use general::{General, GeneralGeneric, GeneralPacked};
-/// Encoder for mapping types. Encodes alternating keys and values in packed format.
-pub use map::Map;
-/// Packed encoder. Encodes repeated types in packed format.
-pub use packed::Packed;
-/// Encoder that decodes bytes data directly into `Vec<u8>`, rather than requiring it to be wrapped
-/// in `Blob`.
-pub use plain_bytes::PlainBytes;
-/// Unpacked encoder. Encodes repeated types in unpacked format, writing repeated fields.
-pub use unpacked::Unpacked;
-/// Varint encoder. Encodes integer types as varints.
+#[doc = " Varint encoder. Encodes integer types as varints."]
 pub use varint::Varint;
 
-// Proxied is an encoding that provides value-encoding implementations for types that implement
-// their encoded representations by first translating to another type that is already supported.
-pub use proxy::{DistinguishedProxiable, Proxiable, Proxied};
-
-// This is an array of the smallest values whose varint representation is N+1 bytes, where N is the
-// index in the array.
 const VARINT_LIMIT: [u64; 9] = [
     0,
     0x80,
@@ -225,10 +220,10 @@ const VARINT_LIMIT: [u64; 9] = [
     0x102_0408_1020_4080,
 ];
 
-/// Encodes an integer value into LEB128-bijective variable length format, and writes it to the
-/// buffer. The buffer must have enough remaining space (maximum 9 bytes).
-///
-/// See `encoded_len_varint` for notes on the logical structure here.
+#[doc = " Encodes an integer value into LEB128-bijective variable length format, and writes it to the"]
+#[doc = " buffer. The buffer must have enough remaining space (maximum 9 bytes)."]
+#[doc = ""]
+#[doc = " See `encoded_len_varint` for notes on the logical structure here."]
 #[cfg(any(
     all(
         feature = "auto-unroll-varint-encoding",
@@ -276,15 +271,15 @@ pub fn encode_varint<B: BufMut + ?Sized>(value: u64, buf: &mut B) {
     }
 }
 
-/// Encodes an integer value into LEB128-bijective variable length format, and writes it to the
-/// buffer. The buffer must have enough remaining space (maximum 9 bytes).
+#[doc = " Encodes an integer value into LEB128-bijective variable length format, and writes it to the"]
+#[doc = " buffer. The buffer must have enough remaining space (maximum 9 bytes)."]
 #[cfg(not(any(
     all(
         feature = "auto-unroll-varint-encoding",
         not(feature = "prefer-no-unroll-varint-encoding")
     ),
     feature = "unroll-varint-encoding",
-)))]
+),))]
 #[inline(always)]
 pub fn encode_varint<B: BufMut + ?Sized>(mut value: u64, buf: &mut B) {
     for _ in 0..9 {
@@ -298,9 +293,9 @@ pub fn encode_varint<B: BufMut + ?Sized>(mut value: u64, buf: &mut B) {
     }
 }
 
-/// Prepends an integer value in LEB128-bijective format to the given buffer.
-///
-/// See `encoded_len_varint` for notes on the logical structure here.
+#[doc = " Prepends an integer value in LEB128-bijective format to the given buffer."]
+#[doc = ""]
+#[doc = " See `encoded_len_varint` for notes on the logical structure here."]
 #[cfg(any(
     all(
         feature = "auto-unroll-varint-encoding",
@@ -344,21 +339,18 @@ pub fn prepend_varint<B: ReverseBuf + ?Sized>(value: u64, buf: &mut B) {
     } else if value < VARINT_LIMIT[8] {
         prepend_varint_inner::<8>(value, buf);
     } else {
-        // TODO: This implementation frequently becomes much slower for this case specifically; as
-        //  much as 40% slower than the 8-byte case! Rooting out the cause of this will be a big
-        //  win for performance in many cases.
         prepend_varint_inner::<9>(value, buf);
     }
 }
 
-/// Prepends an integer value in LEB128-bijective format to the given buffer.
+#[doc = " Prepends an integer value in LEB128-bijective format to the given buffer."]
 #[cfg(not(any(
     all(
         feature = "auto-unroll-varint-encoding",
         not(feature = "prefer-no-unroll-varint-encoding")
     ),
     feature = "unroll-varint-encoding",
-)))]
+),))]
 #[inline(always)]
 pub fn prepend_varint<B: ReverseBuf + ?Sized>(mut value: u64, buf: &mut B) {
     if value < 0x80 {
@@ -379,7 +371,7 @@ pub fn prepend_varint<B: ReverseBuf + ?Sized>(mut value: u64, buf: &mut B) {
     buf.prepend_slice(&varint_data);
 }
 
-/// Holds a varint value and dereferences to the slice of its relevant bytes.
+#[doc = " Holds a varint value and dereferences to the slice of its relevant bytes."]
 pub struct ConstVarint {
     value: [u8; 9],
     len: u8,
@@ -393,7 +385,7 @@ impl Deref for ConstVarint {
     }
 }
 
-/// Encodes a varint at const time.
+#[doc = " Encodes a varint at const time."]
 pub const fn const_varint(mut value: u64) -> ConstVarint {
     let mut res = [0; 9];
     let mut i: usize = 0;
@@ -413,7 +405,7 @@ pub const fn const_varint(mut value: u64) -> ConstVarint {
     ConstVarint { value: res, len: 9 }
 }
 
-/// Decodes a LEB128-bijective-encoded variable length integer from the buffer.
+#[doc = " Decodes a LEB128-bijective-encoded variable length integer from the buffer."]
 #[inline(always)]
 pub fn decode_varint<B: Buf + ?Sized>(buf: &mut B) -> Result<u64, DecodeError> {
     let bytes = buf.chunk();
@@ -421,17 +413,14 @@ pub fn decode_varint<B: Buf + ?Sized>(buf: &mut B) -> Result<u64, DecodeError> {
     if len == 0 {
         return Err(DecodeError::new(Truncated));
     }
-
     let byte = bytes[0];
     if byte < 0x80 {
         buf.advance(1);
         Ok(u64::from(byte))
     } else if len >= 9 || bytes[len - 1] < 0x80 {
-        // If we read an invalid varint from a contiguous slice, we still want to advance the buffer
-        // by the bytes we looked at, to be maximally consistent.
         let (result, advance) = match decode_varint_slice(bytes) {
             Ok((ok, advance)) => (Ok(ok), advance),
-            Err(err) => (Err(err), 9), // Invalid varints are always 9 bytes
+            Err(err) => (Err(err), 9),
         };
         buf.advance(advance);
         result
@@ -440,29 +429,24 @@ pub fn decode_varint<B: Buf + ?Sized>(buf: &mut B) -> Result<u64, DecodeError> {
     }
 }
 
-/// Decodes a LEB128-bijective-encoded variable length integer from the slice, returning the value
-/// and the number of bytes read.
-///
-/// Based loosely on [`ReadVarint64FromArray`][1] with a varint overflow check from
-/// [`ConsumeVarint`][2].
-///
-/// ## Safety
-///
-/// The caller must ensure that `bytes` is non-empty and either `bytes.len() >= 9` or the last
-/// element in bytes is < `0x80`.
-///
-/// [1]: https://github.com/google/protobuf/blob/3.3.x/src/google/protobuf/io/coded_stream.cc#L365-L406
-/// [2]: https://github.com/protocolbuffers/protobuf-go/blob/v1.27.1/encoding/protowire/wire.go#L358
+#[doc = " Decodes a LEB128-bijective-encoded variable length integer from the slice, returning the value"]
+#[doc = " and the number of bytes read."]
+#[doc = ""]
+#[doc = " Based loosely on [`ReadVarint64FromArray`][1] with a varint overflow check from"]
+#[doc = " [`ConsumeVarint`][2]."]
+#[doc = ""]
+#[doc = " ## Safety"]
+#[doc = ""]
+#[doc = " The caller must ensure that `bytes` is non-empty and either `bytes.len() >= 9` or the last"]
+#[doc = " element in bytes is < `0x80`."]
+#[doc = ""]
+#[doc = " [1]: https://github.com/google/protobuf/blob/3.3.x/src/google/protobuf/io/coded_stream.cc#L365-L406"]
+#[doc = " [2]: https://github.com/protocolbuffers/protobuf-go/blob/v1.27.1/encoding/protowire/wire.go#L358"]
 #[cfg(not(feature = "forbid-unsafe"))]
 #[inline(always)]
 fn decode_varint_slice(bytes: &[u8]) -> Result<(u64, usize), DecodeError> {
-    // Fully unrolled varint decoding loop. Splitting into 32-bit pieces gives better performance.
-
-    // Use assertions to ensure memory safety, but it should always be optimized after inline.
     assert!(!bytes.is_empty());
-    // If the varint is 9 bytes long, the last byte may have its MSB set.
     assert!(bytes.len() >= 9 || bytes[bytes.len() - 1] < 0x80);
-
     let mut b: u8 = unsafe { *bytes.get_unchecked(0) };
     let mut part0: u32 = u32::from(b);
     if b < 0x80 {
@@ -484,7 +468,6 @@ fn decode_varint_slice(bytes: &[u8]) -> Result<(u64, usize), DecodeError> {
         return Ok((u64::from(part0), 4));
     };
     let value = u64::from(part0);
-
     b = unsafe { *bytes.get_unchecked(4) };
     let mut part1: u32 = u32::from(b);
     if b < 0x80 {
@@ -506,7 +489,6 @@ fn decode_varint_slice(bytes: &[u8]) -> Result<(u64, usize), DecodeError> {
         return Ok((value + (u64::from(part1) << 28), 8));
     };
     let value = value + ((u64::from(part1)) << 28);
-
     b = unsafe { *bytes.get_unchecked(8) };
     if (b as u32) + ((value >> 56) as u32) > 0xff {
         Err(DecodeError::new(InvalidVarint))
@@ -514,16 +496,12 @@ fn decode_varint_slice(bytes: &[u8]) -> Result<(u64, usize), DecodeError> {
         Ok((value + (u64::from(b) << 56), 9))
     }
 }
+
 #[cfg(feature = "forbid-unsafe")]
 #[inline(always)]
 fn decode_varint_slice(bytes: &[u8]) -> Result<(u64, usize), DecodeError> {
-    // Fully unrolled varint decoding loop. Splitting into 32-bit pieces gives better performance.
-
-    // Use assertions to ensure memory safety, but it should always be optimized after inline.
     assert!(!bytes.is_empty());
-    // If the varint is 9 bytes long, the last byte may have its MSB set.
     assert!(bytes.len() >= 9 || bytes[bytes.len() - 1] < 0x80);
-
     let mut b: u8 = bytes[0];
     let mut part0: u32 = u32::from(b);
     if b < 0x80 {
@@ -545,7 +523,6 @@ fn decode_varint_slice(bytes: &[u8]) -> Result<(u64, usize), DecodeError> {
         return Ok((u64::from(part0), 4));
     };
     let value = u64::from(part0);
-
     b = bytes[4];
     let mut part1: u32 = u32::from(b);
     if b < 0x80 {
@@ -567,7 +544,6 @@ fn decode_varint_slice(bytes: &[u8]) -> Result<(u64, usize), DecodeError> {
         return Ok((value + (u64::from(part1) << 28), 8));
     };
     let value = value + ((u64::from(part1)) << 28);
-
     b = bytes[8];
     if (b as u32) + ((value >> 56) as u32) > 0xff {
         Err(DecodeError::new(InvalidVarint))
@@ -576,8 +552,8 @@ fn decode_varint_slice(bytes: &[u8]) -> Result<(u64, usize), DecodeError> {
     }
 }
 
-/// Decodes a LEB128-encoded variable length integer from the buffer, advancing the buffer as
-/// necessary.
+#[doc = " Decodes a LEB128-encoded variable length integer from the buffer, advancing the buffer as"]
+#[doc = " necessary."]
 #[inline(never)]
 #[cold]
 fn decode_varint_slow<B: Buf + ?Sized>(buf: &mut B) -> Result<u64, DecodeError> {
@@ -589,37 +565,24 @@ fn decode_varint_slow<B: Buf + ?Sized>(buf: &mut B) -> Result<u64, DecodeError> 
             return Ok(value);
         }
     }
-    // We only reach here if every byte so far had its high bit set. We've either reached the end of
-    // the buffer or the ninth byte. If it's the former, the varint qualifies as truncated.
     if !buf.has_remaining() {
         return Err(DecodeError::new(Truncated));
     }
-    // The decoding process for bijective varints is largely the same as for non-bijective, except
-    // we simply don't remove the MSB from each byte before adding it to the decoded value. Thus,
-    // all 64 bits are already spoken for after the 9th byte (56 from the lower 7 of the first 8
-    // bytes and 8 more from the 9th byte) and we can check for uint64 overflow after reading the
-    // 9th byte; the 10th byte that would be obligated by the encoding if we cared about
-    // generalizing the encoding to more than 64 bit numbers would always be zero, and if there is a
-    // desire to encode varints greater than 64 bits in size it is more efficient to use a
-    // length-prefixed encoding, which is just the blob wiretype.
     u64::checked_add(value, u64::from(buf.get_u8()) << 56).ok_or(DecodeError::new(InvalidVarint))
-    // There is probably a reason why using u64::checked_add here seems to cause decoding even
-    // smaller varints to bench faster, while using it in the fast-path in decode_varint_slice
-    // causes a 5x pessimization. Probably best not to worry about it too much.
 }
 
-/// Additional information passed to every decode/merge function.
-///
-/// The context should be passed by value and can be freely cloned. When passing
-/// to a function which is decoding a nested object, then use `enter_recursion`.
+#[doc = " Additional information passed to every decode/merge function."]
+#[doc = ""]
+#[doc = " The context should be passed by value and can be freely cloned. When passing"]
+#[doc = " to a function which is decoding a nested object, then use `enter_recursion`."]
 #[derive(Clone, Debug)]
 pub struct DecodeContext {
-    /// How many times we can recurse in the current decode stack before we hit
-    /// the recursion limit.
-    ///
-    /// The recursion limit is defined by `RECURSION_LIMIT` and cannot be
-    /// customized. The recursion limit can be ignored by building the Bilrost
-    /// crate with the `no-recursion-limit` feature.
+    #[doc = " How many times we can recurse in the current decode stack before we hit"]
+    #[doc = " the recursion limit."]
+    #[doc = ""]
+    #[doc = " The recursion limit is defined by `RECURSION_LIMIT` and cannot be"]
+    #[doc = " customized. The recursion limit can be ignored by building the Bilrost"]
+    #[doc = " crate with the `no-recursion-limit` feature."]
     #[cfg(not(feature = "no-recursion-limit"))]
     recurse_count: u32,
 }
@@ -635,11 +598,10 @@ impl Default for DecodeContext {
 }
 
 impl DecodeContext {
-    /// Call this function before recursively decoding.
-    ///
-    /// There is no `exit` function since this function creates a new `DecodeContext`
-    /// to be used at the next level of recursion. Continue to use the old context
-    // at the previous level of recursion.
+    #[doc = " Call this function before recursively decoding."]
+    #[doc = ""]
+    #[doc = " There is no `exit` function since this function creates a new `DecodeContext`"]
+    #[doc = " to be used at the next level of recursion. Continue to use the old context"]
     #[inline]
     pub fn enter_recursion(&self) -> DecodeContext {
         DecodeContext {
@@ -648,11 +610,11 @@ impl DecodeContext {
         }
     }
 
-    /// Checks whether the recursion limit has been reached in the stack of
-    /// decodes described by the `DecodeContext` at `self.ctx`.
-    ///
-    /// Returns `Ok<()>` if it is ok to continue recursing.
-    /// Returns `Err<DecodeError>` if the recursion limit has been reached.
+    #[doc = " Checks whether the recursion limit has been reached in the stack of"]
+    #[doc = " decodes described by the `DecodeContext` at `self.ctx`."]
+    #[doc = ""]
+    #[doc = " Returns `Ok<()>` if it is ok to continue recursing."]
+    #[doc = " Returns `Err<DecodeError>` if the recursion limit has been reached."]
     #[inline]
     pub fn limit_reached(&self) -> Result<(), DecodeError> {
         #[cfg(not(feature = "no-recursion-limit"))]
@@ -663,10 +625,10 @@ impl DecodeContext {
     }
 }
 
-/// Additional information passed to every distinguished decode/merge function.
-///
-/// The context should be passed by value and can be freely cloned. When passing
-/// to a function which is decoding a nested object, then use `enter_recursion`.
+#[doc = " Additional information passed to every distinguished decode/merge function."]
+#[doc = ""]
+#[doc = " The context should be passed by value and can be freely cloned. When passing"]
+#[doc = " to a function which is decoding a nested object, then use `enter_recursion`."]
 #[derive(Clone, Debug)]
 pub struct RestrictedDecodeContext {
     context: DecodeContext,
@@ -674,7 +636,7 @@ pub struct RestrictedDecodeContext {
 }
 
 impl RestrictedDecodeContext {
-    /// Creates a new context with a given minimum canonicity.
+    #[doc = " Creates a new context with a given minimum canonicity."]
     pub fn new(min_canonicity: Canonicity) -> Self {
         Self {
             context: DecodeContext::default(),
@@ -682,11 +644,10 @@ impl RestrictedDecodeContext {
         }
     }
 
-    /// Call this function before recursively decoding.
-    ///
-    /// There is no `exit` function since this function creates a new `DecodeContext`
-    /// to be used at the next level of recursion. Continue to use the old context
-    // at the previous level of recursion.
+    #[doc = " Call this function before recursively decoding."]
+    #[doc = ""]
+    #[doc = " There is no `exit` function since this function creates a new `DecodeContext`"]
+    #[doc = " to be used at the next level of recursion. Continue to use the old context"]
     #[inline]
     pub fn enter_recursion(&self) -> Self {
         Self {
@@ -695,39 +656,39 @@ impl RestrictedDecodeContext {
         }
     }
 
-    /// Checks whether the recursion limit has been reached in the stack of
-    /// decodes described by the `DecodeContext` at `self.ctx`.
-    ///
-    /// Returns `Ok<()>` if it is ok to continue recursing.
-    /// Returns `Err<DecodeError>` if the recursion limit has been reached.
+    #[doc = " Checks whether the recursion limit has been reached in the stack of"]
+    #[doc = " decodes described by the `DecodeContext` at `self.ctx`."]
+    #[doc = ""]
+    #[doc = " Returns `Ok<()>` if it is ok to continue recursing."]
+    #[doc = " Returns `Err<DecodeError>` if the recursion limit has been reached."]
     #[inline]
     pub fn limit_reached(&self) -> Result<(), DecodeError> {
         self.context.limit_reached()
     }
 
-    /// Returns the inner non-restricted context for relaxed decoding.
+    #[doc = " Returns the inner non-restricted context for relaxed decoding."]
     pub fn into_inner(self) -> DecodeContext {
         self.context
     }
 
-    /// Checks the given canonicity against the minimum constraint that this context has.
-    ///
-    /// This must be called and checked at a few specific times, whenever the canonicity is
-    /// (possibly) being reduced and it hasn't already been checked by some source that returned
-    /// that canonicity value:
-    ///
-    /// 1. When decoding, and a non-canonical state is observed (such as a value that is represented
-    ///    in a non-canonical form, or an unknown field in the encoding), this can be called with a
-    ///    literal `Canonicity` value.
-    /// 2. After calling one of the distinguished helper trait methods that does not have a
-    ///    restricted context in its parameters to check against, and therefore could not possibly
-    ///    have converted a non-canonical state into an error yet:
-    ///    2a. `DistinguishedProxiable::decode_proxy_distinguished`
-    ///    2b. `DistinguishedCollection::insert_distinguished`
-    ///
-    /// After these canonicity values have been checked, and at all other times, it should be safe
-    /// to directly update the canonicity that an implementation will itself return since each value
-    /// it receives should already be tolerated by the context.
+    #[doc = " Checks the given canonicity against the minimum constraint that this context has."]
+    #[doc = ""]
+    #[doc = " This must be called and checked at a few specific times, whenever the canonicity is"]
+    #[doc = " (possibly) being reduced and it hasn't already been checked by some source that returned"]
+    #[doc = " that canonicity value:"]
+    #[doc = ""]
+    #[doc = " 1. When decoding, and a non-canonical state is observed (such as a value that is represented"]
+    #[doc = "    in a non-canonical form, or an unknown field in the encoding), this can be called with a"]
+    #[doc = "    literal `Canonicity` value."]
+    #[doc = " 2. After calling one of the distinguished helper trait methods that does not have a"]
+    #[doc = "    restricted context in its parameters to check against, and therefore could not possibly"]
+    #[doc = "    have converted a non-canonical state into an error yet:"]
+    #[doc = "    2a. `DistinguishedProxiable::decode_proxy_distinguished`"]
+    #[doc = "    2b. `DistinguishedCollection::insert_distinguished`"]
+    #[doc = ""]
+    #[doc = " After these canonicity values have been checked, and at all other times, it should be safe"]
+    #[doc = " to directly update the canonicity that an implementation will itself return since each value"]
+    #[doc = " it receives should already be tolerated by the context."]
     #[inline]
     pub fn check(&self, canon: Canonicity) -> Result<Canonicity, DecodeError> {
         match (canon < self.min_canonicity, canon) {
@@ -738,23 +699,23 @@ impl RestrictedDecodeContext {
     }
 }
 
-/// Returns the encoded length of the value in LEB128-bijective variable length format.
-/// The returned value will be between 1 and 9, inclusive.
-///
-/// Currently we branch this many times for a varint of a given length:
-/// -------------------
-/// 1 byte  | 1 branch
-/// 2 bytes | 4 branches
-/// 3 bytes | 4 branches
-/// 4 bytes | 4 branches
-/// 5 bytes | 4 branches
-/// 6 bytes | 4 branches
-/// 7 bytes | 4 branches
-/// 8 bytes | 4 branches
-/// 9 bytes | 4 branches
-///
-/// ...in effect, a fast-path check for 1-byte varints plus a hard-coded binary search on the other
-/// 8 possible lengths. The "unrolled" functions for encoding varints are structured similarly.
+#[doc = " Returns the encoded length of the value in LEB128-bijective variable length format."]
+#[doc = " The returned value will be between 1 and 9, inclusive."]
+#[doc = ""]
+#[doc = " Currently we branch this many times for a varint of a given length:"]
+#[doc = " -------------------"]
+#[doc = " 1 byte  | 1 branch"]
+#[doc = " 2 bytes | 4 branches"]
+#[doc = " 3 bytes | 4 branches"]
+#[doc = " 4 bytes | 4 branches"]
+#[doc = " 5 bytes | 4 branches"]
+#[doc = " 6 bytes | 4 branches"]
+#[doc = " 7 bytes | 4 branches"]
+#[doc = " 8 bytes | 4 branches"]
+#[doc = " 9 bytes | 4 branches"]
+#[doc = ""]
+#[doc = " ...in effect, a fast-path check for 1-byte varints plus a hard-coded binary search on the other"]
+#[doc = " 8 possible lengths. The \"unrolled\" functions for encoding varints are structured similarly."]
 #[inline(always)]
 pub const fn encoded_len_varint(value: u64) -> usize {
     if value < VARINT_LIMIT[1] {
@@ -784,7 +745,7 @@ pub const fn encoded_len_varint(value: u64) -> usize {
     }
 }
 
-/// Represents one of the four opaque field types of a Bilrost message field on the wire.
+#[doc = " Represents one of the four opaque field types of a Bilrost message field on the wire."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum WireType {
@@ -817,7 +778,7 @@ impl WireType {
     }
 }
 
-/// Writes keys for the provided tags.
+#[doc = " Writes keys for the provided tags."]
 #[derive(Default)]
 pub struct TagWriter {
     last_tag: u32,
@@ -828,13 +789,13 @@ impl TagWriter {
         Default::default()
     }
 
-    /// Encode the key delta to the given key into the buffer.
-    ///
-    /// All fields must be encoded in order; this is enforced in the encoding by encoding each
-    /// field's tag as a non-negative delta from the previously encoded field's tag. The tag delta
-    /// is encoded in the bits above the lowest two bits in the key delta, which encode the wire
-    /// type. When decoding, the wire type is taken as-is, and the tag delta added to the tag of the
-    /// last field decoded.
+    #[doc = " Encode the key delta to the given key into the buffer."]
+    #[doc = ""]
+    #[doc = " All fields must be encoded in order; this is enforced in the encoding by encoding each"]
+    #[doc = " field's tag as a non-negative delta from the previously encoded field's tag. The tag delta"]
+    #[doc = " is encoded in the bits above the lowest two bits in the key delta, which encode the wire"]
+    #[doc = " type. When decoding, the wire type is taken as-is, and the tag delta added to the tag of the"]
+    #[doc = " last field decoded."]
     #[inline(always)]
     pub fn encode_key<B: BufMut + ?Sized>(&mut self, tag: u32, wire_type: WireType, buf: &mut B) {
         let tag_delta = tag
@@ -845,7 +806,7 @@ impl TagWriter {
     }
 }
 
-/// Writes keys for the provided tags into a prepend-only buffer.
+#[doc = " Writes keys for the provided tags into a prepend-only buffer."]
 #[derive(Default)]
 pub struct TagRevWriter {
     current_key: Option<(u32, WireType)>,
@@ -856,13 +817,13 @@ impl TagRevWriter {
         Default::default()
     }
 
-    /// Encode the key delta to the given key into the buffer.
-    ///
-    /// All fields must be encoded in order; this is enforced in the encoding by encoding each
-    /// field's tag as a non-negative delta from the previously encoded field's tag. The tag delta
-    /// is encoded in the bits above the lowest two bits in the key delta, which encode the wire
-    /// type. When decoding, the wire type is taken as-is, and the tag delta added to the tag of the
-    /// last field decoded.
+    #[doc = " Encode the key delta to the given key into the buffer."]
+    #[doc = ""]
+    #[doc = " All fields must be encoded in order; this is enforced in the encoding by encoding each"]
+    #[doc = " field's tag as a non-negative delta from the previously encoded field's tag. The tag delta"]
+    #[doc = " is encoded in the bits above the lowest two bits in the key delta, which encode the wire"]
+    #[doc = " type. When decoding, the wire type is taken as-is, and the tag delta added to the tag of the"]
+    #[doc = " last field decoded."]
     #[inline(always)]
     pub fn begin_field<B: ReverseBuf + ?Sized>(
         &mut self,
@@ -879,7 +840,7 @@ impl TagRevWriter {
         self.current_key = Some((tag, wire_type));
     }
 
-    /// Finishes writing the current message by encoding the key of the first field that appeared.
+    #[doc = " Finishes writing the current message by encoding the key of the first field that appeared."]
     #[inline(always)]
     pub fn finalize<B: ReverseBuf + ?Sized>(&mut self, buf: &mut B) {
         let Some((tag_delta, wire_type)) = self.current_key else {
@@ -890,13 +851,13 @@ impl TagRevWriter {
     }
 }
 
-/// Trait for simulating the writing of tags in order to measure the length that an encoding would
-/// be.
+#[doc = " Trait for simulating the writing of tags in order to measure the length that an encoding would"]
+#[doc = " be."]
 pub trait TagMeasurer {
     fn key_len(&mut self, tag: u32) -> usize;
 }
 
-/// Simulator for writing tags, capable of outputting their encoded length.
+#[doc = " Simulator for writing tags, capable of outputting their encoded length."]
 #[derive(Default)]
 pub struct RuntimeTagMeasurer {
     last_tag: u32,
@@ -909,8 +870,8 @@ impl RuntimeTagMeasurer {
 }
 
 impl TagMeasurer for RuntimeTagMeasurer {
-    /// Returns the number of bytes that would be written if the given tag was encoded next, and
-    /// also advances the state of the encoder as if that tag was written.
+    #[doc = " Returns the number of bytes that would be written if the given tag was encoded next, and"]
+    #[doc = " also advances the state of the encoder as if that tag was written."]
     #[inline(always)]
     fn key_len(&mut self, tag: u32) -> usize {
         let tag_delta = tag
@@ -921,9 +882,9 @@ impl TagMeasurer for RuntimeTagMeasurer {
     }
 }
 
-/// Simulator for writing tags which assumes that tags will never need to be encoded in more than
-/// a single byte. This holds true in a number of message types that can't output large tag numbers,
-/// such as tuples.
+#[doc = " Simulator for writing tags which assumes that tags will never need to be encoded in more than"]
+#[doc = " a single byte. This holds true in a number of message types that can't output large tag numbers,"]
+#[doc = " such as tuples."]
 #[derive(Default)]
 pub struct TrivialTagMeasurer {
     #[cfg(debug_assertions)]
@@ -949,7 +910,7 @@ impl TagMeasurer for TrivialTagMeasurer {
     }
 }
 
-/// Reads tags from a buffer.
+#[doc = " Reads tags from a buffer."]
 #[derive(Default)]
 pub struct TagReader {
     last_tag: u32,
@@ -977,8 +938,8 @@ impl TagReader {
     }
 }
 
-/// Checks that the expected wire type matches the actual wire type,
-/// or returns an error result.
+#[doc = " Checks that the expected wire type matches the actual wire type,"]
+#[doc = " or returns an error result."]
 #[inline(always)]
 pub fn check_wire_type(expected: WireType, actual: WireType) -> Result<(), DecodeError> {
     if expected != actual {
@@ -987,16 +948,16 @@ pub fn check_wire_type(expected: WireType, actual: WireType) -> Result<(), Decod
     Ok(())
 }
 
-/// A soft-limited wrapper for `impl Buf` that doesn't invoke extra work whenever the buffer is read
-/// from, only when the remaining bytes are checked. This means it can be used to decode arbitrarily
-/// nested regions without adding extra work every time.
+#[doc = " A soft-limited wrapper for `impl Buf` that doesn't invoke extra work whenever the buffer is read"]
+#[doc = " from, only when the remaining bytes are checked. This means it can be used to decode arbitrarily"]
+#[doc = " nested regions without adding extra work every time."]
 pub struct Capped<'a, B: 'a + Buf + ?Sized> {
     buf: &'a mut B,
     extra_bytes_remaining: usize,
 }
 
 impl<'a, B: 'a + Buf + ?Sized> Capped<'a, B> {
-    /// Creates a Capped instance with a cap at the very end of the given buffer.
+    #[doc = " Creates a Capped instance with a cap at the very end of the given buffer."]
     pub fn new(buf: &'a mut B) -> Self {
         Self {
             buf,
@@ -1004,8 +965,8 @@ impl<'a, B: 'a + Buf + ?Sized> Capped<'a, B> {
         }
     }
 
-    /// Reads a length from the beginning of the given buffer, then returns a Capped instance
-    /// with its cap at the end of the delimited range.
+    #[doc = " Reads a length from the beginning of the given buffer, then returns a Capped instance"]
+    #[doc = " with its cap at the end of the delimited range."]
     pub fn new_length_delimited(buf: &'a mut B) -> Result<Self, DecodeError> {
         let len = decode_length_delimiter(&mut *buf)?;
         let remaining = buf.remaining();
@@ -1026,14 +987,12 @@ impl<'a, B: 'a + Buf + ?Sized> Capped<'a, B> {
         }
     }
 
-    /// Reads a length delimiter from the beginning of the wrapped buffer, then returns a subsidiary
-    /// Capped instance for the delimited bytes if it does not overrun the underlying buffer or
-    /// this instance's cap.
+    #[doc = " Reads a length delimiter from the beginning of the wrapped buffer, then returns a subsidiary"]
+    #[doc = " Capped instance for the delimited bytes if it does not overrun the underlying buffer or"]
+    #[doc = " this instance's cap."]
     #[inline(always)]
     pub fn take_length_delimited(&mut self) -> Result<Capped<'_, B>, DecodeError> {
         let len = decode_length_delimiter(&mut *self.buf)?;
-        // Rather than checking that len + extra_bytes_remaining fits in remaining, we subtract and
-        // compare the smaller values to avoid situations that may overflow.
         let remaining = self.buf.remaining();
         if len > remaining {
             return Err(DecodeError::new(Truncated));
@@ -1062,8 +1021,6 @@ impl<'a, B: 'a + Buf + ?Sized> Capped<'a, B> {
     #[inline(always)]
     pub fn decode_varint(&mut self) -> Result<u64, DecodeError> {
         decode_varint(self.buf).map_err(|err| {
-            // Varints are always decoded greedily from the underlying buffer, so we want to
-            // transform any non-truncation errors into Truncated to pretend that we stopped sooner.
             if err.kind() == InvalidVarint && self.over_cap() {
                 DecodeError::new(Truncated)
             } else {
@@ -1072,7 +1029,7 @@ impl<'a, B: 'a + Buf + ?Sized> Capped<'a, B> {
         })
     }
 
-    /// Returns the number of bytes left before the cap.
+    #[doc = " Returns the number of bytes left before the cap."]
     #[inline(always)]
     pub fn remaining_before_cap(&self) -> usize {
         self.buf
@@ -1096,14 +1053,12 @@ impl<'a, B: 'a + Buf + ?Sized> Capped<'a, B> {
 }
 
 impl<'a> Capped<'_, &'a [u8]> {
-    /// Reads a length delimiter from the beginning of the wrapped slice, then advances that inner
-    /// slice past the delimited bytes and returns them borrowed with lifetime if the instance's
-    /// cap is not overrun.
+    #[doc = " Reads a length delimiter from the beginning of the wrapped slice, then advances that inner"]
+    #[doc = " slice past the delimited bytes and returns them borrowed with lifetime if the instance's"]
+    #[doc = " cap is not overrun."]
     #[inline(always)]
     pub fn take_borrowed_length_delimited(&mut self) -> Result<&'a [u8], DecodeError> {
         let len = decode_length_delimiter(&mut *self.buf)?;
-        // Rather than checking that len + extra_bytes_remaining fits in remaining, we subtract and
-        // compare the smaller values to avoid situations that may overflow.
         let remaining = self.buf.remaining();
         if len > remaining {
             return Err(DecodeError::new(Truncated));
@@ -1112,13 +1067,9 @@ impl<'a> Capped<'_, &'a [u8]> {
         if extra_bytes_remaining < self.extra_bytes_remaining {
             return Err(DecodeError::new(Truncated));
         }
-
-        // Unlike the non-borrowed impl, we advance the buf and give the slice directly as a result.
         let taken;
-        // MSRV: this could be `split_at_unchecked` (1.79)
         (taken, *self.buf) = {
             #[cfg(not(feature = "forbid-unsafe"))]
-            // SAFETY: we checked above that `self.buf` is of at least length `len`
             unsafe {
                 (self.buf.get_unchecked(..len), self.buf.get_unchecked(len..))
             }
@@ -1127,7 +1078,6 @@ impl<'a> Capped<'_, &'a [u8]> {
                 (&self.buf[..len], &self.buf[len..])
             }
         };
-
         Ok(taken)
     }
 }
@@ -1146,28 +1096,25 @@ impl<B: Buf + ?Sized> DerefMut for Capped<'_, B> {
     }
 }
 
-/// Returns `Some` if there are more bytes in the buffer and the next data in the buffer begins
-/// with a "repeated" field key (a key with a tag delta of zero). If the repeated field key is found
-/// it is consumed; if it does not exist, the buffer is unchanged.
+#[doc = " Returns `Some` if there are more bytes in the buffer and the next data in the buffer begins"]
+#[doc = " with a \"repeated\" field key (a key with a tag delta of zero). If the repeated field key is found"]
+#[doc = " it is consumed; if it does not exist, the buffer is unchanged."]
 #[inline(always)]
 fn peek_repeated_field<B: Buf + ?Sized>(buf: &mut Capped<B>) -> Option<WireType> {
     if buf.remaining_before_cap() == 0 {
         return None;
     }
-    // Peek the first byte of the next field's key.
     let peek_key = buf.chunk()[0];
     if peek_key >= 4 {
-        return None; // The next field has a different tag than this one.
+        return None;
     }
-    // The next field's key has a repeated tag (its delta is zero). Consume the peeked key and
-    // return its wire type
     buf.advance(1);
     Some(WireType::from(peek_key))
 }
 
-/// Consumes and discards the value of a field that has the given key, as well as the keys and
-/// values of every following field with the same tag. The key of the field should be consumed
-/// before this function is called.
+#[doc = " Consumes and discards the value of a field that has the given key, as well as the keys and"]
+#[doc = " values of every following field with the same tag. The key of the field should be consumed"]
+#[doc = " before this function is called."]
 pub fn skip_field<B: Buf + ?Sized>(
     mut wire_type: WireType,
     mut buf: Capped<B>,
@@ -1181,12 +1128,10 @@ pub fn skip_field<B: Buf + ?Sized>(
                 usize::try_from(buf.decode_varint()?).map_err(|_| DecodeError::new(Oversize))?
             }
         };
-
         if len > buf.remaining() {
             return Err(DecodeError::new(Truncated));
         }
         buf.advance(len);
-
         match peek_repeated_field(&mut buf) {
             None => break,
             Some(next_wire_type) => {
@@ -1197,24 +1142,24 @@ pub fn skip_field<B: Buf + ?Sized>(
     Ok(())
 }
 
-/// Indicator of the "canonicity" of a decoded value or a decoding process that was performed.
-///
-/// See documentation on `RestrictedDecodeContext::check` for details on when this should be checked
-/// for returning canonicity errors.
+#[doc = " Indicator of the \"canonicity\" of a decoded value or a decoding process that was performed."]
+#[doc = ""]
+#[doc = " See documentation on `RestrictedDecodeContext::check` for details on when this should be checked"]
+#[doc = " for returning canonicity errors."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 #[must_use]
 pub enum Canonicity {
-    /// The decoded data was not represented in its canonical form.
+    #[doc = " The decoded data was not represented in its canonical form."]
     NotCanonical,
-    /// All known fields were represented canonically, but some unknown fields were present.
+    #[doc = " All known fields were represented canonically, but some unknown fields were present."]
     HasExtensions,
-    /// The decoded data was fully canonical.
+    #[doc = " The decoded data was fully canonical."]
     Canonical,
 }
 
 impl Canonicity {
-    /// Update this value to the lowest (least-canonical) state.
+    #[doc = " Update this value to the lowest (least-canonical) state."]
     #[inline(always)]
     pub fn update(&mut self, other: Self) {
         *self = min(*self, other);
@@ -1228,26 +1173,22 @@ impl FromIterator<Canonicity> for Canonicity {
     }
 }
 
-/// Trait for values and results bearing canonicity information (represented by the `Canonicity`
-/// enum).
+#[doc = " Trait for values and results bearing canonicity information (represented by the `Canonicity`"]
+#[doc = " enum)."]
 pub trait WithCanonicity {
-    /// The type of the value without any canonicity information.
+    #[doc = " The type of the value without any canonicity information."]
     type Value;
-    // Type the value is turned into when non-canonical states are turned into error states or
-    // removed.
     type WithoutCanonicity;
 
-    /// Get the value if it is fully canonical, otherwise returning an error.
+    #[doc = " Get the value if it is fully canonical, otherwise returning an error."]
     fn canonical(self) -> Result<Self::Value, DecodeErrorKind>;
-
-    /// Get the value as long as its known fields are canonical, otherwise returning an error.
+    #[doc = " Get the value as long as its known fields are canonical, otherwise returning an error."]
     fn canonical_with_extensions(self) -> Result<Self::Value, DecodeErrorKind>;
-
-    /// Discards the canonicity.
-    ///
-    /// If this method is always being used and canonicity information is always discarded,
-    /// distinguished decoding may not be needed, and the program can be made more efficient by
-    /// simply using relaxed decoding mode.
+    #[doc = " Discards the canonicity."]
+    #[doc = ""]
+    #[doc = " If this method is always being used and canonicity information is always discarded,"]
+    #[doc = " distinguished decoding may not be needed, and the program can be made more efficient by"]
+    #[doc = " simply using relaxed decoding mode."]
     fn value(self) -> Self::WithoutCanonicity;
 }
 
@@ -1354,8 +1295,8 @@ where
     }
 }
 
-/// Trait used by derived enumeration helper functions to provide getters and setters for integer
-/// fields via their associated `Enumeration` type.
+#[doc = " Trait used by derived enumeration helper functions to provide getters and setters for integer"]
+#[doc = " fields via their associated `Enumeration` type."]
 pub trait EnumerationHelper<FieldType> {
     type Input;
     type Output;

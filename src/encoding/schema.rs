@@ -1,15 +1,15 @@
-//! Tools for outputting (human-readable) information about the encoding of the message types used
-//! in a program.
-//!
-//! The general flow goes like this:
-//!  * Create a Schema
-//!  * Register each of the message types we want to see with that schema.
-//!      * When a message is registered this way, new message types that haven't been registered
-//!        before will have `MessageSchema::register_fields` called, and must describe their
-//!        fields into the `FieldSet` provided.
-//!      * Messages that contain other messages will register those in turn.
-//!  * Finally, once all relevant message types are registered, the schema can be Displayed, which
-//!    will output all the collected information.
+#![doc = " Tools for outputting (human-readable) information about the encoding of the message types used"]
+#![doc = " in a program."]
+#![doc = ""]
+#![doc = " The general flow goes like this:"]
+#![doc = "  * Create a Schema"]
+#![doc = "  * Register each of the message types we want to see with that schema."]
+#![doc = "      * When a message is registered this way, new message types that haven't been registered"]
+#![doc = "        before will have `MessageSchema::register_fields` called, and must describe their"]
+#![doc = "        fields into the `FieldSet` provided."]
+#![doc = "      * Messages that contain other messages will register those in turn."]
+#![doc = "  * Finally, once all relevant message types are registered, the schema can be Displayed, which"]
+#![doc = "    will output all the collected information."]
 
 use alloc::borrow::ToOwned;
 use alloc::boxed::Box;
@@ -22,7 +22,7 @@ use core::any::{type_name, Any, TypeId};
 use core::fmt::{Display, Formatter};
 use core::ops::{Deref, DerefMut};
 
-/// Common trait for interior mutability
+#[doc = " Common trait for interior mutability"]
 trait BorrowGuard<T> {
     type ReadGuard<'a>: Deref<Target = T>
     where
@@ -57,7 +57,6 @@ mod guard {
 
         fn get_guarded(&self) -> Self::WriteGuard<'_> {
             self.try_write().unwrap()
-            //self.write()
         }
     }
 }
@@ -88,7 +87,7 @@ mod guard {
 
 use guard::Guard;
 
-/// A collected internally-complete set of message definitions.
+#[doc = " A collected internally-complete set of message definitions."]
 #[derive(Clone)]
 pub struct Schema(Arc<MessageSet>);
 
@@ -101,26 +100,25 @@ struct MessageSet {
     message_wrappers: Guard<BTreeMap<TypeId, TypeId>>,
 }
 
-/// Receptacle for a full schema that can record the schemas of many messages.
-///
-/// This trait is usable from a const reference with interior mutability because when messages
-/// register the appearance of their fields' reprs they will sometimes capture references to the
-/// whole schema so that they can get the name of a type. We want the overall schema not to be
-/// frozen in place as we collect these reprs even as their potential output changes and more types
-/// are registered.
+#[doc = " Receptacle for a full schema that can record the schemas of many messages."]
+#[doc = ""]
+#[doc = " This trait is usable from a const reference with interior mutability because when messages"]
+#[doc = " register the appearance of their fields' reprs they will sometimes capture references to the"]
+#[doc = " whole schema so that they can get the name of a type. We want the overall schema not to be"]
+#[doc = " frozen in place as we collect these reprs even as their potential output changes and more types"]
+#[doc = " are registered."]
 impl Schema {
     pub fn new() -> Self {
         Self(MessageSet::default().into())
     }
 
-    /// Registers a specific message type. May shortcut if this method has already been invoked
-    /// for the same type.
+    #[doc = " Registers a specific message type. May shortcut if this method has already been invoked"]
+    #[doc = " for the same type."]
     pub fn register_message<M: Any + ?Sized>(
         &self,
         name: &str,
         fields: impl Fn(&mut MessageFields),
     ) {
-        // First check by a read-only lock whether the type is already registered
         if self.0.types.read_guarded().contains_key(&TypeId::of::<M>()) {
             return;
         }
@@ -130,12 +128,8 @@ impl Schema {
                     name,
                 )))))
                 .clone(),
-            Entry::Occupied(_) => return, // already registered by a race
+            Entry::Occupied(_) => return,
         };
-
-        // Only after we've inserted the message info into the map do we populate its fields. This
-        // ensures that we are no longer holding the lock on `types` so other types can be
-        // recursively registered.
         let mut info_ref = info.get_guarded();
         let TypeInfo::Message(msg) = info_ref.deref_mut() else {
             unreachable!();
@@ -148,7 +142,6 @@ impl Schema {
         name: &str,
         fields: impl Fn(&mut EnumInfo),
     ) {
-        // First check by a read-only lock whether the type is already registered
         if self.0.types.read_guarded().contains_key(&TypeId::of::<E>()) {
             return;
         }
@@ -156,12 +149,8 @@ impl Schema {
             Entry::Vacant(entry) => entry
                 .insert(Arc::new(Guard::new(TypeInfo::Enum(EnumInfo::new(name)))))
                 .clone(),
-            Entry::Occupied(_) => return, // already registered
+            Entry::Occupied(_) => return,
         };
-
-        // Only after we've inserted the enum info into the map do we populate its fields. This
-        // ensures that we are no longer holding the lock on `types` so other types can be
-        // recursively registered.
         let mut info_ref = info.get_guarded();
         let TypeInfo::Enum(enum_info) = info_ref.deref_mut() else {
             unreachable!();
@@ -169,15 +158,14 @@ impl Schema {
         fields(enum_info)
     }
 
-    /// Registers the message variants of a oneof enum. A oneof may have several variants that each
-    /// encode as messages, and they should each be registered on the `OneofMessages` value
-    /// provided to the `variants` closure.
+    #[doc = " Registers the message variants of a oneof enum. A oneof may have several variants that each"]
+    #[doc = " encode as messages, and they should each be registered on the `OneofMessages` value"]
+    #[doc = " provided to the `variants` closure."]
     pub fn register_oneof_messages<T: Any + ?Sized>(
         &self,
         name: &str,
         variants: impl Fn(&mut OneofMessages),
     ) {
-        // First check by a read-only lock whether the type is already registered
         if self
             .0
             .subtypes
@@ -190,12 +178,8 @@ impl Schema {
             Entry::Vacant(entry) => entry
                 .insert(Arc::new(Guard::new(OneofMessages::new(name))))
                 .clone(),
-            Entry::Occupied(_) => return, // already registered
+            Entry::Occupied(_) => return,
         };
-
-        // Only after we've inserted the oneof info into the map do we populate its variants. This
-        // ensures that we are no longer holding the lock on `types` so other types can be
-        // recursively registered.
         let mut info_ref = info.get_guarded();
         variants(info_ref.deref_mut())
     }
@@ -209,25 +193,21 @@ impl Schema {
         effective_id
     }
 
-    /// Registers that the type W wraps the message type M and should be treated as equivalent.
+    #[doc = " Registers that the type W wraps the message type M and should be treated as equivalent."]
     pub fn register_message_wrapper<W: Any + ?Sized, M: Any + ?Sized>(&self) {
         let wrapper_type_id = TypeId::of::<W>();
         let referenced_type_id = TypeId::of::<M>();
-        // Dereference what "M" is already declared to wrap
         let root_type_id = self.wrapped_type_id(referenced_type_id);
-
-        // if "M" already wraps "W", don't do anything. This way we can never create infinite loops
         if root_type_id == wrapper_type_id {
             return;
         }
-
         self.0
             .message_wrappers
             .get_guarded()
             .insert(wrapper_type_id, referenced_type_id);
     }
 
-    /// Registers that a type T is known by the given name.
+    #[doc = " Registers that a type T is known by the given name."]
     pub fn register_type_alias<T: Any + ?Sized>(&self, name: &str) {
         self.0
             .alternate_names
@@ -237,16 +217,16 @@ impl Schema {
             .insert(name.to_owned());
     }
 
-    /// Name for a type that disambiguates where it can be found in the entire schema output. The
-    /// output of this function may differ as more types are added to the schema, so this should
-    /// only be called when the whole schema is being rendered; see `make_lazy_repr`.
+    #[doc = " Name for a type that disambiguates where it can be found in the entire schema output. The"]
+    #[doc = " output of this function may differ as more types are added to the schema, so this should"]
+    #[doc = " only be called when the whole schema is being rendered; see `make_lazy_repr`."]
     pub fn type_reference<M: Any + ?Sized>(&self) -> String {
         let effective_id = self.wrapped_type_id(TypeId::of::<M>());
         let types = self.0.types.read_guarded();
         let Some(type_info) = types.get(&effective_id) else {
             return format!(
                 "<!! type {ty_name:?} is not registered as a message !!>",
-                ty_name = type_name::<M>(),
+                ty_name = type_name::<M>()
             );
         };
         let type_info = type_info.read_guarded();
@@ -258,12 +238,11 @@ impl Schema {
         }
     }
 
-    /// Name for a sub-type (message variant of a oneof enum) that disambiguates where it can be
-    /// found in the entire schema output. The output of this function may differ as more types are
-    /// added to the schema, so this should only be called when the whole schema is being rendered;
-    /// see `make_lazy_repr`.
+    #[doc = " Name for a sub-type (message variant of a oneof enum) that disambiguates where it can be"]
+    #[doc = " found in the entire schema output. The output of this function may differ as more types are"]
+    #[doc = " added to the schema, so this should only be called when the whole schema is being rendered;"]
+    #[doc = " see `make_lazy_repr`."]
     pub fn subtype_reference<M: Any + ?Sized, const TAG: u32>(&self) -> String {
-        // TODO: this is a placeholder, we want to use the type's ordinal after they're organized
         let id = self.wrapped_type_id(TypeId::of::<M>());
         let subtypes = self.0.subtypes.read_guarded();
         let Some(oneof_info) = subtypes.get(&id) else {
@@ -288,9 +267,9 @@ impl Schema {
         }
     }
 
-    /// Returns a lazily-evaluated repr using the given closure. The closure won't be invoked until
-    /// the schema is displayed, so `schema.type_reference::<T>()` can correctly specify the name
-    /// of the type `T`.
+    #[doc = " Returns a lazily-evaluated repr using the given closure. The closure won't be invoked until"]
+    #[doc = " the schema is displayed, so `schema.type_reference::<T>()` can correctly specify the name"]
+    #[doc = " of the type `T`."]
     pub fn make_lazy_repr<A, D>(&self, a: A) -> Box<dyn Display>
     where
         A: 'static + Fn(&Schema) -> D,
@@ -351,18 +330,14 @@ impl Display for Schema {
                 });
             }
         }
-        // Update the index so that `type_reference` and `subtype_reference` will show the correct
-        // numbers during the render
         {
             let mut index = self.0.type_index.get_guarded();
-
             *index = ordered
                 .iter()
                 .map(|entry| (entry.type_id, entry.subtype_tag))
                 .zip(1..)
                 .collect();
         }
-
         let mut first_print = true;
         for (
             TypeEntry {
@@ -382,7 +357,7 @@ impl Display for Schema {
                     writeln!(
                         f,
                         "[{ordinal}] {type_info}",
-                        type_info = types.get(type_id).unwrap().read_guarded(),
+                        type_info = types.get(type_id).unwrap().read_guarded()
                     )?;
                 }
                 Some(subtype_tag) => {
@@ -432,7 +407,7 @@ impl Display for TypeInfo {
     }
 }
 
-/// Collected information about a specific message type and its fields.
+#[doc = " Collected information about a specific message type and its fields."]
 pub struct MessageFields {
     message_name: String,
     fields: BTreeMap<u32, FieldInfo>,
@@ -481,7 +456,6 @@ impl MessageFields {
     }
 
     fn display(&self, f: &mut Formatter<'_>, oneof_name: Option<&str>) -> core::fmt::Result {
-        // TODO: display info about oneofs in the message
         write!(f, "message ")?;
         if let Some(oneof_name) = oneof_name {
             write!(f, "{oneof_name}::")?;
@@ -495,7 +469,7 @@ impl MessageFields {
                     f,
                     "    {tag}: {field_name} ({repr}),",
                     field_name = field.name,
-                    repr = field.repr,
+                    repr = field.repr
                 )?;
             }
         }
@@ -522,7 +496,7 @@ impl EnumInfo {
         }
     }
 
-    /// Add a value to the enumeration.
+    #[doc = " Add a value to the enumeration."]
     pub fn add_value(&mut self, name: &str, value: u32) {
         self.values.insert(value, name.to_owned());
     }
@@ -541,7 +515,7 @@ impl OneofMessages {
         }
     }
 
-    /// Adds a message variant to the oneof.
+    #[doc = " Adds a message variant to the oneof."]
     pub fn add_message_variant(
         &mut self,
         name: &str,
@@ -563,22 +537,22 @@ impl OneofMessages {
     }
 }
 
-/// Representation of a value type T when encoded by the encoding E.
+#[doc = " Representation of a value type T when encoded by the encoding E."]
 pub trait ValueRepr<E, T: ?Sized> {
     fn repr(schema: &Schema) -> Box<dyn Display>;
 }
 
-/// Representation of a field type T when encoded by the encoding E.
+#[doc = " Representation of a field type T when encoded by the encoding E."]
 pub trait FieldRepr<E, T: ?Sized> {
     fn repr(schema: &Schema) -> Box<dyn Display>;
 }
 
-/// Ability of a message to register its fields with a schema.
+#[doc = " Ability of a message to register its fields with a schema."]
 pub trait RegisterFields {
     fn register(schema: &Schema);
 }
 
-/// Ability of a oneof to register its fields inline with the outer struct's fields.
+#[doc = " Ability of a oneof to register its fields inline with the outer struct's fields."]
 pub trait AddOneofFields {
     fn add_fields(schema: &Schema, fields: &mut MessageFields, field_name: Option<&str>);
 }

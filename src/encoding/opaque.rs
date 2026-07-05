@@ -16,7 +16,7 @@ use alloc::vec::Vec;
 use bytes::{Buf, BufMut};
 use core::ops::Index;
 
-/// Represents an opaque bilrost field value. Can represent any valid encoded value.
+#[doc = " Represents an opaque bilrost field value. Can represent any valid encoded value."]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum OpaqueValue<'a> {
     Varint(u64),
@@ -238,7 +238,7 @@ impl OpaqueValue<'_> {
         })
     }
 
-    /// Get a copy of this value with borrowed or re-borrowed data.
+    #[doc = " Get a copy of this value with borrowed or re-borrowed data."]
     pub fn borrow(&self) -> OpaqueValue<'_> {
         match self {
             Varint(value) => Varint(*value),
@@ -248,7 +248,7 @@ impl OpaqueValue<'_> {
         }
     }
 
-    /// Converts this value to a fully owned deep copy.
+    #[doc = " Converts this value to a fully owned deep copy."]
     pub fn into_owned(self) -> OpaqueValue<'static> {
         match self {
             Varint(value) => Varint(value),
@@ -260,12 +260,12 @@ impl OpaqueValue<'_> {
     }
 }
 
-/// Represents a decoded Bilrost message. `OpaqueMessage` can encode and decode *any* potentially
-/// valid Bilrost message, and will re-encode the exact same bytes. The type is fully bijective to
-/// the set of potentially valid encoded Bilrost messages.
-///
-/// At present this is still an unstable API, mostly used for internals and testing. Trait
-/// implementations and APIs of `OpaqueMessage` and `OpaqueValue` are subject to change.
+#[doc = " Represents a decoded Bilrost message. `OpaqueMessage` can encode and decode *any* potentially"]
+#[doc = " valid Bilrost message, and will re-encode the exact same bytes. The type is fully bijective to"]
+#[doc = " the set of potentially valid encoded Bilrost messages."]
+#[doc = ""]
+#[doc = " At present this is still an unstable API, mostly used for internals and testing. Trait"]
+#[doc = " implementations and APIs of `OpaqueMessage` and `OpaqueValue` are subject to change."]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct OpaqueMessage<'a>(BTreeMap<u32, Vec<OpaqueValue<'a>>>);
 
@@ -290,30 +290,25 @@ impl<'a> OpaqueMessage<'a> {
         FlatAdapter(self.0.iter_mut()).flatten()
     }
 
-    /// Produces a full copy of the message with all borrowable data (re-)borrowed.
+    #[doc = " Produces a full copy of the message with all borrowable data (re-)borrowed."]
     pub fn to_borrowed(&self) -> OpaqueMessage<'_> {
         self.iter().map(|(k, v)| (*k, v.borrow())).collect()
     }
 
     #[cfg(not(feature = "forbid-unsafe"))]
-    /// Converts this message to a fully owned deep copy.
+    #[doc = " Converts this message to a fully owned deep copy."]
     pub fn into_owned(mut self) -> OpaqueMessage<'static> {
         for (_, value) in self.iter_mut() {
             if let LengthDelimited(delimited) = value {
                 delimited.to_mut();
             }
         }
-        // SAFETY: we've converted every `Cow` in the structure to `Owned` in-place; no values that
-        // have the lifetime we are transmuting can still exist
         unsafe { core::mem::transmute(self) }
     }
+
     #[cfg(feature = "forbid-unsafe")]
-    /// Converts this message to a fully owned deep copy.
+    #[doc = " Converts this message to a fully owned deep copy."]
     pub fn into_owned(self) -> OpaqueMessage<'static> {
-        // In the safe version we into-iterate, convert to owned, and collect both the outer
-        // BTreeMap and each inner Vec of values rather than doing the conversion in-place.
-        // This means the BTreeMap itself probably gets re-built since it probably doesn't have
-        // the same in-place specializations Vec does.
         OpaqueMessage::<'static>(
             self.0
                 .into_iter()
@@ -349,11 +344,9 @@ impl<'a> Index<&u32> for OpaqueMessage<'a> {
 pub type OpaqueIter<'a, 'b> = core::iter::Flatten<
     FlatAdapter<alloc::collections::btree_map::Iter<'b, u32, Vec<OpaqueValue<'a>>>>,
 >;
-
 pub type OpaqueIterMut<'a, 'b> = core::iter::Flatten<
     FlatAdapter<alloc::collections::btree_map::IterMut<'b, u32, Vec<OpaqueValue<'a>>>>,
 >;
-
 pub type OpaqueIntoIter<'a> = core::iter::Flatten<
     FlatAdapter<alloc::collections::btree_map::IntoIter<u32, Vec<OpaqueValue<'a>>>>,
 >;
@@ -361,6 +354,7 @@ pub type OpaqueIntoIter<'a> = core::iter::Flatten<
 impl<'a> IntoIterator for OpaqueMessage<'a> {
     type Item = (u32, OpaqueValue<'a>);
     type IntoIter = OpaqueIntoIter<'a>;
+
     fn into_iter(self) -> Self::IntoIter {
         FlatAdapter(self.0.into_iter()).flatten()
     }

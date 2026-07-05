@@ -11,7 +11,6 @@ use chrono::{
     DateTime, Datelike, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, TimeDelta, TimeZone,
     Timelike, Utc,
 };
-
 #[cfg(all(test, feature = "time"))]
 pub(super) use {
     fixedoffset::test_zones,
@@ -67,13 +66,10 @@ impl DistinguishedProxiable<SealedBilrostTag> for NaiveDate {
     }
 }
 
-// NaiveDate encodes as a packed sequence of signed varints with trailing zeros cut off:
-// [year, ordinal day in year (starting at zero)]. The empty value is January 1st on the year 0,
-// not 1970.
 delegate_proxied_encoding!(
-    use encoding (Packed<Varint>) to encode proxied type (NaiveDate)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        Packed < Varint >
+    ) to encode proxied type(NaiveDate) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -104,32 +100,29 @@ mod naivedate {
     }
 
     check_type_empty!(NaiveDate, via proxy with tag SealedBilrostTag);
+
     check_type_empty!(NaiveDate, via distinguished proxy with tag SealedBilrostTag);
 
     mod proptests {
         use super::*;
-        check_type_test!(
-            General,
-            relaxed,
-            from Vec<u8>,
-            into NaiveDate,
-            converter(b) {
-                use arbitrary::{Arbitrary, Unstructured};
-                NaiveDate::arbitrary(&mut Unstructured::new(&b)).unwrap()
-            },
-            WireType::LengthDelimited
-        );
-        check_type_test!(
-            General,
-            distinguished,
-            from Vec<u8>,
-            into NaiveDate,
-            converter(b) {
-                use arbitrary::{Arbitrary, Unstructured};
-                NaiveDate::arbitrary(&mut Unstructured::new(&b)).unwrap()
-            },
-            WireType::LengthDelimited
-        );
+
+        check_type_test!(General, relaxed, from Vec < u8 >, into NaiveDate, converter(b) {
+            use arbitrary::{
+                Arbitrary,
+                Unstructured,
+            };
+
+            NaiveDate::arbitrary(&mut Unstructured::new(&b)).unwrap()
+        }, WireType::LengthDelimited);
+
+        check_type_test!(General, distinguished, from Vec < u8 >, into NaiveDate, converter(b) {
+            use arbitrary::{
+                Arbitrary,
+                Unstructured,
+            };
+
+            NaiveDate::arbitrary(&mut Unstructured::new(&b)).unwrap()
+        }, WireType::LengthDelimited);
     }
 }
 
@@ -179,12 +172,10 @@ impl DistinguishedProxiable<SealedBilrostTag> for NaiveTime {
     }
 }
 
-// NaiveTime encodes as a packed sequence of UNsigned varints with trailing zeros cut off:
-// [hour, minute, second, nanosecond].
 delegate_proxied_encoding!(
-    use encoding (Packed<Varint>) to encode proxied type (NaiveTime)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        Packed < Varint >
+    ) to encode proxied type(NaiveTime) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -215,32 +206,29 @@ mod naivetime {
     }
 
     check_type_empty!(NaiveTime, via proxy with tag SealedBilrostTag);
+
     check_type_empty!(NaiveTime, via distinguished proxy with tag SealedBilrostTag);
 
     mod proptests {
         use super::*;
-        check_type_test!(
-            General,
-            relaxed,
-            from Vec<u8>,
-            into NaiveTime,
-            converter(b) {
-                use arbitrary::{Arbitrary, Unstructured};
-                NaiveTime::arbitrary(&mut Unstructured::new(&b)).unwrap()
-            },
-            WireType::LengthDelimited
-        );
-        check_type_test!(
-            General,
-            distinguished,
-            from Vec<u8>,
-            into NaiveTime,
-            converter(b) {
-                use arbitrary::{Arbitrary, Unstructured};
-                NaiveTime::arbitrary(&mut Unstructured::new(&b)).unwrap()
-            },
-            WireType::LengthDelimited
-        );
+
+        check_type_test!(General, relaxed, from Vec < u8 >, into NaiveTime, converter(b) {
+            use arbitrary::{
+                Arbitrary,
+                Unstructured,
+            };
+
+            NaiveTime::arbitrary(&mut Unstructured::new(&b)).unwrap()
+        }, WireType::LengthDelimited);
+
+        check_type_test!(General, distinguished, from Vec < u8 >, into NaiveTime, converter(b) {
+            use arbitrary::{
+                Arbitrary,
+                Unstructured,
+            };
+
+            NaiveTime::arbitrary(&mut Unstructured::new(&b)).unwrap()
+        }, WireType::LengthDelimited);
     }
 }
 
@@ -316,14 +304,12 @@ impl DistinguishedProxiable<SealedBilrostTag> for NaiveDateTime {
     }
 }
 
-// NaiveDateTime encodes as a packed sequence of signed varints with trailing zeros cut off:
-// [year, ordinal day in year (starting at zero), hour, minute, second, nanosecond]. It can decode
-// NaiveDate values as if they were truncated NaiveDateTimes. The empty value is midnight on January
-// 1st of the year 0, not 1970.
 delegate_proxied_encoding!(
-    use encoding (Packed<Varint>) to encode proxied type (NaiveDateTime)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        Packed < Varint >
+    ) to encode proxied type(
+        NaiveDateTime
+    ) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -368,32 +354,29 @@ mod naivedatetime {
     }
 
     check_type_empty!(NaiveDateTime, via proxy with tag SealedBilrostTag);
+
     check_type_empty!(NaiveDateTime, via distinguished proxy with tag SealedBilrostTag);
 
     mod proptests {
         use super::*;
-        check_type_test!(
-            General,
-            relaxed,
-            from Vec<u8>,
-            into NaiveDateTime,
-            converter(b) {
-                use arbitrary::{Arbitrary, Unstructured};
-                NaiveDateTime::arbitrary(&mut Unstructured::new(&b)).unwrap()
-            },
-            WireType::LengthDelimited
-        );
-        check_type_test!(
-            General,
-            distinguished,
-            from Vec<u8>,
-            into NaiveDateTime,
-            converter(b) {
-                use arbitrary::{Arbitrary, Unstructured};
-                NaiveDateTime::arbitrary(&mut Unstructured::new(&b)).unwrap()
-            },
-            WireType::LengthDelimited
-        );
+
+        check_type_test!(General, relaxed, from Vec < u8 >, into NaiveDateTime, converter(b) {
+            use arbitrary::{
+                Arbitrary,
+                Unstructured,
+            };
+
+            NaiveDateTime::arbitrary(&mut Unstructured::new(&b)).unwrap()
+        }, WireType::LengthDelimited);
+
+        check_type_test!(General, distinguished, from Vec < u8 >, into NaiveDateTime, converter(b) {
+            use arbitrary::{
+                Arbitrary,
+                Unstructured,
+            };
+
+            NaiveDateTime::arbitrary(&mut Unstructured::new(&b)).unwrap()
+        }, WireType::LengthDelimited);
     }
 }
 
@@ -437,13 +420,10 @@ impl DistinguishedProxiable<SealedBilrostTag> for Utc {
     }
 }
 
-// The encoding for Utc is the same as the encoding for FixedOffset: it's a tuple of three signed
-// varints (hour, minute, second) which are always zero. It always fails to decode when they are not
-// all zero.
 delegate_proxied_encoding!(
-    use encoding ((Varint, Varint, Varint)) to encode proxied type (Utc)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        (Varint, Varint, Varint)
+    ) to encode proxied type(Utc) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -482,7 +462,6 @@ mod utc {
                 Ok(Canonical)
             );
         }
-
         {
             let mut buf = Vec::new();
             let nonzero_offset = FixedOffset::east_opt(1000).unwrap();
@@ -540,12 +519,6 @@ impl Proxiable<SealedBilrostTag> for FixedOffset {
         let offset_secs = match proxy {
             (hours @ -23..=23, mins @ -59..=59, secs @ -59..=59) => {
                 let total_offset = (hours as i32) * 60 * 60 + (mins as i32) * 60 + (secs as i32);
-
-                // offsets should always have the same sign for all three components; we don't want
-                // any two offsets to have the same total via different combinations.
-                //
-                // we enforce this even in relaxed mode because dealing with time is already bad
-                // enough.
                 let mut signums = [false; 3];
                 for component in [hours, mins, secs] {
                     signums[(component.signum() + 1) as usize] = true;
@@ -553,7 +526,6 @@ impl Proxiable<SealedBilrostTag> for FixedOffset {
                 if let [true, _, true] = signums {
                     return Err(InvalidValue);
                 }
-
                 total_offset
             }
             _ => return Err(OutOfDomainValue),
@@ -573,12 +545,12 @@ impl DistinguishedProxiable<SealedBilrostTag> for FixedOffset {
     }
 }
 
-// The encoding for FixedOffset is (hour, minute, second) as a basic tuple of signed varints. It
-// It fails to decode whenever the components have mixed signs or are out of range.
 delegate_proxied_encoding!(
-    use encoding ((Varint, Varint, Varint)) to encode proxied type (FixedOffset)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        (Varint, Varint, Varint)
+    ) to encode proxied type(
+        FixedOffset
+    ) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -615,32 +587,29 @@ mod fixedoffset {
     }
 
     check_type_empty!(FixedOffset, via proxy with tag SealedBilrostTag);
+
     check_type_empty!(FixedOffset, via distinguished proxy with tag SealedBilrostTag);
 
     mod proptests {
         use super::*;
-        check_type_test!(
-            General,
-            relaxed,
-            from Vec<u8>,
-            into FixedOffset,
-            converter(b) {
-                use arbitrary::{Arbitrary, Unstructured};
-                FixedOffset::arbitrary(&mut Unstructured::new(&b)).unwrap()
-            },
-            WireType::LengthDelimited
-        );
-        check_type_test!(
-            General,
-            distinguished,
-            from Vec<u8>,
-            into FixedOffset,
-            converter(b) {
-                use arbitrary::{Arbitrary, Unstructured};
-                FixedOffset::arbitrary(&mut Unstructured::new(&b)).unwrap()
-            },
-            WireType::LengthDelimited
-        );
+
+        check_type_test!(General, relaxed, from Vec < u8 >, into FixedOffset, converter(b) {
+            use arbitrary::{
+                Arbitrary,
+                Unstructured,
+            };
+
+            FixedOffset::arbitrary(&mut Unstructured::new(&b)).unwrap()
+        }, WireType::LengthDelimited);
+
+        check_type_test!(General, distinguished, from Vec < u8 >, into FixedOffset, converter(b) {
+            use arbitrary::{
+                Arbitrary,
+                Unstructured,
+            };
+
+            FixedOffset::arbitrary(&mut Unstructured::new(&b)).unwrap()
+        }, WireType::LengthDelimited);
     }
 
     #[test]
@@ -756,14 +725,17 @@ where
     }
 }
 
-// The encoding for DateTime<Tz> is the same as the (NaiveDateTime, Tz::Offset) that it is composed
-// of.
 delegate_proxied_encoding!(
-    use encoding (General) to encode proxied type (DateTime<Z>)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
-    with where clause for relaxed ((): EmptyState<(), Z::Offset>)
-    with generics (Z: TimeZone)
+    use encoding(
+        General
+    ) to encode proxied type(
+        DateTime < Z >
+    ) using proxy tag(
+        SealedBilrostTag
+    ) with general encodings including distinguished with where clause for relaxed(
+        (): EmptyState <(),
+        Z:: Offset >
+    ) with generics(Z: TimeZone)
 );
 
 #[cfg(test)]
@@ -786,33 +758,30 @@ mod datetime {
         }
     }
 
-    check_type_empty!(DateTime<Utc>, via proxy with tag SealedBilrostTag);
-    check_type_empty!(DateTime<Utc>, via distinguished proxy with tag SealedBilrostTag);
+    check_type_empty!(DateTime < Utc >, via proxy with tag SealedBilrostTag);
+
+    check_type_empty!(DateTime < Utc >, via distinguished proxy with tag SealedBilrostTag);
 
     mod proptests {
         use super::*;
-        check_type_test!(
-            General,
-            relaxed,
-            from Vec<u8>,
-            into DateTime<Utc>,
-            converter(b) {
-                use arbitrary::{Arbitrary, Unstructured};
-                DateTime::<Utc>::arbitrary(&mut Unstructured::new(&b)).unwrap()
-            },
-            WireType::LengthDelimited
-        );
-        check_type_test!(
-            General,
-            distinguished,
-            from Vec<u8>,
-            into DateTime<Utc>,
-            converter(b) {
-                use arbitrary::{Arbitrary, Unstructured};
-                DateTime::<Utc>::arbitrary(&mut Unstructured::new(&b)).unwrap()
-            },
-            WireType::LengthDelimited
-        );
+
+        check_type_test!(General, relaxed, from Vec < u8 >, into DateTime < Utc >, converter(b) {
+            use arbitrary::{
+                Arbitrary,
+                Unstructured,
+            };
+
+            DateTime::<Utc>::arbitrary(&mut Unstructured::new(&b)).unwrap()
+        }, WireType::LengthDelimited);
+
+        check_type_test!(General, distinguished, from Vec < u8 >, into DateTime < Utc >, converter(b) {
+            use arbitrary::{
+                Arbitrary,
+                Unstructured,
+            };
+
+            DateTime::<Utc>::arbitrary(&mut Unstructured::new(&b)).unwrap()
+        }, WireType::LengthDelimited);
     }
 }
 
@@ -830,18 +799,13 @@ impl Proxiable<SealedBilrostTag> for TimeDelta {
 
     fn decode_proxy(&mut self, proxy: Self::Proxy) -> Result<(), DecodeErrorKind> {
         const NOT_QUITE_I64_MIN: i64 = i64::MIN + 1;
-
         let (secs, nanos) = match (proxy.secs, proxy.nanos) {
-            // we must be able to subtract 1 from secs no matter what
             (secs @ NOT_QUITE_I64_MIN..=0, nanos @ -999_999_999..=-1) => {
                 (secs - 1, nanos + 1_000_000_000)
             }
-            // we also ensure that the sign of secs and nanos matches and that nanos is in-bounds
             (secs, nanos @ 0) | (secs @ 0.., nanos @ 0..=999_999_999) => (secs, nanos),
             _ => return Err(InvalidValue),
         };
-        // TimeDelta only wants to be constructed from a u32 nanos, which is its internal repr, even
-        // though it only gives the value back as an i32 with the same sign as the original.
         *self = Self::new(secs, nanos as u32).ok_or(OutOfDomainValue)?;
         Ok(())
     }
@@ -857,11 +821,10 @@ impl DistinguishedProxiable<SealedBilrostTag> for TimeDelta {
     }
 }
 
-// The encoding for TimeDelta matches that of bilrost_types::Duration.
 delegate_proxied_encoding!(
-    use encoding (General) to encode proxied type (TimeDelta)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        General
+    ) to encode proxied type(TimeDelta) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -873,13 +836,14 @@ mod timedelta {
     use proptest::prelude::*;
 
     check_type_empty!(TimeDelta, via proxy with tag SealedBilrostTag);
+
     check_type_empty!(TimeDelta, via distinguished proxy with tag SealedBilrostTag);
 
     pub(in super::super) fn test_timedeltas() -> impl Iterator<Item = TimeDelta> + Clone {
         [
             TimeDelta::default(),
-            TimeDelta::milliseconds(-i64::MAX), // apparently the minimum
-            TimeDelta::milliseconds(i64::MAX),  // apparently the maximum
+            TimeDelta::milliseconds(-i64::MAX),
+            TimeDelta::milliseconds(i64::MAX),
             <() as EmptyState<(), TimeDelta>>::empty(),
             TimeDelta::new(900, 10).unwrap(),
             TimeDelta::seconds(-60),
@@ -904,7 +868,6 @@ mod timedelta {
     }
 
     fn milli_nanos_to_timedelta(millis: i64, submilli_nanos: u32, negative: bool) -> TimeDelta {
-        // compute millisecond part
         let secs = millis / 1000;
         let nanos = ((millis % 1000) * 1_000_000) as u32 + submilli_nanos;
         let td = TimeDelta::new(secs, nanos).unwrap();
@@ -915,32 +878,19 @@ mod timedelta {
         }
     }
 
-    // we write these out because the arbitrary::Arbitrary impl for TimeDelta is, for some
-    // reason, extremely fallible. The underlying data model for TimeDelta is also pretty weird,
-    // in that its internal repr is (secs: i64, nanos: i32 /* always positive */), and it is
-    // also documented to be restricted to a magnitude of plus or minus i64::MAX
-    // *milliseconds* plus up to 999,999 nanoseconds, with a freely swappable sign.
     proptest! {
-        #[test]
-        fn check_relaxed(
-            millis in 0..=i64::MAX,
-            submilli_nanos in 0..=999_999u32,
-            negative: bool,
-            tag: u32,
-        ) {
+        #[
+            test
+        ] fn check_relaxed(millis in 0..= i64:: MAX, submilli_nanos in 0..= 999_999u32, negative: bool, tag: u32,) {
             relaxed::check_type_general(
                 milli_nanos_to_timedelta(millis, submilli_nanos, negative),
                 tag,
                 WireType::LengthDelimited,
             )?;
         }
-        #[test]
-        fn check_distinguished(
-            millis in 0..i64::MAX,
-            submilli_nanos in 0..=999_999u32,
-            negative: bool,
-            tag: u32,
-        ) {
+        #[
+            test
+        ] fn check_distinguished(millis in 0..i64:: MAX, submilli_nanos in 0..= 999_999u32, negative: bool, tag: u32,) {
             distinguished::check_type_general(
                 milli_nanos_to_timedelta(millis, submilli_nanos, negative),
                 tag,

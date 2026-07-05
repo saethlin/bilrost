@@ -7,7 +7,7 @@ use crate::encoding::{
 use crate::DecodeErrorKind;
 use bytes::Buf;
 
-for_overwrite_via_default!(thin_vec::ThinVec<T>, with generics (T));
+for_overwrite_via_default!(thin_vec:: ThinVec < T >, with generics(T));
 
 impl<T> EmptyState<(), thin_vec::ThinVec<T>> for () {
     #[inline]
@@ -59,16 +59,11 @@ impl<T> Collection for thin_vec::ThinVec<T> {
 impl<T> TriviallyDistinguishedCollection for thin_vec::ThinVec<T> {}
 
 delegate_encoding!(
-    delegate from (General) to (Unpacked)
-    for type (thin_vec::ThinVec<T>)
-    including distinguished
-    with generics (T)
+    delegate from(General) to(Unpacked) for type(thin_vec:: ThinVec < T >) including distinguished with generics(T)
 );
+
 delegate_value_encoding!(
-    delegate from (GeneralPacked) to (Packed)
-    for type (thin_vec::ThinVec<T>)
-    including distinguished
-    with generics (T)
+    delegate from(GeneralPacked) to(Packed) for type(thin_vec:: ThinVec < T >) including distinguished with generics(T)
 );
 
 plain_bytes_vec_impl!(

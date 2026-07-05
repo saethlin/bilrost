@@ -69,22 +69,22 @@ where
 {
     fn encode_value<B: BufMut + ?Sized>(value: &Range<T>, buf: &mut B) {
         underived_encode!(Range {
-            0: Estart => start: &value.start,
-            1: Eend => end: &value.end,
+            0: Estart => start: & value.start,
+            1: Eend => end: & value.end,
         }, buf);
     }
 
     fn prepend_value<B: ReverseBuf + ?Sized>(value: &Range<T>, buf: &mut B) {
         underived_prepend!(Range {
-            1: Eend => end: &value.end,
-            0: Estart => start: &value.start,
+            1: Eend => end: & value.end,
+            0: Estart => start: & value.start,
         }, buf);
     }
 
     fn value_encoded_len(value: &Range<T>) -> usize {
         underived_encoded_len!(Range {
-            0: Estart => start: &value.start,
-            1: Eend => end: &value.end,
+            0: Estart => start: & value.start,
+            1: Eend => end: & value.end,
         })
     }
 }
@@ -99,8 +99,8 @@ where
         ctx: DecodeContext,
     ) -> Result<(), DecodeError> {
         underived_decode!(Range {
-            0: Estart => start: &mut value.start,
-            1: Eend => end: &mut value.end,
+            0: Estart => start: & mut value.start,
+            1: Eend => end: & mut value.end,
         }, owned, buf, ctx)
     }
 }
@@ -117,8 +117,8 @@ where
         ctx: RestrictedDecodeContext,
     ) -> Result<Canonicity, DecodeError> {
         underived_decode_distinguished!(Range {
-            0: Estart => start: &mut value.start,
-            1: Eend => end: &mut value.end,
+            0: Estart => start: & mut value.start,
+            1: Eend => end: & mut value.end,
         }, owned, buf, ctx)
     }
 }
@@ -133,8 +133,8 @@ where
         ctx: DecodeContext,
     ) -> Result<(), DecodeError> {
         underived_decode!(Range {
-            0: Estart => start: &mut value.start,
-            1: Eend => end: &mut value.end,
+            0: Estart => start: & mut value.start,
+            1: Eend => end: & mut value.end,
         }, borrowed, buf, ctx)
     }
 }
@@ -151,8 +151,8 @@ where
         ctx: RestrictedDecodeContext,
     ) -> Result<Canonicity, DecodeError> {
         underived_decode_distinguished!(Range {
-            0: Estart => start: &mut value.start,
-            1: Eend => end: &mut value.end,
+            0: Estart => start: & mut value.start,
+            1: Eend => end: & mut value.end,
         }, borrowed, buf, ctx)
     }
 }
@@ -161,12 +161,14 @@ where
 mod range {
     mod general {
         use crate::encoding::General;
+
         crate::encoding::test::check_type_test!(
             General,
             relaxed,
             core::ops::Range<u16>,
             WireType::LengthDelimited
         );
+
         crate::encoding::test::check_type_test!(
             General,
             distinguished,
@@ -174,14 +176,17 @@ mod range {
             WireType::LengthDelimited
         );
     }
+
     mod fixed {
         use crate::encoding::Fixed;
+
         crate::encoding::test::check_type_test!(
             (Fixed, Fixed),
             relaxed,
             core::ops::Range<u32>,
             WireType::LengthDelimited
         );
+
         crate::encoding::test::check_type_test!(
             (Fixed, Fixed),
             distinguished,
@@ -190,10 +195,6 @@ mod range {
         );
     }
 }
-
-// When decoding or otherwise modifying `RangeInclusive`, we have to do a little dance. The type
-// doesn't provide &mut access to its entries until it is decomposed so we swap it, decompose it,
-// modify, and then re-compose and swap it back.
 
 impl<T, Estart, Eend> Wiretyped<(Estart, Eend), RangeInclusive<T>> for () {
     const WIRE_TYPE: WireType = WireType::LengthDelimited;
@@ -233,10 +234,8 @@ where
                 ..=<() as ForOverwrite<Eend, T>>::for_overwrite(),
         )
         .into_inner();
-
         <() as EmptyState<Estart, T>>::clear(&mut start);
         <() as EmptyState<Eend, T>>::clear(&mut end);
-
         drop(mem::replace(val, start..=end));
     }
 }
@@ -291,12 +290,10 @@ where
                 ..=<() as ForOverwrite<Eend, T>>::for_overwrite(),
         )
         .into_inner();
-
         underived_decode!(RangeInclusive {
-            0: Estart => start: &mut start,
-            1: Eend => end: &mut end,
+            0: Estart => start: & mut start,
+            1: Eend => end: & mut end,
         }, owned, buf, ctx)?;
-
         drop(mem::replace(value, start..=end));
         Ok(())
     }
@@ -322,12 +319,10 @@ where
                 ..=<() as ForOverwrite<Eend, T>>::for_overwrite(),
         )
         .into_inner();
-
         let canon = underived_decode_distinguished!(RangeInclusive {
-            0: Estart => start: &mut start,
-            1: Eend => end: &mut end,
+            0: Estart => start: & mut start,
+            1: Eend => end: & mut end,
         }, owned, buf, ctx)?;
-
         drop(mem::replace(value, start..=end));
         Ok(canon)
     }
@@ -351,12 +346,10 @@ where
                 ..=<() as ForOverwrite<Eend, T>>::for_overwrite(),
         )
         .into_inner();
-
         underived_decode!(RangeInclusive {
-            0: Estart => start: &mut start,
-            1: Eend => end: &mut end,
+            0: Estart => start: & mut start,
+            1: Eend => end: & mut end,
         }, borrowed, buf, ctx)?;
-
         drop(mem::replace(value, start..=end));
         Ok(())
     }
@@ -383,12 +376,10 @@ where
                 ..=<() as ForOverwrite<Eend, T>>::for_overwrite(),
         )
         .into_inner();
-
         let canon = underived_decode_distinguished!(RangeInclusive {
-            0: Estart => start: &mut start,
-            1: Eend => end: &mut end,
+            0: Estart => start: & mut start,
+            1: Eend => end: & mut end,
         }, borrowed, buf, ctx)?;
-
         drop(mem::replace(value, start..=end));
         Ok(canon)
     }
@@ -398,12 +389,14 @@ where
 mod range_inclusive {
     mod general {
         use crate::encoding::General;
+
         crate::encoding::test::check_type_test!(
             General,
             relaxed,
             core::ops::RangeInclusive<u16>,
             WireType::LengthDelimited
         );
+
         crate::encoding::test::check_type_test!(
             General,
             distinguished,
@@ -411,14 +404,17 @@ mod range_inclusive {
             WireType::LengthDelimited
         );
     }
+
     mod fixed {
         use crate::encoding::Fixed;
+
         crate::encoding::test::check_type_test!(
             (Fixed, Fixed),
             relaxed,
             core::ops::RangeInclusive<u32>,
             WireType::LengthDelimited
         );
+
         crate::encoding::test::check_type_test!(
             (Fixed, Fixed),
             distinguished,

@@ -27,149 +27,180 @@ use core::str;
 const PREFER_UNPACKED: u8 = 0;
 const PREFER_PACKED: u8 = 1;
 
-/// The `GeneralGeneric` struct is used for general encoding, and is the default with some
-/// contextual differences; it is parametrized differently depending on whether it's in a message or a
-/// oneof. Different defaults make sense in different contexts; `General<PreferUnpacked>` becomes
-/// the `general` encoding in message attributes and is the implicit default for non-annotated
-/// fields in Messages, and `General<PreferPacked>` likewise becomes the `general_packed` encoding
-/// and is the implicit default for variants with no annotated encoding in `Oneof` enums, as well as
-/// the default for fields nested inside fields that are already collections.
-///
-/// These are also available as the type aliases `General` and `GeneralPacked`; `GeneralGeneric` is
-/// still public to allow for generic implementations that are the same when packedness does not
-/// matter, which is most of the time.
+#[doc = " The `GeneralGeneric` struct is used for general encoding, and is the default with some"]
+#[doc = " contextual differences; it is parametrized differently depending on whether it's in a message or a"]
+#[doc = " oneof. Different defaults make sense in different contexts; `General<PreferUnpacked>` becomes"]
+#[doc = " the `general` encoding in message attributes and is the implicit default for non-annotated"]
+#[doc = " fields in Messages, and `General<PreferPacked>` likewise becomes the `general_packed` encoding"]
+#[doc = " and is the implicit default for variants with no annotated encoding in `Oneof` enums, as well as"]
+#[doc = " the default for fields nested inside fields that are already collections."]
+#[doc = ""]
+#[doc = " These are also available as the type aliases `General` and `GeneralPacked`; `GeneralGeneric` is"]
+#[doc = " still public to allow for generic implementations that are the same when packedness does not"]
+#[doc = " matter, which is most of the time."]
 pub struct GeneralGeneric<const P: u8>;
+
 pub type General = GeneralGeneric<PREFER_UNPACKED>;
 pub type GeneralPacked = GeneralGeneric<PREFER_PACKED>;
 
-encoding_uses_base_empty_state!(GeneralGeneric<P>, with generics (const P: u8));
-encoding_implemented_via_value_encoding!(GeneralGeneric<P>, with generics (const P: u8));
+encoding_uses_base_empty_state!(GeneralGeneric < P >, with generics(const P: u8));
 
-// `general` and `general_in_oneof` delegate to the `unpacked` and `packed` encodings respectively
-// by default, but only for select collection types. Other implementers of the `Collection` trait
-// must choose an encoding explicitly.
+encoding_implemented_via_value_encoding!(GeneralGeneric < P >, with generics(const P: u8));
+
+delegate_encoding!(delegate from(General) to(Unpacked) for type(Vec < T >) including distinguished with generics(T));
+
 delegate_encoding!(
-    delegate from (General) to (Unpacked) for type (Vec<T>)
-    including distinguished
-    with generics (T)
+    delegate from(
+        General
+    ) to(Unpacked) for type(Cow <'a, [T] >) including distinguished with where clause(T: Clone) with generics('a, T: 'a)
 );
+
 delegate_encoding!(
-    delegate from (General) to (Unpacked) for type (Cow<'a, [T]>)
-    including distinguished
-    with where clause (T: Clone)
-    with generics ('a, T: 'a)
-);
-delegate_encoding!(
-    delegate from (General) to (Unpacked) for type (BTreeSet<T>)
-    including distinguished
-    with generics (T)
+    delegate from(General) to(Unpacked) for type(BTreeSet < T >) including distinguished with generics(T)
 );
 
 delegate_value_encoding!(
-    delegate from (GeneralPacked) to (Packed) for type (Vec<T>)
-    including distinguished
-    with generics (T)
-);
-delegate_value_encoding!(
-    delegate from (GeneralPacked) to (Packed) for type (Cow<'a, [T]>)
-    including distinguished
-    with where clause for relaxed (T: Clone)
-    with generics ('a, T: 'a)
-);
-delegate_value_encoding!(
-    delegate from (GeneralPacked) to (Packed) for type (BTreeSet<T>)
-    including distinguished
-    with generics (T)
+    delegate from(GeneralPacked) to(Packed) for type(Vec < T >) including distinguished with generics(T)
 );
 
 delegate_value_encoding!(
-    delegate from (GeneralGeneric<P>) to (Map) for type (BTreeMap<K, V>)
-    including distinguished
-    with where clause for relaxed (K: Ord)
-    with where clause for distinguished (V: Eq)
-    with generics (const P: u8, K, V)
+    delegate from(
+        GeneralPacked
+    ) to(
+        Packed
+    ) for type(Cow <'a, [T] >) including distinguished with where clause for relaxed(T: Clone) with generics('a, T: 'a)
 );
 
-// General encodings encode Range and RangeInclusive with the General encoding; to use a different
-// encoding for the T value, encode ranges as tuples directly
 delegate_value_encoding!(
-    delegate from (GeneralGeneric<P>) to ((General, General))
-    for type (core::ops::Range<T>)
-    including distinguished
-    with generics (const P: u8, T)
+    delegate from(GeneralPacked) to(Packed) for type(BTreeSet < T >) including distinguished with generics(T)
 );
+
 delegate_value_encoding!(
-    delegate from (GeneralGeneric<P>) to ((General, General))
-    for type (core::ops::RangeInclusive<T>)
-    including distinguished
-    with generics (const P: u8, T)
+    delegate from(
+        GeneralGeneric < P >
+    ) to(
+        Map
+    ) for type(
+        BTreeMap < K,
+        V >
+    ) including distinguished with where clause for relaxed(
+        K: Ord
+    ) with where clause for distinguished(V: Eq) with generics(const P: u8, K, V)
 );
 
-// General encodes bool and integers as varints.
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint) for type (bool)
-    including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint) for type (u16)
-    including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint) for type (i16)
-    including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint) for type (u32)
-    including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint) for type (i32)
-    including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint) for type (u64)
-    including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint) for type (i64)
-    including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint) for type (usize)
-    including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint) for type (isize)
-    including distinguished
-    with generics (const P: u8));
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to((General, General)) for type(core:: ops:: Range < T >) including distinguished with generics(const P: u8, T)
+);
 
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint)
-    for type (core::num::NonZeroU8) including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint)
-    for type (core::num::NonZeroI8) including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint)
-    for type (core::num::NonZeroU16) including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint)
-    for type (core::num::NonZeroI16) including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint)
-    for type (core::num::NonZeroU32) including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint)
-    for type (core::num::NonZeroI32) including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint)
-    for type (core::num::NonZeroU64) including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint)
-    for type (core::num::NonZeroI64) including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint)
-    for type (core::num::NonZeroUsize) including distinguished
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Varint)
-    for type (core::num::NonZeroIsize) including distinguished
-    with generics (const P: u8));
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to(
+        (General, General)
+    ) for type(core:: ops:: RangeInclusive < T >) including distinguished with generics(const P: u8, T)
+);
 
-// General also encodes floating point values.
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Fixed) for type (f32)
-    with generics (const P: u8));
-delegate_value_encoding!(delegate from (GeneralGeneric<P>) to (Fixed) for type (f64)
-    with generics (const P: u8));
+delegate_value_encoding!(
+    delegate from(GeneralGeneric < P >) to(Varint) for type(bool) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(GeneralGeneric < P >) to(Varint) for type(u16) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(GeneralGeneric < P >) to(Varint) for type(i16) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(GeneralGeneric < P >) to(Varint) for type(u32) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(GeneralGeneric < P >) to(Varint) for type(i32) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(GeneralGeneric < P >) to(Varint) for type(u64) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(GeneralGeneric < P >) to(Varint) for type(i64) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(GeneralGeneric < P >) to(Varint) for type(usize) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(GeneralGeneric < P >) to(Varint) for type(isize) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to(Varint) for type(core::num::NonZeroU8) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to(Varint) for type(core::num::NonZeroI8) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to(Varint) for type(core::num::NonZeroU16) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to(Varint) for type(core::num::NonZeroI16) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to(Varint) for type(core::num::NonZeroU32) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to(Varint) for type(core::num::NonZeroI32) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to(Varint) for type(core::num::NonZeroU64) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to(Varint) for type(core::num::NonZeroI64) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to(Varint) for type(core::num::NonZeroUsize) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to(Varint) for type(core::num::NonZeroIsize) including distinguished with generics(const P: u8)
+);
+
+delegate_value_encoding!(delegate from(GeneralGeneric < P >) to(Fixed) for type(f32) with generics(const P: u8));
+
+delegate_value_encoding!(delegate from(GeneralGeneric < P >) to(Fixed) for type(f64) with generics(const P: u8));
 
 impl<const P: u8> Wiretyped<GeneralGeneric<P>, &str> for () {
     const WIRE_TYPE: WireType = WireType::LengthDelimited;
@@ -230,7 +261,7 @@ impl<'a, const P: u8> DistinguishedValueBorrowDecoder<'a, GeneralGeneric<P>, &'a
 
 #[cfg(test)]
 mod ref_str {
-    crate::encoding::test::check_borrowable!(borrowed: str, encoding: crate::encoding::General);
+    crate::encoding::test::check_borrowable!(borrowed: str, encoding: crate:: encoding:: General);
 }
 
 impl<const P: u8> Wiretyped<GeneralGeneric<P>, String> for () {
@@ -268,20 +299,8 @@ impl<const P: u8> ValueDecoder<GeneralGeneric<P>, String> for () {
         mut buf: Capped<B>,
         _ctx: DecodeContext,
     ) -> Result<(), DecodeError> {
-        // ## Unsafety
-        //
-        // Copies string data from the buffer, with an additional check of utf-8 well-formedness.
-        // If the utf-8 is not well-formed, or if any other error occurs while copying the data,
-        // then the string is cleared so as to avoid leaking a string field with invalid data.
-        //
-        // This implementation uses the unsafe `String::as_mut_vec` method instead of the safe
-        // alternative of temporarily swapping an empty `String` into the field, because it results
-        // in up to 10% better performance on the protobuf message decoding benchmarks.
-        //
-        // It's required when using `String::as_mut_vec` that invalid utf-8 data not be leaked into
-        // the backing `String`. To enforce this, even in the event of a panic in the decoder or
-        // in the buf implementation, a drop guard is used.
         struct DropGuard<'a>(&'a mut Vec<u8>);
+
         impl Drop for DropGuard<'_> {
             #[inline]
             fn drop(&mut self) {
@@ -290,7 +309,6 @@ impl<const P: u8> ValueDecoder<GeneralGeneric<P>, String> for () {
         }
 
         let source = buf.take_length_delimited()?.take_all();
-        // If we must copy, make sure to copy only once.
         value.clear();
         value.reserve(source.remaining());
         unsafe {
@@ -298,7 +316,6 @@ impl<const P: u8> ValueDecoder<GeneralGeneric<P>, String> for () {
             drop_guard.0.put(source);
             match str::from_utf8(drop_guard.0) {
                 Ok(_) => {
-                    // Success; do not clear the bytes.
                     mem::forget(drop_guard);
                     Ok(())
                 }
@@ -316,8 +333,6 @@ impl<const P: u8> ValueDecoder<GeneralGeneric<P>, String> for () {
         buf: Capped<B>,
         ctx: DecodeContext,
     ) -> Result<(), DecodeError> {
-        // In this implementation we do the safe thing: the string is taken out and turned into a
-        // Vec, we decode into that, and then we convert it into a String before putting it back.
         let mut taken_value = <Vec<u8>>::from(mem::take(value));
         <() as ValueDecoder<PlainBytes, Vec<u8>>>::decode_value(&mut taken_value, buf, ctx)?;
         *value = String::from_utf8(taken_value).map_err(|_| DecodeError::new(InvalidValue))?;
@@ -340,32 +355,28 @@ impl<const P: u8> DistinguishedValueDecoder<GeneralGeneric<P>, String> for () {
 }
 
 delegate_value_encoding!(
-    encoding (GeneralGeneric<P>)
-    borrows type (String) as owned
-    including distinguished
-    with generics (const P: u8)
+    encoding(GeneralGeneric < P >) borrows type(String) as owned including distinguished with generics(const P: u8)
 );
 
 #[cfg(test)]
 mod string {
     use super::{General, String};
     use crate::encoding::test::check_type_test;
+
     check_type_test!(General, relaxed, String, WireType::LengthDelimited);
+
     check_type_test!(General, distinguished, String, WireType::LengthDelimited);
 }
 
-impl_cow_value_encoding!(
-    borrowed str,
-    owned String,
-    encoding GeneralGeneric<P>,
-    with generic (const P: u8)
-);
+impl_cow_value_encoding!(borrowed str, owned String, encoding GeneralGeneric < P >, with generic(const P: u8));
 
 #[cfg(test)]
 mod cow_string {
     use super::{Cow, General};
     use crate::encoding::test::check_type_test;
+
     check_type_test!(General, relaxed, Cow<str>, WireType::LengthDelimited);
+
     check_type_test!(General, distinguished, Cow<str>, WireType::LengthDelimited);
 }
 
@@ -425,18 +436,17 @@ impl<const P: u8> DistinguishedValueDecoder<GeneralGeneric<P>, Bytes> for () {
 }
 
 delegate_value_encoding!(
-    encoding (GeneralGeneric<P>) borrows type (Bytes) as owned
-    including distinguished with generics (const P: u8)
+    encoding(GeneralGeneric < P >) borrows type(Bytes) as owned including distinguished with generics(const P: u8)
 );
 
 #[cfg(test)]
 mod bytes_blob {
     use super::{Bytes, General, Vec};
     use crate::encoding::test::check_type_test;
-    check_type_test!(General, relaxed, from Vec<u8>, into Bytes,
-        WireType::LengthDelimited);
-    check_type_test!(General, distinguished, from Vec<u8>, into Bytes,
-        WireType::LengthDelimited);
+
+    check_type_test!(General, relaxed, from Vec < u8 >, into Bytes, WireType::LengthDelimited);
+
+    check_type_test!(General, distinguished, from Vec < u8 >, into Bytes, WireType::LengthDelimited);
 }
 
 impl<const P: u8> Wiretyped<GeneralGeneric<P>, Blob> for () {
@@ -495,15 +505,16 @@ impl<const P: u8> DistinguishedValueDecoder<GeneralGeneric<P>, Blob> for () {
 }
 
 delegate_value_encoding!(
-    encoding (GeneralGeneric<P>) borrows type (Blob) as owned
-    including distinguished with generics (const P: u8)
+    encoding(GeneralGeneric < P >) borrows type(Blob) as owned including distinguished with generics(const P: u8)
 );
 
 #[cfg(test)]
 mod blob {
     use super::{Blob, General};
     use crate::encoding::test::check_type_test;
+
     check_type_test!(General, relaxed, Blob, WireType::LengthDelimited);
+
     check_type_test!(General, distinguished, Blob, WireType::LengthDelimited);
 }
 
@@ -521,8 +532,6 @@ impl Proxiable<SealedBilrostTag> for core::time::Duration {
         *self = core::time::Duration::new(secs, nanos as u32);
         Ok(())
     }
-
-    // TODO: schema: "delimited packed (items: varint, unsigned; at most 2 items, seconds and nanos, trailing zeros removed, nanos < 1000000000)"
 }
 
 impl DistinguishedProxiable<SealedBilrostTag> for core::time::Duration {
@@ -539,9 +548,11 @@ impl DistinguishedProxiable<SealedBilrostTag> for core::time::Duration {
 }
 
 delegate_proxied_encoding!(
-    use encoding (Packed<Varint>) to encode proxied type (core::time::Duration)
-    using proxy tag (SealedBilrostTag)
-    with general encodings including distinguished
+    use encoding(
+        Packed < Varint >
+    ) to encode proxied type(
+        core::time::Duration
+    ) using proxy tag(SealedBilrostTag) with general encodings including distinguished
 );
 
 #[cfg(test)]
@@ -550,13 +561,16 @@ mod core_time {
     use crate::encoding::test::{check_type_empty, check_type_test};
 
     check_type_empty!(core::time::Duration, via proxy with tag SealedBilrostTag);
+
     check_type_test!(
         General,
         relaxed,
         core::time::Duration,
         WireType::LengthDelimited
     );
+
     check_type_empty!(core::time::Duration, via distinguished proxy with tag SealedBilrostTag);
+
     check_type_test!(
         General,
         distinguished,
@@ -671,9 +685,14 @@ mod delegate_to_message_encoding {
             buf: Capped<&'a [u8]>,
             ctx: RestrictedDecodeContext,
         ) -> Result<Canonicity, DecodeError> {
-            <() as DistinguishedValueBorrowDecoder<MessageEncoding, _>>::borrow_decode_value_distinguished::<
-                ALLOW_EMPTY,
-            >(value, buf, ctx)
+            <() as DistinguishedValueBorrowDecoder<
+                MessageEncoding,
+                _,
+            >>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(
+                value,
+                buf,
+                ctx,
+            )
         }
     }
 }

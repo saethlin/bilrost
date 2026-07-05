@@ -12,206 +12,169 @@ use crate::{length_delimiter_len, Canonicity, DecodeError, EncodeError};
 use alloc::vec::Vec;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-/// A Bilrost message. Provides basic encoding functionality for message types.
+#[doc = " A Bilrost message. Provides basic encoding functionality for message types."]
 pub trait Message {
-    /// Creates a new message with an empty state.
+    #[doc = " Creates a new message with an empty state."]
     fn new_empty() -> Self
     where
         Self: Sized;
-
-    /// Encodes the message to a buffer.
-    ///
-    /// An error will be returned if the buffer does not have sufficient capacity.
+    #[doc = " Encodes the message to a buffer."]
+    #[doc = ""]
+    #[doc = " An error will be returned if the buffer does not have sufficient capacity."]
     fn encode<B: BufMut + ?Sized>(&self, buf: &mut B) -> Result<(), EncodeError>
     where
         Self: Sized;
-
-    /// Prepends the message to a buffer.
+    #[doc = " Prepends the message to a buffer."]
     fn prepend<B: ReverseBuf + ?Sized>(&self, buf: &mut B)
     where
         Self: Sized;
-
-    /// Encodes the message with a length-delimiter to a buffer.
-    ///
-    /// An error will be returned if the buffer does not have sufficient capacity.
+    #[doc = " Encodes the message with a length-delimiter to a buffer."]
+    #[doc = ""]
+    #[doc = " An error will be returned if the buffer does not have sufficient capacity."]
     fn encode_length_delimited<B: BufMut + ?Sized>(&self, buf: &mut B) -> Result<(), EncodeError>
     where
         Self: Sized;
-
-    // ------------ Dyn-compatible methods follow ------------
-
-    /// Returns whether the message is currently in an empty state.
+    #[doc = " Returns whether the message is currently in an empty state."]
     fn message_is_empty(&self) -> bool;
-
-    /// Resets the message to an empty state.
+    #[doc = " Resets the message to an empty state."]
     fn clear_message(&mut self);
-
-    /// Returns the encoded length of the message without a length delimiter.
+    #[doc = " Returns the encoded length of the message without a length delimiter."]
     fn encoded_len(&self) -> usize;
-
-    /// Encodes the message to a newly allocated buffer.
+    #[doc = " Encodes the message to a newly allocated buffer."]
     fn encode_to_vec(&self) -> Vec<u8>;
-
-    /// Encodes the message to a `Bytes` buffer.
+    #[doc = " Encodes the message to a `Bytes` buffer."]
     fn encode_to_bytes(&self) -> Bytes;
-
-    /// Encodes the message to a `ReverseBuffer`.
+    #[doc = " Encodes the message to a `ReverseBuffer`."]
     fn encode_fast(&self) -> ReverseBuffer;
-
-    /// Encodes the message with a length-delimiter to a `ReverseBuffer`.
+    #[doc = " Encodes the message with a length-delimiter to a `ReverseBuffer`."]
     fn encode_length_delimited_fast(&self) -> ReverseBuffer;
-
-    /// Encodes the message to a new `RevserseBuffer` which will have exactly the required capacity
-    /// in one contiguous slice.
+    #[doc = " Encodes the message to a new `RevserseBuffer` which will have exactly the required capacity"]
+    #[doc = " in one contiguous slice."]
     fn encode_contiguous(&self) -> ReverseBuffer;
-
-    /// Encodes the message with a length-delimiter to a new `RevserseBuffer` which will have
-    /// exactly the required capacity in one contiguous slice.
+    #[doc = " Encodes the message with a length-delimiter to a new `RevserseBuffer` which will have"]
+    #[doc = " exactly the required capacity in one contiguous slice."]
     fn encode_length_delimited_contiguous(&self) -> ReverseBuffer;
-
-    /// Encodes the message to a `Bytes` buffer.
+    #[doc = " Encodes the message to a `Bytes` buffer."]
     fn encode_dyn(&self, buf: &mut dyn BufMut) -> Result<(), EncodeError>;
-
-    /// Encodes the message with a length-delimiter to a newly allocated buffer.
+    #[doc = " Encodes the message with a length-delimiter to a newly allocated buffer."]
     fn encode_length_delimited_to_vec(&self) -> Vec<u8>;
-
-    /// Encodes the message with a length-delimiter to a `Bytes` buffer.
+    #[doc = " Encodes the message with a length-delimiter to a `Bytes` buffer."]
     fn encode_length_delimited_to_bytes(&self) -> Bytes;
-
-    /// Encodes the message with a length-delimiter to a `Bytes` buffer.
+    #[doc = " Encodes the message with a length-delimiter to a `Bytes` buffer."]
     fn encode_length_delimited_dyn(&self, buf: &mut dyn BufMut) -> Result<(), EncodeError>;
 }
 
-/// Basic decoding functionality for a Bilrost message that can decode to an owned form. This
-/// trait's decoding methods can decode from any byte buffer that implements `bytes::Buf`.
+#[doc = " Basic decoding functionality for a Bilrost message that can decode to an owned form. This"]
+#[doc = " trait's decoding methods can decode from any byte buffer that implements `bytes::Buf`."]
 pub trait OwnedMessage: Message {
-    /// Decodes an instance of the message from a buffer.
-    ///
-    /// The entire buffer will be consumed.
+    #[doc = " Decodes an instance of the message from a buffer."]
+    #[doc = ""]
+    #[doc = " The entire buffer will be consumed."]
     fn decode<B: Buf>(buf: B) -> Result<Self, DecodeError>
     where
         Self: Sized;
-
-    /// Decodes a length-delimited instance of the message from the buffer.
+    #[doc = " Decodes a length-delimited instance of the message from the buffer."]
     fn decode_length_delimited<B: Buf>(buf: B) -> Result<Self, DecodeError>
     where
         Self: Sized;
-
-    /// Decodes an instance from the given `Capped` buffer, consuming it to its cap.
+    #[doc = " Decodes an instance from the given `Capped` buffer, consuming it to its cap."]
     #[doc(hidden)]
     fn decode_capped<B: Buf + ?Sized>(buf: Capped<B>) -> Result<Self, DecodeError>
     where
         Self: Sized;
-
-    /// Decodes the non-ignored fields of this message from the buffer, replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer, replacing their values."]
     fn replace_from<B: Buf>(&mut self, buf: B) -> Result<(), DecodeError>
     where
         Self: Sized;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from a
-    /// length-delimited value encoded in the buffer.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from a"]
+    #[doc = " length-delimited value encoded in the buffer."]
     fn replace_from_length_delimited<B: Buf>(&mut self, buf: B) -> Result<(), DecodeError>
     where
         Self: Sized;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from the given capped
-    /// buffer.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from the given capped"]
+    #[doc = " buffer."]
     #[doc(hidden)]
     fn replace_from_capped<B: Buf + ?Sized>(&mut self, buf: Capped<B>) -> Result<(), DecodeError>
     where
         Self: Sized;
-
-    // ------------ Dyn-compatible methods follow ------------
-
-    /// Decodes the non-ignored fields of this message from the buffer, replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer, replacing their values."]
     fn replace_from_slice(&mut self, buf: &[u8]) -> Result<(), DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from a
-    /// length-delimited value encoded in the buffer.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from a"]
+    #[doc = " length-delimited value encoded in the buffer."]
     fn replace_from_length_delimited_slice(&mut self, buf: &[u8]) -> Result<(), DecodeError>;
-
-    /// Decodes the non-ignored fields of this message from the buffer, replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer, replacing their values."]
     fn replace_from_dyn(&mut self, buf: &mut dyn Buf) -> Result<(), DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from a
-    /// length-delimited value encoded in the buffer.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from a"]
+    #[doc = " length-delimited value encoded in the buffer."]
     fn replace_from_length_delimited_dyn(&mut self, buf: &mut dyn Buf) -> Result<(), DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from the given capped
-    /// buffer.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from the given capped"]
+    #[doc = " buffer."]
     #[doc(hidden)]
     fn replace_from_capped_dyn(&mut self, buf: Capped<dyn Buf>) -> Result<(), DecodeError>;
 }
 
-/// An enhanced trait for owned Bilrost messages that promise a distinguished representation.
-///
-/// Implementation of this trait comes with the following promises:
-///
-///  1. The message will always encode to the same bytes as any other message with an equal value.
-///  2. A message equal to that value will only ever decode canonically and without error from that
-///     exact sequence of bytes, not from any other.
-///
-/// Distinguished decoding methods come in three flavors:
-/// * "distinguished" methods, which decode anything that relaxed decoding will and return the
-///   value along with a `Canonicity`
-/// * "restricted" methods, which also require a minimum `Canonicity` and will early-exit decoding
-///   and return an appropriate error if the canonicity violates that constraint:
-///     * restrict to `Canonical` will return an error any time the encoding is not fully canonical
-///     * restrict to `HasExtensions` will return an error any time the encoding has known fields
-///       with non-canonical representations, but will not fail when unknown fields are present
-///     * passing `NotCanonical` gives exactly the same result as using the distinguished decoding
-///       methods
-/// * "canonical" methods, which are shorthand for "restricted" methods with `Canonical` constraint
-///   and do not return the `Canonicity`, because it will always be fully `Canonical`.
-///
-/// Note that currently the only restriction level that is sensible to *explicitly* pass to
-/// "restricted" methods is `HasExtensions`: "distinguished" methods already dispatch to passing
-/// `NotCanonical`, and when `Canonical` is passed only `Canonical` can be returned from a
-/// successful result (hence the "canonical" methods). It can of course make sense to call these
-/// methods with a varying restriction level.
+#[doc = " An enhanced trait for owned Bilrost messages that promise a distinguished representation."]
+#[doc = ""]
+#[doc = " Implementation of this trait comes with the following promises:"]
+#[doc = ""]
+#[doc = "  1. The message will always encode to the same bytes as any other message with an equal value."]
+#[doc = "  2. A message equal to that value will only ever decode canonically and without error from that"]
+#[doc = "     exact sequence of bytes, not from any other."]
+#[doc = ""]
+#[doc = " Distinguished decoding methods come in three flavors:"]
+#[doc = " * \"distinguished\" methods, which decode anything that relaxed decoding will and return the"]
+#[doc = "   value along with a `Canonicity`"]
+#[doc = " * \"restricted\" methods, which also require a minimum `Canonicity` and will early-exit decoding"]
+#[doc = "   and return an appropriate error if the canonicity violates that constraint:"]
+#[doc = "     * restrict to `Canonical` will return an error any time the encoding is not fully canonical"]
+#[doc = "     * restrict to `HasExtensions` will return an error any time the encoding has known fields"]
+#[doc = "       with non-canonical representations, but will not fail when unknown fields are present"]
+#[doc = "     * passing `NotCanonical` gives exactly the same result as using the distinguished decoding"]
+#[doc = "       methods"]
+#[doc = " * \"canonical\" methods, which are shorthand for \"restricted\" methods with `Canonical` constraint"]
+#[doc = "   and do not return the `Canonicity`, because it will always be fully `Canonical`."]
+#[doc = ""]
+#[doc = " Note that currently the only restriction level that is sensible to *explicitly* pass to"]
+#[doc = " \"restricted\" methods is `HasExtensions`: \"distinguished\" methods already dispatch to passing"]
+#[doc = " `NotCanonical`, and when `Canonical` is passed only `Canonical` can be returned from a"]
+#[doc = " successful result (hence the \"canonical\" methods). It can of course make sense to call these"]
+#[doc = " methods with a varying restriction level."]
 pub trait DistinguishedOwnedMessage: OwnedMessage {
-    // ------------ Distinguished mode ------------
-
-    /// Decodes an instance of the message from a buffer in distinguished mode.
-    ///
-    /// The entire buffer will be consumed.
+    #[doc = " Decodes an instance of the message from a buffer in distinguished mode."]
+    #[doc = ""]
+    #[doc = " The entire buffer will be consumed."]
     fn decode_distinguished<B: Buf>(buf: B) -> Result<(Self, Canonicity), DecodeError>
     where
         Self: Sized;
-
-    /// Decodes a length-delimited instance of the message from the buffer in distinguished mode.
+    #[doc = " Decodes a length-delimited instance of the message from the buffer in distinguished mode."]
     fn decode_distinguished_length_delimited<B: Buf>(
         buf: B,
     ) -> Result<(Self, Canonicity), DecodeError>
     where
         Self: Sized;
-
-    /// Decodes an instance from the given `Capped` buffer in distinguished mode, consuming it to
-    /// its cap.
+    #[doc = " Decodes an instance from the given `Capped` buffer in distinguished mode, consuming it to"]
+    #[doc = " its cap."]
     #[doc(hidden)]
     fn decode_distinguished_capped<B: Buf + ?Sized>(
         buf: Capped<B>,
     ) -> Result<(Self, Canonicity), DecodeError>
     where
         Self: Sized;
-
-    /// Decodes the non-ignored fields of this message from the buffer in distinguished mode,
-    /// replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer in distinguished mode,"]
+    #[doc = " replacing their values."]
     fn replace_distinguished_from<B: Buf>(&mut self, buf: B) -> Result<Canonicity, DecodeError>
     where
         Self: Sized;
-
-    /// Decodes the non-ignored fields of this message in distinguished mode, replacing their values
-    /// from a length-delimited value encoded in the buffer.
+    #[doc = " Decodes the non-ignored fields of this message in distinguished mode, replacing their values"]
+    #[doc = " from a length-delimited value encoded in the buffer."]
     fn replace_distinguished_from_length_delimited<B: Buf>(
         &mut self,
         buf: B,
     ) -> Result<Canonicity, DecodeError>
     where
         Self: Sized;
-
-    /// Decodes the non-ignored fields of this message in distinguished mode, replacing their values
-    /// from the given capped buffer.
+    #[doc = " Decodes the non-ignored fields of this message in distinguished mode, replacing their values"]
+    #[doc = " from the given capped buffer."]
     #[doc(hidden)]
     fn replace_distinguished_from_capped<B: Buf + ?Sized>(
         &mut self,
@@ -219,63 +182,51 @@ pub trait DistinguishedOwnedMessage: OwnedMessage {
     ) -> Result<Canonicity, DecodeError>
     where
         Self: Sized;
-
-    // ------------ Dyn-compatible methods follow ------------
-
-    /// Decodes a length-delimited instance of the message from the buffer in distinguished mode.
+    #[doc = " Decodes a length-delimited instance of the message from the buffer in distinguished mode."]
     fn replace_distinguished_from_slice(&mut self, buf: &[u8]) -> Result<Canonicity, DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from a
-    /// length-delimited value encoded in the buffer in distinguished mode.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from a"]
+    #[doc = " length-delimited value encoded in the buffer in distinguished mode."]
     fn replace_distinguished_from_dyn(
         &mut self,
         buf: &mut dyn Buf,
     ) -> Result<Canonicity, DecodeError>;
-
-    /// Decodes the non-ignored fields of this message from the buffer in distinguished mode,
-    /// replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer in distinguished mode,"]
+    #[doc = " replacing their values."]
     fn replace_distinguished_from_length_delimited_slice(
         &mut self,
         buf: &[u8],
     ) -> Result<Canonicity, DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from a
-    /// length-delimited value encoded in the buffer in distinguished mode.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from a"]
+    #[doc = " length-delimited value encoded in the buffer in distinguished mode."]
     fn replace_distinguished_from_length_delimited_dyn(
         &mut self,
         buf: &mut dyn Buf,
     ) -> Result<Canonicity, DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from the given capped
-    /// buffer in distinguished mode.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from the given capped"]
+    #[doc = " buffer in distinguished mode."]
     #[doc(hidden)]
     fn replace_distinguished_from_capped_dyn(
         &mut self,
         buf: Capped<dyn Buf>,
     ) -> Result<Canonicity, DecodeError>;
-
-    // ------------ Restricted mode ------------
-
-    /// Decodes an instance of the message from a buffer in restricted mode.
-    ///
-    /// The entire buffer will be consumed.
+    #[doc = " Decodes an instance of the message from a buffer in restricted mode."]
+    #[doc = ""]
+    #[doc = " The entire buffer will be consumed."]
     fn decode_restricted<B: Buf>(
         buf: B,
         restrict_to: Canonicity,
     ) -> Result<(Self, Canonicity), DecodeError>
     where
         Self: Sized;
-
-    /// Decodes a length-delimited instance of the message from the buffer in restricted mode.
+    #[doc = " Decodes a length-delimited instance of the message from the buffer in restricted mode."]
     fn decode_restricted_length_delimited<B: Buf>(
         buf: B,
         restrict_to: Canonicity,
     ) -> Result<(Self, Canonicity), DecodeError>
     where
         Self: Sized;
-
-    /// Decodes an instance from the given `Capped` buffer in restricted mode, consuming it to
-    /// its cap.
+    #[doc = " Decodes an instance from the given `Capped` buffer in restricted mode, consuming it to"]
+    #[doc = " its cap."]
     #[doc(hidden)]
     fn decode_restricted_capped<B: Buf + ?Sized>(
         buf: Capped<B>,
@@ -283,9 +234,8 @@ pub trait DistinguishedOwnedMessage: OwnedMessage {
     ) -> Result<(Self, Canonicity), DecodeError>
     where
         Self: Sized;
-
-    /// Decodes the non-ignored fields of this message from the buffer in restricted mode,
-    /// replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer in restricted mode,"]
+    #[doc = " replacing their values."]
     fn replace_restricted_from<B: Buf>(
         &mut self,
         buf: B,
@@ -293,9 +243,8 @@ pub trait DistinguishedOwnedMessage: OwnedMessage {
     ) -> Result<Canonicity, DecodeError>
     where
         Self: Sized;
-
-    /// Decodes the non-ignored fields of this message in restricted mode, replacing their values
-    /// from a length-delimited value encoded in the buffer.
+    #[doc = " Decodes the non-ignored fields of this message in restricted mode, replacing their values"]
+    #[doc = " from a length-delimited value encoded in the buffer."]
     fn replace_restricted_from_length_delimited<B: Buf>(
         &mut self,
         buf: B,
@@ -303,9 +252,8 @@ pub trait DistinguishedOwnedMessage: OwnedMessage {
     ) -> Result<Canonicity, DecodeError>
     where
         Self: Sized;
-
-    /// Decodes the non-ignored fields of this message in restricted mode, replacing their values
-    /// from the given capped buffer.
+    #[doc = " Decodes the non-ignored fields of this message in restricted mode, replacing their values"]
+    #[doc = " from the given capped buffer."]
     #[doc(hidden)]
     fn replace_restricted_from_capped<B: Buf + ?Sized>(
         &mut self,
@@ -314,87 +262,72 @@ pub trait DistinguishedOwnedMessage: OwnedMessage {
     ) -> Result<Canonicity, DecodeError>
     where
         Self: Sized;
-
-    // ------------ Dyn-compatible methods follow ------------
-
-    /// Decodes a length-delimited instance of the message from the buffer in restricted mode.
+    #[doc = " Decodes a length-delimited instance of the message from the buffer in restricted mode."]
     fn replace_restricted_from_slice(
         &mut self,
         buf: &[u8],
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from a
-    /// length-delimited value encoded in the buffer in restricted mode.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from a"]
+    #[doc = " length-delimited value encoded in the buffer in restricted mode."]
     fn replace_restricted_from_dyn(
         &mut self,
         buf: &mut dyn Buf,
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError>;
-
-    /// Decodes the non-ignored fields of this message from the buffer in restricted mode,
-    /// replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer in restricted mode,"]
+    #[doc = " replacing their values."]
     fn replace_restricted_from_length_delimited_slice(
         &mut self,
         buf: &[u8],
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from a
-    /// length-delimited value encoded in the buffer in restricted mode.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from a"]
+    #[doc = " length-delimited value encoded in the buffer in restricted mode."]
     fn replace_restricted_from_length_delimited_dyn(
         &mut self,
         buf: &mut dyn Buf,
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from the given capped
-    /// buffer in restricted mode.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from the given capped"]
+    #[doc = " buffer in restricted mode."]
     #[doc(hidden)]
     fn replace_restricted_from_capped_dyn(
         &mut self,
         buf: Capped<dyn Buf>,
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError>;
-
-    // ------------ Canonical mode ------------
-
-    /// Decodes an instance of the message from a buffer in canonical mode.
-    ///
-    /// The entire buffer will be consumed.
+    #[doc = " Decodes an instance of the message from a buffer in canonical mode."]
+    #[doc = ""]
+    #[doc = " The entire buffer will be consumed."]
     fn decode_canonical<B: Buf>(buf: B) -> Result<Self, DecodeError>
     where
         Self: Sized;
-
-    /// Decodes a length-delimited instance of the message from the buffer in canonical mode.
+    #[doc = " Decodes a length-delimited instance of the message from the buffer in canonical mode."]
     fn decode_canonical_length_delimited<B: Buf>(buf: B) -> Result<Self, DecodeError>
     where
         Self: Sized;
-
-    /// Decodes an instance from the given `Capped` buffer in canonical mode, consuming it to
-    /// its cap.
+    #[doc = " Decodes an instance from the given `Capped` buffer in canonical mode, consuming it to"]
+    #[doc = " its cap."]
     #[doc(hidden)]
     fn decode_canonical_capped<B: Buf + ?Sized>(buf: Capped<B>) -> Result<Self, DecodeError>
     where
         Self: Sized;
-
-    /// Decodes the non-ignored fields of this message from the buffer in canonical mode,
-    /// replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer in canonical mode,"]
+    #[doc = " replacing their values."]
     fn replace_canonical_from<B: Buf>(&mut self, buf: B) -> Result<(), DecodeError>
     where
         Self: Sized;
-
-    /// Decodes the non-ignored fields of this message in canonical mode, replacing their values
-    /// from a length-delimited value encoded in the buffer.
+    #[doc = " Decodes the non-ignored fields of this message in canonical mode, replacing their values"]
+    #[doc = " from a length-delimited value encoded in the buffer."]
     fn replace_canonical_from_length_delimited<B: Buf>(
         &mut self,
         buf: B,
     ) -> Result<(), DecodeError>
     where
         Self: Sized;
-
-    /// Decodes the non-ignored fields of this message in canonical mode, replacing their values
-    /// from the given capped buffer.
+    #[doc = " Decodes the non-ignored fields of this message in canonical mode, replacing their values"]
+    #[doc = " from the given capped buffer."]
     #[doc(hidden)]
     fn replace_canonical_from_capped<B: Buf + ?Sized>(
         &mut self,
@@ -402,32 +335,25 @@ pub trait DistinguishedOwnedMessage: OwnedMessage {
     ) -> Result<(), DecodeError>
     where
         Self: Sized;
-
-    // ------------ Dyn-compatible methods follow ------------
-
-    /// Decodes a length-delimited instance of the message from the buffer in canonical mode.
+    #[doc = " Decodes a length-delimited instance of the message from the buffer in canonical mode."]
     fn replace_canonical_from_slice(&mut self, buf: &[u8]) -> Result<(), DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from a
-    /// length-delimited value encoded in the buffer in canonical mode.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from a"]
+    #[doc = " length-delimited value encoded in the buffer in canonical mode."]
     fn replace_canonical_from_dyn(&mut self, buf: &mut dyn Buf) -> Result<(), DecodeError>;
-
-    /// Decodes the non-ignored fields of this message from the buffer in canonical mode,
-    /// replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer in canonical mode,"]
+    #[doc = " replacing their values."]
     fn replace_canonical_from_length_delimited_slice(
         &mut self,
         buf: &[u8],
     ) -> Result<(), DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from a
-    /// length-delimited value encoded in the buffer in canonical mode.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from a"]
+    #[doc = " length-delimited value encoded in the buffer in canonical mode."]
     fn replace_canonical_from_length_delimited_dyn(
         &mut self,
         buf: &mut dyn Buf,
     ) -> Result<(), DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from the given capped
-    /// buffer in canonical mode.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from the given capped"]
+    #[doc = " buffer in canonical mode."]
     #[doc(hidden)]
     fn replace_canonical_from_capped_dyn(
         &mut self,
@@ -435,345 +361,266 @@ pub trait DistinguishedOwnedMessage: OwnedMessage {
     ) -> Result<(), DecodeError>;
 }
 
-/// Basic decoding functionality for a Bilrost message that can decode from a borrowed slice.
+#[doc = " Basic decoding functionality for a Bilrost message that can decode from a borrowed slice."]
 pub trait BorrowedMessage<'a>: Message {
-    /// Decodes an instance of the message from a buffer.
-    ///
-    /// The entire buffer will be consumed.
+    #[doc = " Decodes an instance of the message from a buffer."]
+    #[doc = ""]
+    #[doc = " The entire buffer will be consumed."]
     fn decode_borrowed(buf: &'a [u8]) -> Result<Self, DecodeError>
     where
         Self: Sized;
-
-    /// Decodes a length-delimited instance of the message from the buffer.
-    ///
-    /// * If the message decodes successfully, the provided slice will be shortened to no longer
-    ///   include the bytes that encoded it or its length delimiter.
-    /// * If the message is correctly delimited within the bounds of the slice but fails to decode,
-    ///   the provided slice will still be shortened even though an error is returned.
-    /// * If the slice is shorter than the length delimiter indicates, or if the length delimiter
-    ///   itself is truncated, an error with Truncated kind is returned and it is unspecified how
-    ///   the provided slice value is modified.
+    #[doc = " Decodes a length-delimited instance of the message from the buffer."]
+    #[doc = ""]
+    #[doc = " * If the message decodes successfully, the provided slice will be shortened to no longer"]
+    #[doc = "   include the bytes that encoded it or its length delimiter."]
+    #[doc = " * If the message is correctly delimited within the bounds of the slice but fails to decode,"]
+    #[doc = "   the provided slice will still be shortened even though an error is returned."]
+    #[doc = " * If the slice is shorter than the length delimiter indicates, or if the length delimiter"]
+    #[doc = "   itself is truncated, an error with Truncated kind is returned and it is unspecified how"]
+    #[doc = "   the provided slice value is modified."]
     fn decode_borrowed_length_delimited(buf: &mut &'a [u8]) -> Result<Self, DecodeError>
     where
         Self: Sized;
-
-    // ------------ Dyn-compatible methods follow ------------
-
-    /// Decodes the non-ignored fields of this message from the buffer, replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer, replacing their values."]
     fn replace_borrowed_from(&mut self, buf: &'a [u8]) -> Result<(), DecodeError>;
-
-    /// Decodes the non-ignored fields of this message, replacing their values from a
-    /// length-delimited value encoded in the buffer.
-    ///
-    /// * If the message decodes successfully, the provided slice will be shortened to no longer
-    ///   include the bytes that encoded it or its length delimiter.
-    /// * If the message is correctly delimited within the bounds of the slice but fails to decode,
-    ///   the provided slice will still be shortened even though an error is returned.
-    /// * If the slice is shorter than the length delimiter indicates, or if the length delimiter
-    ///   itself is truncated, an error with Truncated kind is returned and it is unspecified how
-    ///   the provided slice value is modified.
+    #[doc = " Decodes the non-ignored fields of this message, replacing their values from a"]
+    #[doc = " length-delimited value encoded in the buffer."]
+    #[doc = ""]
+    #[doc = " * If the message decodes successfully, the provided slice will be shortened to no longer"]
+    #[doc = "   include the bytes that encoded it or its length delimiter."]
+    #[doc = " * If the message is correctly delimited within the bounds of the slice but fails to decode,"]
+    #[doc = "   the provided slice will still be shortened even though an error is returned."]
+    #[doc = " * If the slice is shorter than the length delimiter indicates, or if the length delimiter"]
+    #[doc = "   itself is truncated, an error with Truncated kind is returned and it is unspecified how"]
+    #[doc = "   the provided slice value is modified."]
     fn replace_borrowed_from_length_delimited(
         &mut self,
         buf: &mut &'a [u8],
     ) -> Result<(), DecodeError>;
 }
 
-/// An enhanced trait for borrowed Bilrost messages that promise a distinguished representation.
-///
-/// Implementation of this trait comes with the following promises:
-///
-///  1. The message will always encode to the same bytes as any other message with an equal value.
-///  2. A message equal to that value will only ever decode canonically and without error from that
-///     exact sequence of bytes, not from any other.
-///
-/// Distinguished decoding methods come in three flavors:
-/// * "distinguished" methods, which decode anything that relaxed decoding will and return the
-///   value along with a `Canonicity`
-/// * "restricted" methods, which also require a minimum `Canonicity` and will early-exit decoding
-///   and return an appropriate error if the canonicity violates that constraint:
-///     * restrict to `Canonical` will return an error any time the encoding is not fully canonical
-///     * restrict to `HasExtensions` will return an error any time the encoding has known fields
-///       with non-canonical representations, but will not fail when unknown fields are present
-///     * passing `NotCanonical` gives exactly the same result as using the distinguished decoding
-///       methods
-/// * "canonical" methods, which are shorthand for "restricted" methods with `Canonical` constraint
-///   and do not return the `Canonicity`, because it will always be fully `Canonical`.
-///
-/// Note that currently the only restriction level that is sensible to *explicitly* pass to
-/// "restricted" methods is `HasExtensions`: "distinguished" methods already dispatch to passing
-/// `NotCanonical`, and when `Canonical` is passed only `Canonical` can be returned from a
-/// successful result (hence the "canonical" methods). It can of course make sense to call these
-/// methods with a varying restriction level.
+#[doc = " An enhanced trait for borrowed Bilrost messages that promise a distinguished representation."]
+#[doc = ""]
+#[doc = " Implementation of this trait comes with the following promises:"]
+#[doc = ""]
+#[doc = "  1. The message will always encode to the same bytes as any other message with an equal value."]
+#[doc = "  2. A message equal to that value will only ever decode canonically and without error from that"]
+#[doc = "     exact sequence of bytes, not from any other."]
+#[doc = ""]
+#[doc = " Distinguished decoding methods come in three flavors:"]
+#[doc = " * \"distinguished\" methods, which decode anything that relaxed decoding will and return the"]
+#[doc = "   value along with a `Canonicity`"]
+#[doc = " * \"restricted\" methods, which also require a minimum `Canonicity` and will early-exit decoding"]
+#[doc = "   and return an appropriate error if the canonicity violates that constraint:"]
+#[doc = "     * restrict to `Canonical` will return an error any time the encoding is not fully canonical"]
+#[doc = "     * restrict to `HasExtensions` will return an error any time the encoding has known fields"]
+#[doc = "       with non-canonical representations, but will not fail when unknown fields are present"]
+#[doc = "     * passing `NotCanonical` gives exactly the same result as using the distinguished decoding"]
+#[doc = "       methods"]
+#[doc = " * \"canonical\" methods, which are shorthand for \"restricted\" methods with `Canonical` constraint"]
+#[doc = "   and do not return the `Canonicity`, because it will always be fully `Canonical`."]
+#[doc = ""]
+#[doc = " Note that currently the only restriction level that is sensible to *explicitly* pass to"]
+#[doc = " \"restricted\" methods is `HasExtensions`: \"distinguished\" methods already dispatch to passing"]
+#[doc = " `NotCanonical`, and when `Canonical` is passed only `Canonical` can be returned from a"]
+#[doc = " successful result (hence the \"canonical\" methods). It can of course make sense to call these"]
+#[doc = " methods with a varying restriction level."]
 pub trait DistinguishedBorrowedMessage<'a>: BorrowedMessage<'a> {
-    // ------------ Distinguished mode ------------
-
-    /// Decodes an instance of the message from a buffer in distinguished mode.
-    ///
-    /// The entire buffer will be consumed.
+    #[doc = " Decodes an instance of the message from a buffer in distinguished mode."]
+    #[doc = ""]
+    #[doc = " The entire buffer will be consumed."]
     fn decode_distinguished_borrowed(buf: &'a [u8]) -> Result<(Self, Canonicity), DecodeError>
     where
         Self: Sized;
-
-    /// Decodes a length-delimited instance of the message from the buffer in distinguished mode.
-    ///
-    /// * If the message decodes successfully, the provided slice will be shortened to no longer
-    ///   include the bytes that encoded it or its length delimiter.
-    /// * If the message is correctly delimited within the bounds of the slice but fails to decode,
-    ///   the provided slice will still be shortened even though an error is returned.
-    /// * If the slice is shorter than the length delimiter indicates, or if the length delimiter
-    ///   itself is truncated, an error with Truncated kind is returned and it is unspecified how
-    ///   the provided slice value is modified.
+    #[doc = " Decodes a length-delimited instance of the message from the buffer in distinguished mode."]
+    #[doc = ""]
+    #[doc = " * If the message decodes successfully, the provided slice will be shortened to no longer"]
+    #[doc = "   include the bytes that encoded it or its length delimiter."]
+    #[doc = " * If the message is correctly delimited within the bounds of the slice but fails to decode,"]
+    #[doc = "   the provided slice will still be shortened even though an error is returned."]
+    #[doc = " * If the slice is shorter than the length delimiter indicates, or if the length delimiter"]
+    #[doc = "   itself is truncated, an error with Truncated kind is returned and it is unspecified how"]
+    #[doc = "   the provided slice value is modified."]
     fn decode_distinguished_borrowed_length_delimited(
         buf: &mut &'a [u8],
     ) -> Result<(Self, Canonicity), DecodeError>
     where
         Self: Sized;
-
-    // ------------ Dyn-compatible methods follow ------------
-
-    /// Decodes the non-ignored fields of this message from the buffer in distinguished mode,
-    /// replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer in distinguished mode,"]
+    #[doc = " replacing their values."]
     fn replace_distinguished_borrowed_from(
         &mut self,
         buf: &'a [u8],
     ) -> Result<Canonicity, DecodeError>;
-
-    /// Decodes the non-ignored fields of this message in distinguished mode, replacing their values
-    /// from a length-delimited value encoded in the buffer.
-    ///
-    /// * If the message decodes successfully, the provided slice will be shortened to no longer
-    ///   include the bytes that encoded it or its length delimiter.
-    /// * If the message is correctly delimited within the bounds of the slice but fails to decode,
-    ///   the provided slice will still be shortened even though an error is returned.
-    /// * If the slice is shorter than the length delimiter indicates, or if the length delimiter
-    ///   itself is truncated, an error with Truncated kind is returned and it is unspecified how
-    ///   the provided slice value is modified.
+    #[doc = " Decodes the non-ignored fields of this message in distinguished mode, replacing their values"]
+    #[doc = " from a length-delimited value encoded in the buffer."]
+    #[doc = ""]
+    #[doc = " * If the message decodes successfully, the provided slice will be shortened to no longer"]
+    #[doc = "   include the bytes that encoded it or its length delimiter."]
+    #[doc = " * If the message is correctly delimited within the bounds of the slice but fails to decode,"]
+    #[doc = "   the provided slice will still be shortened even though an error is returned."]
+    #[doc = " * If the slice is shorter than the length delimiter indicates, or if the length delimiter"]
+    #[doc = "   itself is truncated, an error with Truncated kind is returned and it is unspecified how"]
+    #[doc = "   the provided slice value is modified."]
     fn replace_distinguished_borrowed_from_length_delimited(
         &mut self,
         buf: &mut &'a [u8],
     ) -> Result<Canonicity, DecodeError>;
-
-    // ------------ Restricted mode ------------
-
-    /// Decodes an instance of the message from a buffer in restricted mode.
-    ///
-    /// The entire buffer will be consumed.
+    #[doc = " Decodes an instance of the message from a buffer in restricted mode."]
+    #[doc = ""]
+    #[doc = " The entire buffer will be consumed."]
     fn decode_restricted_borrowed(
         buf: &'a [u8],
         restrict_to: Canonicity,
     ) -> Result<(Self, Canonicity), DecodeError>
     where
         Self: Sized;
-
-    /// Decodes a length-delimited instance of the message from the buffer in restricted mode.
-    ///
-    /// * If the message decodes successfully, the provided slice will be shortened to no longer
-    ///   include the bytes that encoded it or its length delimiter.
-    /// * If the message is correctly delimited within the bounds of the slice but fails to decode,
-    ///   the provided slice will still be shortened even though an error is returned.
-    /// * If the slice is shorter than the length delimiter indicates, or if the length delimiter
-    ///   itself is truncated, an error with Truncated kind is returned and it is unspecified how
-    ///   the provided slice value is modified.
+    #[doc = " Decodes a length-delimited instance of the message from the buffer in restricted mode."]
+    #[doc = ""]
+    #[doc = " * If the message decodes successfully, the provided slice will be shortened to no longer"]
+    #[doc = "   include the bytes that encoded it or its length delimiter."]
+    #[doc = " * If the message is correctly delimited within the bounds of the slice but fails to decode,"]
+    #[doc = "   the provided slice will still be shortened even though an error is returned."]
+    #[doc = " * If the slice is shorter than the length delimiter indicates, or if the length delimiter"]
+    #[doc = "   itself is truncated, an error with Truncated kind is returned and it is unspecified how"]
+    #[doc = "   the provided slice value is modified."]
     fn decode_restricted_borrowed_length_delimited(
         buf: &mut &'a [u8],
         restrict_to: Canonicity,
     ) -> Result<(Self, Canonicity), DecodeError>
     where
         Self: Sized;
-
-    // ------------ Dyn-compatible methods follow ------------
-
-    /// Decodes the non-ignored fields of this message from the buffer in restricted mode,
-    /// replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer in restricted mode,"]
+    #[doc = " replacing their values."]
     fn replace_restricted_borrowed_from(
         &mut self,
         buf: &'a [u8],
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError>;
-
-    /// Decodes the non-ignored fields of this message in restricted mode, replacing their values
-    /// from a length-delimited value encoded in the buffer.
-    ///
-    /// * If the message decodes successfully, the provided slice will be shortened to no longer
-    ///   include the bytes that encoded it or its length delimiter.
-    /// * If the message is correctly delimited within the bounds of the slice but fails to decode,
-    ///   the provided slice will still be shortened even though an error is returned.
-    /// * If the slice is shorter than the length delimiter indicates, or if the length delimiter
-    ///   itself is truncated, an error with Truncated kind is returned and it is unspecified how
-    ///   the provided slice value is modified.
+    #[doc = " Decodes the non-ignored fields of this message in restricted mode, replacing their values"]
+    #[doc = " from a length-delimited value encoded in the buffer."]
+    #[doc = ""]
+    #[doc = " * If the message decodes successfully, the provided slice will be shortened to no longer"]
+    #[doc = "   include the bytes that encoded it or its length delimiter."]
+    #[doc = " * If the message is correctly delimited within the bounds of the slice but fails to decode,"]
+    #[doc = "   the provided slice will still be shortened even though an error is returned."]
+    #[doc = " * If the slice is shorter than the length delimiter indicates, or if the length delimiter"]
+    #[doc = "   itself is truncated, an error with Truncated kind is returned and it is unspecified how"]
+    #[doc = "   the provided slice value is modified."]
     fn replace_restricted_borrowed_from_length_delimited(
         &mut self,
         buf: &mut &'a [u8],
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError>;
-
-    // ------------ Canonical mode ------------
-
-    /// Decodes an instance of the message from a buffer in canonical mode.
-    ///
-    /// The entire buffer will be consumed.
+    #[doc = " Decodes an instance of the message from a buffer in canonical mode."]
+    #[doc = ""]
+    #[doc = " The entire buffer will be consumed."]
     fn decode_canonical_borrowed(buf: &'a [u8]) -> Result<Self, DecodeError>
     where
         Self: Sized;
-
-    /// Decodes a length-delimited instance of the message from the buffer in canonical mode.
-    ///
-    /// * If the message decodes successfully, the provided slice will be shortened to no longer
-    ///   include the bytes that encoded it or its length delimiter.
-    /// * If the message is correctly delimited within the bounds of the slice but fails to decode,
-    ///   the provided slice will still be shortened even though an error is returned.
-    /// * If the slice is shorter than the length delimiter indicates, or if the length delimiter
-    ///   itself is truncated, an error with Truncated kind is returned and it is unspecified how
-    ///   the provided slice value is modified.
+    #[doc = " Decodes a length-delimited instance of the message from the buffer in canonical mode."]
+    #[doc = ""]
+    #[doc = " * If the message decodes successfully, the provided slice will be shortened to no longer"]
+    #[doc = "   include the bytes that encoded it or its length delimiter."]
+    #[doc = " * If the message is correctly delimited within the bounds of the slice but fails to decode,"]
+    #[doc = "   the provided slice will still be shortened even though an error is returned."]
+    #[doc = " * If the slice is shorter than the length delimiter indicates, or if the length delimiter"]
+    #[doc = "   itself is truncated, an error with Truncated kind is returned and it is unspecified how"]
+    #[doc = "   the provided slice value is modified."]
     fn decode_canonical_borrowed_length_delimited(buf: &mut &'a [u8]) -> Result<Self, DecodeError>
     where
         Self: Sized;
-
-    // ------------ Dyn-compatible methods follow ------------
-
-    /// Decodes the non-ignored fields of this message from the buffer in canonical mode,
-    /// replacing their values.
+    #[doc = " Decodes the non-ignored fields of this message from the buffer in canonical mode,"]
+    #[doc = " replacing their values."]
     fn replace_canonical_borrowed_from(&mut self, buf: &'a [u8]) -> Result<(), DecodeError>;
-
-    /// Decodes the non-ignored fields of this message in canonical mode, replacing their values
-    /// from a length-delimited value encoded in the buffer.
-    ///
-    /// * If the message decodes successfully, the provided slice will be shortened to no longer
-    ///   include the bytes that encoded it or its length delimiter.
-    /// * If the message is correctly delimited within the bounds of the slice but fails to decode,
-    ///   the provided slice will still be shortened even though an error is returned.
-    /// * If the slice is shorter than the length delimiter indicates, or if the length delimiter
-    ///   itself is truncated, an error with Truncated kind is returned and it is unspecified how
-    ///   the provided slice value is modified.
+    #[doc = " Decodes the non-ignored fields of this message in canonical mode, replacing their values"]
+    #[doc = " from a length-delimited value encoded in the buffer."]
+    #[doc = ""]
+    #[doc = " * If the message decodes successfully, the provided slice will be shortened to no longer"]
+    #[doc = "   include the bytes that encoded it or its length delimiter."]
+    #[doc = " * If the message is correctly delimited within the bounds of the slice but fails to decode,"]
+    #[doc = "   the provided slice will still be shortened even though an error is returned."]
+    #[doc = " * If the slice is shorter than the length delimiter indicates, or if the length delimiter"]
+    #[doc = "   itself is truncated, an error with Truncated kind is returned and it is unspecified how"]
+    #[doc = "   the provided slice value is modified."]
     fn replace_canonical_borrowed_from_length_delimited(
         &mut self,
         buf: &mut &'a [u8],
     ) -> Result<(), DecodeError>;
 }
 
-/// `Message` is implemented as a usability layer on top of the basic functionality afforded by
-/// `RawMessage`.
-// TODO: extension decoding: extensions can't be provided singly alongside the message that's to be
-//  decoded and capture extensions in anything but the top layer message's extension fields. doing
-//  this in a really robust way that people will probably eventually want will probably require some
-//  kind of moderately robust semi-reflective mapping that mirrors the parsed structure of the
-//  message that it came from; re-encoding from this type could be similarly difficult to implement
-//  efficiently, since the way inlining is done now type-erases the implementations of each field's
-//  encoding and applying extensions would need to either interleave encoded message data (which is
-//  honestly probably faster) or make all of the field encodings reachable polymorphically.
+#[doc = " `Message` is implemented as a usability layer on top of the basic functionality afforded by"]
+#[doc = " `RawMessage`."]
 impl<T> Message for T
 where
     T: RawMessage + Sized,
 {
     fn new_empty() -> Self {
-        T::empty()
+        loop {}
     }
 
     fn encode<B: BufMut + ?Sized>(&self, buf: &mut B) -> Result<(), EncodeError> {
-        let required = self.encoded_len();
-        let remaining = buf.remaining_mut();
-        if required > remaining {
-            return Err(EncodeError::new(required, remaining));
-        }
-
-        self.raw_encode(buf);
-        Ok(())
+        loop {}
     }
 
     fn prepend<B: ReverseBuf + ?Sized>(&self, buf: &mut B) {
-        self.raw_prepend(buf);
+        loop {}
     }
 
     fn encode_length_delimited<B: BufMut + ?Sized>(&self, buf: &mut B) -> Result<(), EncodeError> {
-        let len = self.encoded_len();
-        let required = len + encoded_len_varint(len as u64);
-        let remaining = buf.remaining_mut();
-        if required > remaining {
-            return Err(EncodeError::new(required, remaining));
-        }
-        encode_varint(len as u64, buf);
-        self.raw_encode(buf);
-        Ok(())
+        loop {}
     }
 
     fn message_is_empty(&self) -> bool {
-        self.is_empty()
+        loop {}
     }
 
     fn clear_message(&mut self) {
-        self.clear();
+        loop {}
     }
 
     fn encoded_len(&self) -> usize {
-        self.raw_encoded_len()
+        loop {}
     }
 
     fn encode_to_vec(&self) -> Vec<u8> {
-        let mut buf = Vec::with_capacity(self.encoded_len());
-        self.raw_encode(&mut buf);
-        buf
+        loop {}
     }
 
     fn encode_to_bytes(&self) -> Bytes {
-        let mut buf = BytesMut::with_capacity(self.encoded_len());
-        self.raw_encode(&mut buf);
-        buf.freeze()
+        loop {}
     }
 
     fn encode_fast(&self) -> ReverseBuffer {
-        let mut buf = ReverseBuffer::new();
-        self.raw_prepend(&mut buf);
-        buf
+        loop {}
     }
 
     fn encode_length_delimited_fast(&self) -> ReverseBuffer {
-        let mut buf = self.encode_fast();
-        prepend_varint(buf.remaining() as u64, &mut buf);
-        buf
+        loop {}
     }
 
     fn encode_contiguous(&self) -> ReverseBuffer {
-        let mut buf = ReverseBuffer::with_capacity(self.encoded_len());
-        self.raw_prepend(&mut buf);
-        debug_assert!(buf.contiguous().is_some());
-        debug_assert!(buf.capacity() == buf.len());
-        buf
+        loop {}
     }
 
     fn encode_length_delimited_contiguous(&self) -> ReverseBuffer {
-        let len = self.encoded_len();
-        let mut buf = ReverseBuffer::with_capacity(len + length_delimiter_len(len));
-        self.raw_prepend(&mut buf);
-        prepend_varint(len as u64, &mut buf);
-        debug_assert!(buf.contiguous().is_some());
-        debug_assert!(buf.capacity() == buf.len());
-        buf
+        loop {}
     }
 
     fn encode_dyn(&self, buf: &mut dyn BufMut) -> Result<(), EncodeError> {
-        self.encode(buf)
+        loop {}
     }
 
     fn encode_length_delimited_to_vec(&self) -> Vec<u8> {
-        let len = self.encoded_len();
-        let mut buf = Vec::with_capacity(len + encoded_len_varint(len as u64));
-
-        encode_varint(len as u64, &mut buf);
-        self.raw_encode(&mut buf);
-        buf
+        loop {}
     }
 
     fn encode_length_delimited_to_bytes(&self) -> Bytes {
-        let len = self.encoded_len();
-        let mut buf = BytesMut::with_capacity(len + encoded_len_varint(len as u64));
-
-        encode_varint(len as u64, &mut buf);
-        self.raw_encode(&mut buf);
-        buf.freeze()
+        loop {}
     }
 
     fn encode_length_delimited_dyn(&self, buf: &mut dyn BufMut) -> Result<(), EncodeError> {
-        self.encode_length_delimited(buf)
+        loop {}
     }
 }
 
@@ -782,57 +629,50 @@ where
     T: RawMessageDecoder + Sized,
 {
     fn decode<B: Buf>(mut buf: B) -> Result<Self, DecodeError> {
-        Self::decode_capped(Capped::new(&mut buf))
+        loop {}
     }
 
     fn decode_length_delimited<B: Buf>(mut buf: B) -> Result<Self, DecodeError> {
-        Self::decode_capped(Capped::new_length_delimited(&mut buf)?)
+        loop {}
     }
 
     #[doc(hidden)]
     fn decode_capped<B: Buf + ?Sized>(buf: Capped<B>) -> Result<Self, DecodeError> {
-        let mut message = Self::empty();
-        merge(&mut message, buf, DecodeContext::default())?;
-        Ok(message)
+        loop {}
     }
 
     fn replace_from<B: Buf>(&mut self, mut buf: B) -> Result<(), DecodeError> {
-        self.replace_from_capped(Capped::new(&mut buf))
+        loop {}
     }
 
     fn replace_from_length_delimited<B: Buf>(&mut self, mut buf: B) -> Result<(), DecodeError> {
-        self.replace_from_capped(Capped::new_length_delimited(&mut buf)?)
+        loop {}
     }
 
     #[doc(hidden)]
     fn replace_from_capped<B: Buf + ?Sized>(&mut self, buf: Capped<B>) -> Result<(), DecodeError> {
-        self.clear();
-        // MSRV: here, and elsewhere, this `map_err` could be `inspect_err` (1.76)
-        merge(self, buf, DecodeContext::default()).map_err(|err| {
-            self.clear();
-            err
-        })
+        loop {}
     }
 
     fn replace_from_slice(&mut self, buf: &[u8]) -> Result<(), DecodeError> {
-        self.replace_from(buf)
+        loop {}
     }
 
     fn replace_from_length_delimited_slice(&mut self, buf: &[u8]) -> Result<(), DecodeError> {
-        self.replace_from_length_delimited(buf)
+        loop {}
     }
 
     fn replace_from_dyn(&mut self, buf: &mut dyn Buf) -> Result<(), DecodeError> {
-        self.replace_from(buf)
+        loop {}
     }
 
     fn replace_from_length_delimited_dyn(&mut self, buf: &mut dyn Buf) -> Result<(), DecodeError> {
-        self.replace_from_length_delimited(buf)
+        loop {}
     }
 
     #[doc(hidden)]
     fn replace_from_capped_dyn(&mut self, buf: Capped<dyn Buf>) -> Result<(), DecodeError> {
-        self.replace_from_capped(buf)
+        loop {}
     }
 }
 
@@ -841,31 +681,31 @@ where
     T: RawDistinguishedMessageDecoder + RawMessageDecoder,
 {
     fn decode_distinguished<B: Buf>(buf: B) -> Result<(Self, Canonicity), DecodeError> {
-        Self::decode_restricted(buf, NotCanonical)
+        loop {}
     }
 
     fn decode_distinguished_length_delimited<B: Buf>(
         buf: B,
     ) -> Result<(Self, Canonicity), DecodeError> {
-        Self::decode_restricted_length_delimited(buf, NotCanonical)
+        loop {}
     }
 
     #[doc(hidden)]
     fn decode_distinguished_capped<B: Buf + ?Sized>(
         buf: Capped<B>,
     ) -> Result<(Self, Canonicity), DecodeError> {
-        Self::decode_restricted_capped(buf, NotCanonical)
+        loop {}
     }
 
     fn replace_distinguished_from<B: Buf>(&mut self, buf: B) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from(buf, NotCanonical)
+        loop {}
     }
 
     fn replace_distinguished_from_length_delimited<B: Buf>(
         &mut self,
         buf: B,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from_length_delimited(buf, NotCanonical)
+        loop {}
     }
 
     #[doc(hidden)]
@@ -873,32 +713,32 @@ where
         &mut self,
         buf: Capped<B>,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from_capped(buf, NotCanonical)
+        loop {}
     }
 
     fn replace_distinguished_from_slice(&mut self, buf: &[u8]) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from(buf, NotCanonical)
+        loop {}
     }
 
     fn replace_distinguished_from_dyn(
         &mut self,
         buf: &mut dyn Buf,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from(buf, NotCanonical)
+        loop {}
     }
 
     fn replace_distinguished_from_length_delimited_slice(
         &mut self,
         buf: &[u8],
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from_length_delimited(buf, NotCanonical)
+        loop {}
     }
 
     fn replace_distinguished_from_length_delimited_dyn(
         &mut self,
         buf: &mut dyn Buf,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from_length_delimited(buf, NotCanonical)
+        loop {}
     }
 
     #[doc(hidden)]
@@ -906,35 +746,28 @@ where
         &mut self,
         buf: Capped<dyn Buf>,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from_capped(buf, NotCanonical)
+        loop {}
     }
 
     fn decode_restricted<B: Buf>(
         mut buf: B,
         restrict_to: Canonicity,
     ) -> Result<(Self, Canonicity), DecodeError> {
-        Self::decode_restricted_capped(Capped::new(&mut buf), restrict_to)
+        loop {}
     }
 
     fn decode_restricted_length_delimited<B: Buf>(
         mut buf: B,
         restrict_to: Canonicity,
     ) -> Result<(Self, Canonicity), DecodeError> {
-        Self::decode_restricted_capped(Capped::new_length_delimited(&mut buf)?, restrict_to)
+        loop {}
     }
 
     fn decode_restricted_capped<B: Buf + ?Sized>(
         buf: Capped<B>,
         restrict_to: Canonicity,
     ) -> Result<(Self, Canonicity), DecodeError> {
-        let mut message = Self::empty();
-        let ctx = RestrictedDecodeContext::new(restrict_to);
-        let canon = merge_distinguished(&mut message, buf, ctx.clone())
-            // Safety backstop to ensure we do not return a canonicity worse than restrict_to.
-            // See the docs on `RestrictedDecodeContext::check` for details on canonicity
-            // checking.
-            .and_then(|canon| ctx.check(canon))?;
-        Ok((message, canon))
+        loop {}
     }
 
     fn replace_restricted_from<B: Buf>(
@@ -942,7 +775,7 @@ where
         mut buf: B,
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from_capped(Capped::new(&mut buf), restrict_to)
+        loop {}
     }
 
     fn replace_restricted_from_length_delimited<B: Buf>(
@@ -950,7 +783,7 @@ where
         mut buf: B,
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from_capped(Capped::new_length_delimited(&mut buf)?, restrict_to)
+        loop {}
     }
 
     fn replace_restricted_from_capped<B: Buf + ?Sized>(
@@ -958,17 +791,7 @@ where
         buf: Capped<B>,
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError> {
-        self.clear();
-        let ctx = RestrictedDecodeContext::new(restrict_to);
-        merge_distinguished(self, buf, ctx.clone())
-            .map_err(|err| {
-                self.clear();
-                err
-            })
-            // Safety backstop to ensure we do not return a canonicity worse than restrict_to.
-            // See the docs on `RestrictedDecodeContext::check` for details on canonicity
-            // checking.
-            .and_then(|canon| ctx.check(canon))
+        loop {}
     }
 
     fn replace_restricted_from_slice(
@@ -976,7 +799,7 @@ where
         buf: &[u8],
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from(buf, restrict_to)
+        loop {}
     }
 
     fn replace_restricted_from_dyn(
@@ -984,7 +807,7 @@ where
         buf: &mut dyn Buf,
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from(buf, restrict_to)
+        loop {}
     }
 
     fn replace_restricted_from_length_delimited_slice(
@@ -992,7 +815,7 @@ where
         buf: &[u8],
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from_length_delimited(buf, restrict_to)
+        loop {}
     }
 
     fn replace_restricted_from_length_delimited_dyn(
@@ -1000,7 +823,7 @@ where
         buf: &mut dyn Buf,
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from_length_delimited(buf, restrict_to)
+        loop {}
     }
 
     fn replace_restricted_from_capped_dyn(
@@ -1008,32 +831,31 @@ where
         buf: Capped<dyn Buf>,
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_from_capped(buf, restrict_to)
+        loop {}
     }
 
     fn decode_canonical<B: Buf>(buf: B) -> Result<Self, DecodeError> {
-        Self::decode_restricted(buf, Canonical).map(|(val, _)| val)
+        loop {}
     }
 
     fn decode_canonical_length_delimited<B: Buf>(buf: B) -> Result<Self, DecodeError> {
-        Self::decode_restricted_length_delimited(buf, Canonical).map(|(val, _)| val)
+        loop {}
     }
 
     #[doc(hidden)]
     fn decode_canonical_capped<B: Buf + ?Sized>(buf: Capped<B>) -> Result<Self, DecodeError> {
-        Self::decode_restricted_capped(buf, Canonical).map(|(val, _)| val)
+        loop {}
     }
 
     fn replace_canonical_from<B: Buf>(&mut self, buf: B) -> Result<(), DecodeError> {
-        self.replace_restricted_from(buf, Canonical).map(|_| ())
+        loop {}
     }
 
     fn replace_canonical_from_length_delimited<B: Buf>(
         &mut self,
         buf: B,
     ) -> Result<(), DecodeError> {
-        self.replace_restricted_from_length_delimited(buf, Canonical)
-            .map(|_| ())
+        loop {}
     }
 
     #[doc(hidden)]
@@ -1041,32 +863,29 @@ where
         &mut self,
         buf: Capped<B>,
     ) -> Result<(), DecodeError> {
-        self.replace_restricted_from_capped(buf, Canonical)
-            .map(|_| ())
+        loop {}
     }
 
     fn replace_canonical_from_slice(&mut self, buf: &[u8]) -> Result<(), DecodeError> {
-        self.replace_restricted_from(buf, Canonical).map(|_| ())
+        loop {}
     }
 
     fn replace_canonical_from_dyn(&mut self, buf: &mut dyn Buf) -> Result<(), DecodeError> {
-        self.replace_restricted_from(buf, Canonical).map(|_| ())
+        loop {}
     }
 
     fn replace_canonical_from_length_delimited_slice(
         &mut self,
         buf: &[u8],
     ) -> Result<(), DecodeError> {
-        self.replace_restricted_from_length_delimited(buf, Canonical)
-            .map(|_| ())
+        loop {}
     }
 
     fn replace_canonical_from_length_delimited_dyn(
         &mut self,
         buf: &mut dyn Buf,
     ) -> Result<(), DecodeError> {
-        self.replace_restricted_from_length_delimited(buf, Canonical)
-            .map(|_| ())
+        loop {}
     }
 
     #[doc(hidden)]
@@ -1074,8 +893,7 @@ where
         &mut self,
         buf: Capped<dyn Buf>,
     ) -> Result<(), DecodeError> {
-        self.replace_restricted_from_capped(buf, Canonical)
-            .map(|_| ())
+        loop {}
     }
 }
 
@@ -1084,32 +902,22 @@ where
     T: RawMessageBorrowDecoder<'a> + Sized,
 {
     fn decode_borrowed(mut buf: &'a [u8]) -> Result<Self, DecodeError> {
-        let mut message = Self::empty();
-        borrow_merge(
-            &mut message,
-            Capped::new(&mut buf),
-            DecodeContext::default(),
-        )?;
-        Ok(message)
+        loop {}
     }
 
     fn decode_borrowed_length_delimited(buf: &mut &'a [u8]) -> Result<Self, DecodeError> {
-        Self::decode_borrowed(Capped::new(buf).take_borrowed_length_delimited()?)
+        loop {}
     }
 
     fn replace_borrowed_from(&mut self, mut buf: &'a [u8]) -> Result<(), DecodeError> {
-        self.clear();
-        borrow_merge(self, Capped::new(&mut buf), DecodeContext::default()).map_err(|err| {
-            self.clear();
-            err
-        })
+        loop {}
     }
 
     fn replace_borrowed_from_length_delimited(
         &mut self,
         buf: &mut &'a [u8],
     ) -> Result<(), DecodeError> {
-        self.replace_borrowed_from(Capped::new(buf).take_borrowed_length_delimited()?)
+        loop {}
     }
 }
 
@@ -1118,51 +926,41 @@ where
     T: RawDistinguishedMessageBorrowDecoder<'a> + RawMessageBorrowDecoder<'a>,
 {
     fn decode_distinguished_borrowed(buf: &'a [u8]) -> Result<(Self, Canonicity), DecodeError> {
-        Self::decode_restricted_borrowed(buf, NotCanonical)
+        loop {}
     }
 
     fn decode_distinguished_borrowed_length_delimited(
         buf: &mut &'a [u8],
     ) -> Result<(Self, Canonicity), DecodeError> {
-        Self::decode_restricted_borrowed_length_delimited(buf, NotCanonical)
+        loop {}
     }
 
     fn replace_distinguished_borrowed_from(
         &mut self,
         buf: &'a [u8],
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_borrowed_from(buf, NotCanonical)
+        loop {}
     }
 
     fn replace_distinguished_borrowed_from_length_delimited(
         &mut self,
         buf: &mut &'a [u8],
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_borrowed_from_length_delimited(buf, NotCanonical)
+        loop {}
     }
 
     fn decode_restricted_borrowed(
         mut buf: &'a [u8],
         restrict_to: Canonicity,
     ) -> Result<(Self, Canonicity), DecodeError> {
-        let mut message = Self::empty();
-        let ctx = RestrictedDecodeContext::new(restrict_to);
-        let canon = borrow_merge_distinguished(&mut message, Capped::new(&mut buf), ctx.clone())
-            // Safety backstop to ensure we do not return a canonicity worse than restrict_to.
-            // See the docs on `RestrictedDecodeContext::check` for details on canonicity
-            // checking.
-            .and_then(|canon| ctx.check(canon))?;
-        Ok((message, canon))
+        loop {}
     }
 
     fn decode_restricted_borrowed_length_delimited(
         buf: &mut &'a [u8],
         restrict_to: Canonicity,
     ) -> Result<(Self, Canonicity), DecodeError> {
-        Self::decode_restricted_borrowed(
-            Capped::new(buf).take_borrowed_length_delimited()?,
-            restrict_to,
-        )
+        loop {}
     }
 
     fn replace_restricted_borrowed_from(
@@ -1170,17 +968,7 @@ where
         mut buf: &'a [u8],
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError> {
-        self.clear();
-        let ctx = RestrictedDecodeContext::new(restrict_to);
-        borrow_merge_distinguished(self, Capped::new(&mut buf), ctx.clone())
-            .map_err(|err| {
-                self.clear();
-                err
-            })
-            // Safety backstop to ensure we do not return a canonicity worse than restrict_to.
-            // See the docs on `RestrictedDecodeContext::check` for details on canonicity
-            // checking.
-            .and_then(|canon| ctx.check(canon))
+        loop {}
     }
 
     fn replace_restricted_borrowed_from_length_delimited(
@@ -1188,31 +976,26 @@ where
         buf: &mut &'a [u8],
         restrict_to: Canonicity,
     ) -> Result<Canonicity, DecodeError> {
-        self.replace_restricted_borrowed_from(
-            Capped::new(buf).take_borrowed_length_delimited()?,
-            restrict_to,
-        )
+        loop {}
     }
 
     fn decode_canonical_borrowed(buf: &'a [u8]) -> Result<Self, DecodeError> {
-        Self::decode_restricted_borrowed(buf, Canonical).map(|(val, _)| val)
+        loop {}
     }
 
     fn decode_canonical_borrowed_length_delimited(buf: &mut &'a [u8]) -> Result<Self, DecodeError> {
-        Self::decode_restricted_borrowed_length_delimited(buf, Canonical).map(|(val, _)| val)
+        loop {}
     }
 
     fn replace_canonical_borrowed_from(&mut self, buf: &'a [u8]) -> Result<(), DecodeError> {
-        self.replace_restricted_borrowed_from(buf, Canonical)
-            .map(|_| ())
+        loop {}
     }
 
     fn replace_canonical_borrowed_from_length_delimited(
         &mut self,
         buf: &mut &'a [u8],
     ) -> Result<(), DecodeError> {
-        self.replace_restricted_borrowed_from_length_delimited(buf, Canonical)
-            .map(|_| ())
+        loop {}
     }
 }
 
@@ -1237,59 +1020,18 @@ mod tests {
         safe: &mut dyn DistinguishedOwnedMessage,
         mut msg: M,
     ) {
-        let mut vec = Vec::<u8>::new();
-
-        safe.encoded_len();
-        safe.encode_dyn(&mut vec).unwrap();
-        assert_eq!(vec, safe.encode_to_vec());
-        assert_eq!(vec, safe.encode_contiguous().into_vec());
-        safe.replace_from_length_delimited_dyn(&mut [0u8].as_slice())
-            .unwrap();
-        assert!(safe.message_is_empty());
-        safe.replace_canonical_from_length_delimited_dyn(&mut [0u8].as_slice())
-            .unwrap();
-        assert!(safe.message_is_empty());
-        safe.replace_from_slice(&[]).unwrap();
-        assert!(safe.message_is_empty());
-        safe.replace_canonical_from_slice(&[]).unwrap();
-        assert!(safe.message_is_empty());
-
-        msg.encoded_len();
-        msg = M::decode_length_delimited(&mut [0u8].as_slice()).unwrap();
-        msg.encode(&mut vec).unwrap();
-        msg.clear_message();
+        loop {}
     }
 
     fn use_dyn_borrowed_messages<'a, M: DistinguishedBorrowedMessage<'a>>(
         safe: &mut dyn DistinguishedBorrowedMessage<'a>,
         mut msg: M,
     ) {
-        let mut vec = Vec::<u8>::new();
-
-        safe.encoded_len();
-        safe.encode_dyn(&mut vec).unwrap();
-        assert_eq!(vec, safe.encode_to_vec());
-        safe.replace_borrowed_from_length_delimited(&mut [0u8].as_slice())
-            .unwrap();
-        assert!(safe.message_is_empty());
-        safe.replace_canonical_borrowed_from_length_delimited(&mut [0u8].as_slice())
-            .unwrap();
-        assert!(safe.message_is_empty());
-
-        msg.encoded_len();
-        msg = M::decode_borrowed_length_delimited(&mut [0u8].as_slice()).unwrap();
-        msg.encode(&mut vec).unwrap();
-        msg.clear_message();
+        loop {}
     }
 
     #[test]
     fn using_dyn_messages() {
-        let mut vec = Vec::<u8>::new();
-        use_dyn_owned_messages(&mut (), ());
-        use_dyn_borrowed_messages(&mut (), ());
-        assert_eq!(().encoded_len(), 0);
-        ().encode(&mut vec).unwrap();
-        ().encode_dyn(&mut vec).unwrap();
-        <()>::decode(&mut [].as_slice()).unwrap();
+        loop {}
     }
 }

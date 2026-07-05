@@ -85,8 +85,9 @@ impl<const P: u8> DistinguishedValueDecoder<GeneralGeneric<P>, bytestring::ByteS
 }
 
 delegate_value_encoding!(
-    encoding (GeneralGeneric<P>) borrows type (bytestring::ByteString) as owned including distinguished
-    with generics (const P: u8)
+    encoding(
+        GeneralGeneric < P >
+    ) borrows type(bytestring::ByteString) as owned including distinguished with generics(const P: u8)
 );
 
 #[cfg(test)]
@@ -94,8 +95,8 @@ mod test {
     use crate::encoding::test::check_type_test;
     use crate::encoding::General;
     use alloc::string::String;
-    check_type_test!(General, relaxed, from String,
-        into bytestring::ByteString, WireType::LengthDelimited);
-    check_type_test!(General, distinguished, from String, into bytestring::ByteString,
-        WireType::LengthDelimited);
+
+    check_type_test!(General, relaxed, from String, into bytestring:: ByteString, WireType::LengthDelimited);
+
+    check_type_test!(General, distinguished, from String, into bytestring:: ByteString, WireType::LengthDelimited);
 }

@@ -10,9 +10,12 @@ use core::cmp::Ordering;
 use std::collections::{hash_map, hash_set, HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-for_overwrite_via_default!(HashSet<T, S>,
-    with generics (T, S),
-    with where clause (S: Default + core::hash::BuildHasher));
+for_overwrite_via_default!(
+    HashSet < T,
+    S >,
+    with generics(T, S),
+    with where clause(S: Default + core:: hash:: BuildHasher)
+);
 
 impl<T, S> EmptyState<(), HashSet<T, S>> for ()
 where
@@ -45,7 +48,6 @@ where
     where
         Self::Item: 'a,
         Self: 'a;
-
     const RESTRICTIONS: Option<&'static str> = Some("unique");
 
     #[inline]
@@ -72,9 +74,13 @@ where
     }
 }
 
-for_overwrite_via_default!(HashMap<K, V, S>,
-    with generics (K, V, S),
-    with where clause (S: Default + core::hash::BuildHasher));
+for_overwrite_via_default!(
+    HashMap < K,
+    V,
+    S >,
+    with generics(K, V, S),
+    with where clause(S: Default + core:: hash:: BuildHasher)
+);
 
 impl<K, V, S> EmptyState<(), HashMap<K, V, S>> for ()
 where
@@ -159,8 +165,6 @@ impl Proxiable<SealedBilrostTag> for SystemTime {
     fn encode_proxy(&self) -> Self::Proxy {
         let (symbol, small, big) = match self.cmp(&UNIX_EPOCH) {
             Ordering::Equal => return <() as EmptyState<(), Self::Proxy>>::empty(),
-            // lacking a simpler way, we put a literal ascii + or - to indicate the sign of the
-            // timestamp.
             Ordering::Greater => ('+', &UNIX_EPOCH, self),
             Ordering::Less => ('-', self, &UNIX_EPOCH),
         };
@@ -200,9 +204,9 @@ impl Proxiable<SealedBilrostTag> for SystemTime {
 }
 
 delegate_proxied_encoding!(
-    use encoding (Packed<Varint>) to encode proxied type (SystemTime)
-    using proxy tag (SealedBilrostTag)
-    with general encodings
+    use encoding(
+        Packed < Varint >
+    ) to encode proxied type(SystemTime) using proxy tag(SealedBilrostTag) with general encodings
 );
 
 #[cfg(test)]
@@ -211,27 +215,39 @@ mod systemtime {
     use crate::encoding::test::{check_type_empty, check_type_test};
 
     check_type_empty!(SystemTime, via proxy with tag SealedBilrostTag);
+
     check_type_test!(General, relaxed, SystemTime, WireType::LengthDelimited);
 }
 
 delegate_encoding!(
-    delegate from (General) to (Unpacked)
-    for type (HashSet<T, S>)
-    with where clause (S: Default + core::hash::BuildHasher)
-    with generics (T, S)
-);
-delegate_value_encoding!(
-    delegate from (GeneralPacked) to (Packed)
-    for type (HashSet<T, S>)
-    with where clause (S: Default + core::hash::BuildHasher)
-    with generics (T, S)
+    delegate from(
+        General
+    ) to(
+        Unpacked
+    ) for type(HashSet < T, S >) with where clause(S: Default + core:: hash:: BuildHasher) with generics(T, S)
 );
 
 delegate_value_encoding!(
-    delegate from (GeneralGeneric<P>) to (Map)
-    for type (HashMap<K, V, S>)
-    with where clause (K: Eq + core::hash::Hash, S: Default + core::hash::BuildHasher)
-    with generics (const P: u8, K, V, S)
+    delegate from(
+        GeneralPacked
+    ) to(
+        Packed
+    ) for type(HashSet < T, S >) with where clause(S: Default + core:: hash:: BuildHasher) with generics(T, S)
+);
+
+delegate_value_encoding!(
+    delegate from(
+        GeneralGeneric < P >
+    ) to(
+        Map
+    ) for type(
+        HashMap < K,
+        V,
+        S >
+    ) with where clause(
+        K: Eq + core:: hash:: Hash,
+        S: Default + core:: hash:: BuildHasher
+    ) with generics(const P: u8, K, V, S)
 );
 
 #[cfg(test)]
@@ -241,48 +257,32 @@ mod test {
             use crate::encoding::test::check_type_test;
             use crate::encoding::{General, Map};
             use std::collections::HashMap;
-            check_type_test!(
-                Map<General, General>,
-                relaxed,
-                HashMap<u64, f32>,
-                WireType::LengthDelimited
-            );
+
+            check_type_test!(Map < General, General >, relaxed, HashMap < u64, f32 >, WireType::LengthDelimited);
         }
 
         mod fixed {
             use crate::encoding::test::check_type_test;
             use crate::encoding::{Fixed, Map};
             use std::collections::HashMap;
-            check_type_test!(
-                Map<Fixed, Fixed>,
-                relaxed,
-                HashMap<u64, f32>,
-                WireType::LengthDelimited
-            );
+
+            check_type_test!(Map < Fixed, Fixed >, relaxed, HashMap < u64, f32 >, WireType::LengthDelimited);
         }
 
         mod delegated_from_general {
             use crate::encoding::test::check_type_test;
             use crate::encoding::General;
             use std::collections::HashMap;
-            check_type_test!(
-                General,
-                relaxed,
-                HashMap<bool, u32>,
-                WireType::LengthDelimited
-            );
+
+            check_type_test!(General, relaxed, HashMap < bool, u32 >, WireType::LengthDelimited);
         }
 
         mod delegated_from_general_in_oneof {
             use crate::encoding::test::check_type_test;
             use crate::encoding::GeneralPacked;
             use std::collections::HashMap;
-            check_type_test!(
-                GeneralPacked,
-                relaxed,
-                HashMap<bool, u32>,
-                WireType::LengthDelimited
-            );
+
+            check_type_test!(GeneralPacked, relaxed, HashMap < bool, u32 >, WireType::LengthDelimited);
         }
     }
 }

@@ -8,7 +8,7 @@ use crate::DecodeErrorKind::InvalidValue;
 use crate::{DecodeError, DecodeErrorKind};
 use bytes::Buf;
 
-for_overwrite_via_default!(arrayvec::ArrayVec<T, N>, with generics (T, const N: usize));
+for_overwrite_via_default!(arrayvec::ArrayVec < T, N >, with generics(T, const N: usize));
 
 impl<T, const N: usize> EmptyState<(), arrayvec::ArrayVec<T, N>> for () {
     #[inline]
@@ -34,7 +34,6 @@ impl<T, const N: usize> Collection for arrayvec::ArrayVec<T, N> {
     where
         Self::Item: 'a,
         Self: 'a;
-
     const BOUNDS: core::ops::RangeInclusive<Option<usize>> = None..=Some(N);
 
     #[inline]
@@ -61,30 +60,22 @@ impl<T, const N: usize> Collection for arrayvec::ArrayVec<T, N> {
 impl<T, const N: usize> TriviallyDistinguishedCollection for arrayvec::ArrayVec<T, N> {}
 
 delegate_encoding!(
-    delegate from (General) to (Unpacked) for type (arrayvec::ArrayVec<T, N>)
-    including distinguished
-    with generics (T, const N: usize)
-);
-delegate_value_encoding!(
-    delegate from (GeneralPacked) to (Packed) for type (arrayvec::ArrayVec<T, N>)
-    including distinguished
-    with generics (T, const N: usize)
+    delegate from(
+        General
+    ) to(Unpacked) for type(arrayvec::ArrayVec < T, N >) including distinguished with generics(T, const N: usize)
 );
 
-plain_bytes_vec_impl!(
-    arrayvec::ArrayVec<u8, N>,
-    value,
-    buf,
-    chunk,
-    if buf.remaining() > N {
-        return Err(DecodeError::new(InvalidValue));
-    },
-    value.extend(chunk.iter().cloned()),
-    limit N,
-    with generics (const N: usize)
+delegate_value_encoding!(
+    delegate from(
+        GeneralPacked
+    ) to(Packed) for type(arrayvec::ArrayVec < T, N >) including distinguished with generics(T, const N: usize)
 );
+
+plain_bytes_vec_impl!(arrayvec::ArrayVec < u8, N >, value, buf, chunk, if buf.remaining() > N {
+    return Err(DecodeError::new(InvalidValue));
+}, value.extend(chunk.iter().cloned()), limit N, with generics(const N: usize));
 
 #[cfg(test)]
 mod test {
-    crate::encoding::plain_bytes::test::check_bounded!(arrayvec::ArrayVec<u8, 8>, 8);
+    crate::encoding::plain_bytes::test::check_bounded!(arrayvec::ArrayVec < u8, 8 >, 8);
 }

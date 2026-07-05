@@ -7,9 +7,12 @@ use crate::DecodeErrorKind;
 use crate::DecodeErrorKind::UnexpectedlyRepeated;
 use core::hash::Hash;
 
-for_overwrite_via_default!(hashbrown::HashSet<T, S>,
-        with generics (T, S),
-        with where clause (T: Eq + Hash, S: Default + core::hash::BuildHasher));
+for_overwrite_via_default!(
+    hashbrown::HashSet < T,
+    S >,
+    with generics(T, S),
+    with where clause(T: Eq + Hash, S: Default + core:: hash:: BuildHasher)
+);
 
 impl<T, S> EmptyState<(), hashbrown::HashSet<T, S>> for ()
 where
@@ -43,7 +46,6 @@ where
     where
         Self::Item: 'a,
         Self: 'a;
-
     const RESTRICTIONS: Option<&'static str> = Some("unique");
 
     #[inline]
@@ -70,9 +72,13 @@ where
     }
 }
 
-for_overwrite_via_default!(hashbrown::HashMap<K, V, S>,
-        with generics (K, V, S),
-        with where clause (K: Eq + Hash, S: Default + core::hash::BuildHasher));
+for_overwrite_via_default!(
+    hashbrown::HashMap < K,
+    V,
+    S >,
+    with generics(K, V, S),
+    with where clause(K: Eq + Hash, S: Default + core:: hash:: BuildHasher)
+);
 
 impl<K, V, S> EmptyState<(), hashbrown::HashMap<K, V, S>> for ()
 where
@@ -137,22 +143,37 @@ where
 }
 
 delegate_encoding!(
-    delegate from (General) to (Unpacked)
-    for type (hashbrown::HashSet<T, S>)
-    with where clause (T: Eq + Hash, S: Default + core::hash::BuildHasher)
-    with generics (T, S)
+    delegate from(
+        General
+    ) to(
+        Unpacked
+    ) for type(
+        hashbrown::HashSet < T,
+        S >
+    ) with where clause(T: Eq + Hash, S: Default + core:: hash:: BuildHasher) with generics(T, S)
 );
+
 delegate_value_encoding!(
-    delegate from (GeneralPacked) to (Packed)
-    for type (hashbrown::HashSet<T, S>)
-    with where clause (T: Eq + Hash, S: Default + core::hash::BuildHasher)
-    with generics (T, S)
+    delegate from(
+        GeneralPacked
+    ) to(
+        Packed
+    ) for type(
+        hashbrown::HashSet < T,
+        S >
+    ) with where clause(T: Eq + Hash, S: Default + core:: hash:: BuildHasher) with generics(T, S)
 );
+
 delegate_value_encoding!(
-    delegate from (GeneralGeneric<P>) to (Map)
-    for type (hashbrown::HashMap<K, V, S>)
-    with where clause (K: Eq + Hash, S: Default + core::hash::BuildHasher)
-    with generics (const P: u8, K, V, S)
+    delegate from(
+        GeneralGeneric < P >
+    ) to(
+        Map
+    ) for type(
+        hashbrown::HashMap < K,
+        V,
+        S >
+    ) with where clause(K: Eq + Hash, S: Default + core:: hash:: BuildHasher) with generics(const P: u8, K, V, S)
 );
 
 #[cfg(test)]
@@ -163,11 +184,15 @@ mod test {
             use crate::encoding::{General, Map};
             use alloc::collections::BTreeMap;
             use hashbrown::HashMap;
+
             check_type_test!(
-                Map<General, General>,
+                Map < General,
+                General >,
                 relaxed,
-                from BTreeMap<u64, f32>,
-                into HashMap<u64, f32>,
+                from BTreeMap < u64,
+                f32 >,
+                into HashMap < u64,
+                f32 >,
                 converter(value) {
                     <HashMap<u64, f32> as FromIterator<_>>::from_iter(value.into_iter())
                 },
@@ -180,11 +205,15 @@ mod test {
             use crate::encoding::{Fixed, Map};
             use alloc::collections::BTreeMap;
             use hashbrown::HashMap;
+
             check_type_test!(
-                Map<Fixed, Fixed>,
+                Map < Fixed,
+                Fixed >,
                 relaxed,
-                from BTreeMap<u64, f32>,
-                into HashMap<u64, f32>,
+                from BTreeMap < u64,
+                f32 >,
+                into HashMap < u64,
+                f32 >,
                 converter(value) {
                     <HashMap<u64, f32> as FromIterator<_>>::from_iter(value.into_iter())
                 },
@@ -197,11 +226,14 @@ mod test {
             use crate::encoding::General;
             use alloc::collections::BTreeMap;
             use hashbrown::HashMap;
+
             check_type_test!(
                 General,
                 relaxed,
-                from BTreeMap<bool, u32>,
-                into HashMap<bool, u32>,
+                from BTreeMap < bool,
+                u32 >,
+                into HashMap < bool,
+                u32 >,
                 converter(value) {
                     <HashMap<bool, u32> as FromIterator<_>>::from_iter(value.into_iter())
                 },

@@ -20,9 +20,9 @@ use core::fmt::Display;
 
 pub struct Packed<E = GeneralPacked>(E);
 
-encoding_uses_base_empty_state!(Packed<E>, with generics (E));
+encoding_uses_base_empty_state!(Packed < E >, with generics(E));
 
-/// Packed encodings always prefer to encode length delimited.
+#[doc = " Packed encodings always prefer to encode length delimited."]
 impl<E, T: ?Sized> Wiretyped<Packed<E>, T> for () {
     const WIRE_TYPE: WireType = WireType::LengthDelimited;
 }
@@ -96,7 +96,7 @@ where
     }
 }
 
-/// ValueEncoder for packed repeated encodings lets this value type nest.
+#[doc = " ValueEncoder for packed repeated encodings lets this value type nest."]
 impl<C, T, E> Encoder<Packed<E>, C> for ()
 where
     C: Collection<Item = T>,
@@ -210,15 +210,15 @@ where
         schema.make_lazy_repr(|schema| {
             format!(
                 "delimited packed (items: {item_repr})",
-                item_repr = <() as ValueRepr<E, T>>::repr(schema),
+                item_repr = <() as ValueRepr<E, T>>::repr(schema)
             )
         })
     }
 }
 
-/// Packed encodes slices the same way as arrays. This implementation always uses the natural
-/// emptiness and item iteration of the slice, since implementing `EmptyState` for the unsized `[T]`
-/// isn't practical.
+#[doc = " Packed encodes slices the same way as arrays. This implementation always uses the natural"]
+#[doc = " emptiness and item iteration of the slice, since implementing `EmptyState` for the unsized `[T]`"]
+#[doc = " isn't practical."]
 impl<T, E> ValueEncoder<Packed<E>, [T]> for ()
 where
     (): ValueEncoder<E, T>,
@@ -285,340 +285,313 @@ where
     }
 }
 
-macro_rules! impl_decoders {
+macro_rules! impl_decoders{
     (
-        mode: $mode:ident,
-        relaxed: $relaxed:ident::$relaxed_method:ident,
-        relaxed_value: $relaxed_value:ident::$relaxed_value_method:ident,
-        relaxed_field: $relaxed_field:ident::$relaxed_field_method:ident,
-        distinguished: $distinguished:ident::$distinguished_method:ident,
-        distinguished_value: $distinguished_value:ident::$distinguished_value_method:ident,
-        distinguished_field: $distinguished_field:ident::$distinguished_field_method:ident,
-        buf_ty: $buf_ty:ty,
-        impl_buf_ty: $impl_buf_ty:ty,
-        $(buf_generic: ($($buf_generic:tt)*),)?
-        $(lifetime: $lifetime:lifetime,)?
+        mode: $mode: ident,
+        relaxed: $relaxed: ident::$relaxed_method: ident,
+        relaxed_value: $relaxed_value: ident::$relaxed_value_method: ident,
+        relaxed_field: $relaxed_field: ident::$relaxed_field_method: ident,
+        distinguished: $distinguished: ident::$distinguished_method: ident,
+        distinguished_value: $distinguished_value: ident::$distinguished_value_method: ident,
+        distinguished_field: $distinguished_field: ident::$distinguished_field_method: ident,
+        buf_ty: $buf_ty: ty,
+        impl_buf_ty: $impl_buf_ty: ty,
+        $(buf_generic:($($buf_generic: tt) *),) ? $(lifetime: $lifetime: lifetime,) ?
     ) => {
-        impl<$($lifetime,)? C, T, E> $relaxed_value <$($lifetime,)? Packed<E>, C> for ()
-        where
-            C: Collection<Item = T>,
-            (): EmptyState<(), C>
-                + ForOverwrite<E, T>
-                + $relaxed_value<$($lifetime,)? E, T>,
+        impl <$($lifetime,) ? C,
+        T,
+        E > $relaxed_value <$($lifetime,) ? Packed < E >,
+        C > for() where C: Collection < Item = T >,
+        (): EmptyState <(),
+        C > + ForOverwrite < E,
+        T > + $relaxed_value <$($lifetime,) ? E,
+        T >,
         {
-            #[inline]
-            fn $relaxed_value_method $($($buf_generic)*)? (
-                value: &mut C,
-                mut buf: Capped<$buf_ty>,
-                ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
+            #[
+                inline
+            ] fn $relaxed_value_method $(
+                $($buf_generic) *
+            ) ?(value: & mut C, mut buf: Capped <$buf_ty >, ctx: DecodeContext,) -> Result <(),
+            DecodeError > {
                 let mut capped = buf.take_length_delimited()?;
-                // MSRV: this could be .is_some_and(..)
                 if matches!(
-                    <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size(),
+                    <() as Wiretyped < E,
+                    T >> ::WIRE_TYPE.fixed_size(),
                     Some(fixed_size) if capped.remaining_before_cap() % fixed_size != 0
                 ) {
-                    // No number of fixed-sized values can pack evenly into this size.
                     return Err(DecodeError::new(Truncated));
                 }
-                while capped.has_remaining()? {
-                    let mut new_val = <() as ForOverwrite<E, T>>::for_overwrite();
-                    <() as $relaxed_value<E, _>>::$relaxed_value_method(
-                        &mut new_val,
-                        capped.lend(),
-                        ctx.clone(),
-                    )?;
+                while capped.has_remaining() ? {
+                    let mut new_val = <() as ForOverwrite < E,
+                    T >> ::for_overwrite();
+                    <() as $relaxed_value < E,
+                    _ >>::$relaxed_value_method(&mut new_val, capped.lend(), ctx.clone()) ?;
                     value.insert(new_val)?;
                 }
                 Ok(())
             }
         }
-
-        impl<$($lifetime,)? C, T, E> $distinguished_value<$($lifetime,)? Packed<E>, C> for ()
-        where
-            C: DistinguishedCollection<Item = T> + Eq,
-            T: Eq,
-            (): EmptyState<(), C>
-                + ForOverwrite<E, T>
-                + $distinguished_value<$($lifetime,)? E, T>,
+        impl <$($lifetime,) ? C,
+        T,
+        E > $distinguished_value <$($lifetime,) ? Packed < E >,
+        C > for() where C: DistinguishedCollection < Item = T > + Eq,
+        T: Eq,
+        (): EmptyState <(),
+        C > + ForOverwrite < E,
+        T > + $distinguished_value <$($lifetime,) ? E,
+        T >,
         {
             const CHECKS_EMPTY: bool = false;
-
-            #[inline]
-            fn $distinguished_value_method <const ALLOW_EMPTY: bool>(
-                value: &mut C,
-                mut buf: Capped<$impl_buf_ty>,
+            #[
+                inline
+            ] fn $distinguished_value_method < const ALLOW_EMPTY: bool >(
+                value: & mut C,
+                mut buf: Capped <$impl_buf_ty >,
                 ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
+            ) -> Result < Canonicity,
+            DecodeError > {
                 let mut capped = buf.take_length_delimited()?;
-                // MSRV: this could be .is_some_and(..)
                 if matches!(
-                    <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size(),
+                    <() as Wiretyped < E,
+                    T >> ::WIRE_TYPE.fixed_size(),
                     Some(fixed_size) if capped.remaining_before_cap() % fixed_size != 0
                 ) {
-                    // No number of fixed-sized values can pack evenly into this size.
                     return Err(DecodeError::new(Truncated));
                 }
                 let mut canon = Canonicity::Canonical;
-                while capped.has_remaining()? {
-                    let mut new_val = <() as ForOverwrite<E, T>>::for_overwrite();
+                while capped.has_remaining() ? {
+                    let mut new_val = <() as ForOverwrite < E,
+                    T >> ::for_overwrite();
                     canon.update(
-                        <() as $distinguished_value<E, _>>::$distinguished_value_method::<true>(
-                            &mut new_val,
-                            capped.lend(),
-                            ctx.clone(),
-                        )?,
+                        <() as $distinguished_value < E,
+                        _ >>::$distinguished_value_method::< true >(&mut new_val, capped.lend(), ctx.clone()) ?,
                     );
                     canon.update(ctx.check(value.insert_distinguished(new_val)?)?);
                 }
                 Ok(canon)
             }
         }
-
-        impl<$($lifetime,)? C, T, E> $relaxed <$($lifetime,)? Packed<E>, C> for ()
-        where
-            C: Collection<Item = T>,
-            (): EmptyState<(), C>
-                + ForOverwrite<E, T>
-                + $relaxed_value <$($lifetime,)? E, T>
-                + $relaxed_value <$($lifetime,)? Packed<E>, C>,
+        impl <$($lifetime,) ? C,
+        T,
+        E > $relaxed <$($lifetime,) ? Packed < E >,
+        C > for() where C: Collection < Item = T >,
+        (): EmptyState <(),
+        C > + ForOverwrite < E,
+        T > + $relaxed_value <$($lifetime,) ? E,
+        T > + $relaxed_value <$($lifetime,) ? Packed < E >,
+        C >,
         {
-            #[inline]
-            fn $relaxed_method $($($buf_generic)*)? (
-                wire_type: WireType,
-                value: &mut C,
-                buf: Capped<$buf_ty>,
-                ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                if wire_type == WireType::LengthDelimited {
-                    // We've encountered the expected length-delimited type: decode it in packed
-                    // format.
-                    <() as $relaxed_value<Packed<E>, C>>::$relaxed_value_method(value, buf, ctx)
-                } else {
-                    // Otherwise, try decoding it in the unpacked representation
-                    unpacked::$mode::decode::<C, E>(wire_type, value, buf, ctx)
+            #[
+                inline
+            ] fn $relaxed_method $(
+                $($buf_generic) *
+            ) ?(wire_type: WireType, value: & mut C, buf: Capped <$buf_ty >, ctx: DecodeContext,) -> Result <(),
+            DecodeError > {
+                if wire_type == WireType:: LengthDelimited {
+                    <() as $relaxed_value < Packed < E >,
+                    C >>::$relaxed_value_method(value, buf, ctx)
+                }
+                else {
+                    unpacked::$mode:: decode::< C,
+                    E > (wire_type, value, buf, ctx)
                 }
             }
         }
-
-        impl<$($lifetime,)? C, T, E> $distinguished <$($lifetime,)? Packed<E>, C> for ()
-        where
-            C: DistinguishedCollection<Item = T>,
-            T: Eq,
-            (): EmptyState<(), C>
-                + ForOverwrite<E, T>
-                + $relaxed_value <$($lifetime,)? E, T>
-                + $distinguished_value <$($lifetime,)? Packed<E>, C>,
+        impl <$($lifetime,) ? C,
+        T,
+        E > $distinguished <$($lifetime,) ? Packed < E >,
+        C > for() where C: DistinguishedCollection < Item = T >,
+        T: Eq,
+        (): EmptyState <(),
+        C > + ForOverwrite < E,
+        T > + $relaxed_value <$($lifetime,) ? E,
+        T > + $distinguished_value <$($lifetime,) ? Packed < E >,
+        C >,
         {
-            #[inline]
-            fn $distinguished_method $($($buf_generic)*)? (
+            #[
+                inline
+            ] fn $distinguished_method $(
+                $($buf_generic) *
+            ) ?(
                 wire_type: WireType,
-                value: &mut C,
-                buf: Capped<$buf_ty>,
+                value: & mut C,
+                buf: Capped <$buf_ty >,
                 ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
-                if wire_type == WireType::LengthDelimited {
-                    // We've encountered the expected length-delimited type: decode it in packed
-                    // format. Set ALLOW_EMPTY to false: empty collections are not canonical
-                    let canon = <() as $distinguished_value<Packed<E>, _>>::
-                        $distinguished_value_method::<false>
-                    (
-                        value,
-                        buf,
-                        ctx.clone(),
-                    )?;
-                    if !<() as $distinguished_value<Packed<E>, C>>::CHECKS_EMPTY
-                        && <() as EmptyState<(), C>>::is_empty(value)
-                    {
+            ) -> Result < Canonicity,
+            DecodeError > {
+                if wire_type == WireType:: LengthDelimited {
+                    let canon = <() as $distinguished_value < Packed < E >,
+                    _ >>:: $distinguished_value_method::< false >(value, buf, ctx.clone()) ?;
+                    if !<() as $distinguished_value < Packed < E >,
+                    C >>:: CHECKS_EMPTY && <() as EmptyState <(),
+                    C >>:: is_empty(value) {
                         ctx.check(Canonicity::NotCanonical)
-                    } else {
+                    }
+                    else {
                         Ok(canon)
                     }
-                } else {
-                    // Otherwise, try decoding it in the unpacked representation
+                }
+                else {
                     _ = ctx.check(Canonicity::NotCanonical)?;
-                    unpacked::$mode::decode::<C, E>(
-                        wire_type,
-                        value,
-                        buf,
-                        ctx.into_inner(),
-                    )?;
+                    unpacked::$mode:: decode::< C,
+                    E > (wire_type, value, buf, ctx.into_inner())?;
                     Ok(Canonicity::NotCanonical)
                 }
             }
         }
-
-        impl<$($lifetime,)? T, const N: usize, E>
-        $relaxed_value <$($lifetime,)? Packed<E>, [T; N]> for ()
-        where
-            (): $relaxed_value <$($lifetime,)? E, T>,
+        impl <$($lifetime,) ? T,
+        const N: usize,
+        E > $relaxed_value <$($lifetime,) ? Packed < E >,
+        [
+            T;
+            N
+        ] > for() where(): $relaxed_value <$($lifetime,) ? E,
+        T >,
         {
-            #[inline]
-            fn $relaxed_value_method $($($buf_generic)*)? (
-                value: &mut [T; N],
-                mut buf: Capped<$buf_ty>,
-                ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
+            #[inline] fn $relaxed_value_method $($($buf_generic) *) ?(value: & mut[
+                T;
+                N
+            ], mut buf: Capped <$buf_ty >, ctx: DecodeContext,) -> Result <(),
+            DecodeError > {
                 let mut capped = buf.take_length_delimited()?;
-                // MSRV: this could be .is_some_and(..)
                 if matches!(
-                    <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size(),
+                    <() as Wiretyped < E,
+                    T >> ::WIRE_TYPE.fixed_size(),
                     Some(fixed_size) if capped.remaining_before_cap() != fixed_size * N
                 ) {
-                    // We know the exact size of a valid value and this isn't it.
                     return Err(DecodeError::new(InvalidValue));
                 }
-
                 for dest in value {
-                    // If the value's size was already checked, we don't need to check again
-                    if <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size().is_none()
-                        && !capped.has_remaining()?
-                    {
-                        // Not enough values
+                    if <() as Wiretyped < E,
+                    T >>:: WIRE_TYPE.fixed_size().is_none() && ! capped.has_remaining() ? {
                         return Err(DecodeError::new(InvalidValue));
                     }
-                    <() as $relaxed_value<E, _>>::$relaxed_value_method(
-                        dest, capped.lend(), ctx.clone())?;
+                    <() as $relaxed_value < E,
+                    _ >>::$relaxed_value_method(dest, capped.lend(), ctx.clone()) ?;
                 }
-
-                // If the value's size was already checked, we don't need to check again
-                if <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size().is_none()
-                    && capped.has_remaining()?
-                {
-                    // Too many values or trailing data
+                if <() as Wiretyped < E,
+                T >>:: WIRE_TYPE.fixed_size().is_none() && capped.has_remaining() ? {
                     Err(DecodeError::new(InvalidValue))
-                } else {
+                }
+                else {
                     Ok(())
                 }
             }
         }
-
-        impl<$($lifetime,)? T, const N: usize, E>
-        $distinguished_value <$($lifetime,)? Packed<E>, [T; N]> for ()
-        where
-            (): $distinguished_value <$($lifetime,)? E, T>,
+        impl <$($lifetime,) ? T,
+        const N: usize,
+        E > $distinguished_value <$($lifetime,) ? Packed < E >,
+        [
+            T;
+            N
+        ] > for() where(): $distinguished_value <$($lifetime,) ? E,
+        T >,
         {
             const CHECKS_EMPTY: bool = false;
-
-            #[inline]
-            fn $distinguished_value_method <const ALLOW_EMPTY: bool>(
-                value: &mut [T; N],
-                mut buf: Capped<$impl_buf_ty>,
-                ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
+            #[inline] fn $distinguished_value_method < const ALLOW_EMPTY: bool >(value: & mut[
+                T;
+                N
+            ], mut buf: Capped <$impl_buf_ty >, ctx: RestrictedDecodeContext,) -> Result < Canonicity,
+            DecodeError > {
                 let mut capped = buf.take_length_delimited()?;
-                // MSRV: this could be .is_some_and(..)
                 if matches!(
-                    <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size(),
+                    <() as Wiretyped < E,
+                    T >> ::WIRE_TYPE.fixed_size(),
                     Some(fixed_size) if capped.remaining_before_cap() != fixed_size * N
                 ) {
-                    // We know the exact size of a valid value and this isn't it.
                     return Err(DecodeError::new(InvalidValue));
                 }
-
                 let mut canon = Canonicity::Canonical;
                 for dest in value.iter_mut() {
-                    // If the value's size was already checked, we don't need to check again
-                    if <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size().is_none()
-                        && !capped.has_remaining()?
-                    {
-                        // Not enough values
+                    if <() as Wiretyped < E,
+                    T >>:: WIRE_TYPE.fixed_size().is_none() && ! capped.has_remaining() ? {
                         return Err(DecodeError::new(InvalidValue));
                     }
                     canon.update(
-                        // Empty values are allowed because they are nested
-                        <() as $distinguished_value<E, _>>::$distinguished_value_method::<true>(
-                            dest,
-                            capped.lend(),
-                            ctx.clone(),
-                        )?,
+                        <() as $distinguished_value < E,
+                        _ >>::$distinguished_value_method::< true >(dest, capped.lend(), ctx.clone()) ?,
                     );
                 }
-
-                // If the value's size was already checked, we don't need to check again
-                if <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size().is_none()
-                    && capped.has_remaining()?
-                {
-                    // Too many values or trailing data
+                if <() as Wiretyped < E,
+                T >>:: WIRE_TYPE.fixed_size().is_none() && capped.has_remaining() ? {
                     Err(DecodeError::new(InvalidValue))
-                } else {
+                }
+                else {
                     Ok(canon)
                 }
             }
         }
-
-        impl<$($lifetime,)? T, const N: usize, E>
-        $relaxed <$($lifetime,)? Packed<E>, [T; N]> for ()
-        where
-            (): $relaxed_value <$($lifetime,)? E, T> + EmptyState<E, [T; N]>,
+        impl <$($lifetime,) ? T,
+        const N: usize,
+        E > $relaxed <$($lifetime,) ? Packed < E >,
+        [
+            T;
+            N
+        ] > for() where(): $relaxed_value <$($lifetime,) ? E,
+        T > + EmptyState < E,
+        [
+            T;
+            N
+        ] >,
         {
-            #[inline]
-            fn $relaxed_method $($($buf_generic)*)? (
-                wire_type: WireType,
-                value: &mut [T; N],
-                buf: Capped<$buf_ty>,
-                ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                if wire_type == WireType::LengthDelimited {
-                    // We've encountered the expected length-delimited type: decode it in packed
-                    // format.
-                    <() as $relaxed_value<Packed<E>, [T; N]>>::
-                        $relaxed_value_method(value, buf, ctx)
-                } else {
-                    // Otherwise, try decoding it in the unpacked representation
-                    unpacked::$mode::decode_array_unpacked_only::<T, N, E>(
-                        wire_type,
-                        value,
-                        buf,
-                        ctx,
-                    )
+            #[inline] fn $relaxed_method $($($buf_generic) *) ?(wire_type: WireType, value: & mut[
+                T;
+                N
+            ], buf: Capped <$buf_ty >, ctx: DecodeContext,) -> Result <(),
+            DecodeError > {
+                if wire_type == WireType:: LengthDelimited {
+                    <() as $relaxed_value < Packed < E >,
+                    [
+                        T;
+                        N
+                    ] >>:: $relaxed_value_method(value, buf, ctx)
+                }
+                else {
+                    unpacked::$mode:: decode_array_unpacked_only::< T,
+                    N,
+                    E > (wire_type, value, buf, ctx)
                 }
             }
         }
-
-        impl<$($lifetime,)? T, const N: usize, E>
-        $distinguished <$($lifetime,)? Packed<E>, [T; N]> for ()
-        where
-            T: Eq,
-            (): $distinguished_value <$($lifetime,)? E, T>
-                + $relaxed_value <$($lifetime,)? E, T>
-                + EmptyState<E, [T; N]>,
+        impl <$($lifetime,) ? T,
+        const N: usize,
+        E > $distinguished <$($lifetime,) ? Packed < E >,
+        [
+            T;
+            N
+        ] > for() where T: Eq,
+        (): $distinguished_value <$($lifetime,) ? E,
+        T > + $relaxed_value <$($lifetime,) ? E,
+        T > + EmptyState < E,
+        [
+            T;
+            N
+        ] >,
         {
-            #[inline]
-            fn $distinguished_method $($($buf_generic)*)? (
-                wire_type: WireType,
-                value: &mut [T; N],
-                buf: Capped<$buf_ty>,
-                ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
-                if wire_type == WireType::LengthDelimited {
-                    // We've encountered the expected length-delimited type: decode it in packed
-                    // format.
-                    // Set ALLOW_EMPTY to false: empty collections are not canonical
-                    let canon = <() as $distinguished_value<Packed<E>, _>>::
-                        $distinguished_value_method::<false>
-                    (
-                        value,
-                        buf,
-                        ctx.clone(),
-                    )?;
-
-                    if
-                    /* !<[T; N]>::CHECKS_EMPTY && /* it never checks */ */
-                    <() as EmptyState<E, [T; N]>>::is_empty(value) {
+            #[inline] fn $distinguished_method $($($buf_generic) *) ?(wire_type: WireType, value: & mut[
+                T;
+                N
+            ], buf: Capped <$buf_ty >, ctx: RestrictedDecodeContext,) -> Result < Canonicity,
+            DecodeError > {
+                if wire_type == WireType:: LengthDelimited {
+                    let canon = <() as $distinguished_value < Packed < E >,
+                    _ >>:: $distinguished_value_method::< false >(value, buf, ctx.clone()) ?;
+                    if <() as EmptyState < E,
+                    [
+                        T;
+                        N
+                    ] >>:: is_empty(value) {
                         ctx.check(Canonicity::NotCanonical)
-                    } else {
+                    }
+                    else {
                         Ok(canon)
                     }
-                } else {
-                    // Otherwise, try decoding it in the unpacked representation
+                }
+                else {
                     _ = ctx.check(Canonicity::NotCanonical)?;
-                    unpacked::$mode::decode_array_unpacked_only::<T, N, E>(
-                        wire_type,
-                        value,
-                        buf,
-                        ctx.into_inner(),
-                    )?;
+                    unpacked::$mode:: decode_array_unpacked_only::< T,
+                    N,
+                    E > (wire_type, value, buf, ctx.into_inner())?;
                     Ok(Canonicity::NotCanonical)
                 }
             }
@@ -627,4 +600,5 @@ macro_rules! impl_decoders {
 }
 
 decoding_modes::__invoke!(impl_decoders, owned);
+
 decoding_modes::__invoke!(impl_decoders, borrowed);

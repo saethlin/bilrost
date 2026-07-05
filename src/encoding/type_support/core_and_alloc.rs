@@ -30,12 +30,15 @@ impl EmptyState<(), String> for () {
 }
 
 for_overwrite_via_default!(
-    Cow<'a, T>,
-    with generics ('a, T),
-    with where clause (
-        T: 'a + ?Sized + ToOwned,
-        T::Owned: Default,
-        (): ForOverwrite<(), &'a T> + ForOverwrite<(), T::Owned>
+    Cow <'a,
+    T >,
+    with generics('a, T),
+    with where clause(
+        T: 'a + ? Sized + ToOwned,
+        T:: Owned: Default,
+        (): ForOverwrite <(),
+        &'a T > + ForOverwrite <(),
+        T:: Owned >
     )
 );
 
@@ -97,7 +100,7 @@ where
 
 empty_state_via_default!(core::time::Duration);
 
-for_overwrite_via_default!(Vec<T>, with generics (T));
+for_overwrite_via_default!(Vec < T >, with generics(T));
 
 impl<T> EmptyState<(), Vec<T>> for () {
     #[inline]
@@ -188,7 +191,7 @@ where
 
 impl<T> TriviallyDistinguishedCollection for Cow<'_, [T]> where T: Clone {}
 
-for_overwrite_via_default!(BTreeSet<T>, with generics(T));
+for_overwrite_via_default!(BTreeSet < T >, with generics(T));
 
 impl<T> EmptyState<(), BTreeSet<T>> for () {
     #[inline]
@@ -217,7 +220,6 @@ where
     where
         Self::Item: 'a,
         Self: 'a;
-
     const RESTRICTIONS: Option<&'static str> = Some("unique");
 
     #[inline]
@@ -272,7 +274,7 @@ where
     }
 }
 
-for_overwrite_via_default!(BTreeMap<K, V>, with generics (K, V));
+for_overwrite_via_default!(BTreeMap < K, V >, with generics(K, V));
 
 impl<K, V> EmptyState<(), BTreeMap<K, V>> for () {
     #[inline]
@@ -429,20 +431,17 @@ where
                 ..=<() as ForOverwrite<(), T>>::for_overwrite(),
         )
         .into_inner();
-
         <() as EmptyState<(), T>>::clear(&mut start);
         <() as EmptyState<(), T>>::clear(&mut end);
-
         drop(mem::replace(val, start..=end));
     }
 }
 
 macro_rules! impl_nonzero_foroverwrite {
-    ($ty:ident) => {
+    ($ty: ident) => {
         impl ForOverwrite<(), core::num::$ty> for () {
             fn for_overwrite() -> core::num::$ty {
                 #[cfg(not(feature = "forbid-unsafe"))]
-                // SAFETY: 1 is not zero and probably never will be
                 unsafe {
                     core::num::$ty::new_unchecked(1)
                 }
@@ -454,13 +453,23 @@ macro_rules! impl_nonzero_foroverwrite {
         }
     };
 }
+
 impl_nonzero_foroverwrite!(NonZeroU8);
+
 impl_nonzero_foroverwrite!(NonZeroU16);
+
 impl_nonzero_foroverwrite!(NonZeroU32);
+
 impl_nonzero_foroverwrite!(NonZeroU64);
+
 impl_nonzero_foroverwrite!(NonZeroUsize);
+
 impl_nonzero_foroverwrite!(NonZeroI8);
+
 impl_nonzero_foroverwrite!(NonZeroI16);
+
 impl_nonzero_foroverwrite!(NonZeroI32);
+
 impl_nonzero_foroverwrite!(NonZeroI64);
+
 impl_nonzero_foroverwrite!(NonZeroIsize);

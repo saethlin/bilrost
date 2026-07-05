@@ -8,9 +8,7 @@ use crate::DecodeErrorKind::InvalidValue;
 use crate::{DecodeError, DecodeErrorKind};
 use bytes::Buf;
 
-for_overwrite_via_default!(tinyvec::ArrayVec<A>,
-    with generics (A),
-    with where clause (A: tinyvec::Array));
+for_overwrite_via_default!(tinyvec:: ArrayVec < A >, with generics(A), with where clause(A: tinyvec:: Array));
 
 impl<A: tinyvec::Array> EmptyState<(), tinyvec::ArrayVec<A>> for () {
     #[inline]
@@ -36,7 +34,6 @@ impl<T, A: tinyvec::Array<Item = T>> Collection for tinyvec::ArrayVec<A> {
     where
         Self::Item: 'a,
         Self: 'a;
-
     const BOUNDS: core::ops::RangeInclusive<Option<usize>> = None..=Some(A::CAPACITY);
 
     #[inline]
@@ -65,9 +62,7 @@ impl<T, A: tinyvec::Array<Item = T>> Collection for tinyvec::ArrayVec<A> {
 
 impl<A: tinyvec::Array> TriviallyDistinguishedCollection for tinyvec::ArrayVec<A> {}
 
-for_overwrite_via_default!(tinyvec::TinyVec<A>,
-    with generics (A),
-    with where clause (A: tinyvec::Array));
+for_overwrite_via_default!(tinyvec:: TinyVec < A >, with generics(A), with where clause(A: tinyvec:: Array));
 
 impl<A: tinyvec::Array> EmptyState<(), tinyvec::TinyVec<A>> for () {
     #[inline]
@@ -119,45 +114,57 @@ impl<T, A: tinyvec::Array<Item = T>> Collection for tinyvec::TinyVec<A> {
 impl<A: tinyvec::Array> TriviallyDistinguishedCollection for tinyvec::TinyVec<A> {}
 
 delegate_encoding!(
-    delegate from (General) to (Unpacked)
-    for type (tinyvec::ArrayVec<A>)
-    including distinguished
-    with where clause (A: tinyvec::Array<Item = T>)
-    with generics (T, A)
+    delegate from(
+        General
+    ) to(
+        Unpacked
+    ) for type(
+        tinyvec:: ArrayVec < A >
+    ) including distinguished with where clause(A: tinyvec:: Array < Item = T >) with generics(T, A)
 );
+
 delegate_encoding!(
-    delegate from (General) to (Unpacked)
-    for type (tinyvec::TinyVec<A>)
-    including distinguished
-    with where clause (A: tinyvec::Array<Item = T>)
-    with generics (T, A)
+    delegate from(
+        General
+    ) to(
+        Unpacked
+    ) for type(
+        tinyvec:: TinyVec < A >
+    ) including distinguished with where clause(A: tinyvec:: Array < Item = T >) with generics(T, A)
 );
+
 delegate_value_encoding!(
-    delegate from (GeneralPacked) to (Packed)
-    for type (tinyvec::ArrayVec<A>)
-    including distinguished
-    with where clause for relaxed (A: tinyvec::Array<Item = T>)
-    with generics (T, A)
+    delegate from(
+        GeneralPacked
+    ) to(
+        Packed
+    ) for type(
+        tinyvec:: ArrayVec < A >
+    ) including distinguished with where clause for relaxed(A: tinyvec:: Array < Item = T >) with generics(T, A)
 );
+
 delegate_value_encoding!(
-    delegate from (GeneralPacked) to (Packed)
-    for type (tinyvec::TinyVec<A>)
-    including distinguished
-    with where clause for relaxed (A: tinyvec::Array<Item = T>)
-    with generics (T, A)
+    delegate from(
+        GeneralPacked
+    ) to(
+        Packed
+    ) for type(
+        tinyvec:: TinyVec < A >
+    ) including distinguished with where clause for relaxed(A: tinyvec:: Array < Item = T >) with generics(T, A)
 );
 
 plain_bytes_vec_impl!(
-    tinyvec::TinyVec<A>,
+    tinyvec:: TinyVec < A >,
     value,
     buf,
     chunk,
     value.reserve(buf.remaining()),
     value.extend_from_slice(chunk),
-    with generics (A: tinyvec::Array<Item = u8>)
+    with generics(A: tinyvec:: Array < Item = u8 >)
 );
+
 plain_bytes_vec_impl!(
-    tinyvec::ArrayVec<A>,
+    tinyvec:: ArrayVec < A >,
     value,
     buf,
     chunk,
@@ -165,12 +172,13 @@ plain_bytes_vec_impl!(
         return Err(DecodeError::new(InvalidValue));
     },
     value.extend_from_slice(chunk),
-    limit <A as tinyvec::Array>::CAPACITY,
-    with generics (A: tinyvec::Array<Item = u8>)
+    limit < A as tinyvec:: Array >:: CAPACITY,
+    with generics(A: tinyvec:: Array < Item = u8 >)
 );
 
 #[cfg(test)]
 mod test {
     crate::encoding::plain_bytes::test::check_bounded!(tinyvec::ArrayVec<[u8; 8]>, 8);
+
     crate::encoding::plain_bytes::test::check_unbounded!(tinyvec::TinyVec<[u8; 8]>);
 }

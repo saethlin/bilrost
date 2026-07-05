@@ -54,7 +54,6 @@ impl<const P: u8> ValueDecoder<GeneralGeneric<P>, smol_str::SmolStr> for () {
         let string_data = buf.take_length_delimited()?;
         let string_len = string_data.remaining_before_cap();
         let decoded_val = if string_len <= 23 {
-            // For short strings, we can always just create the result with an inline value.
             let mut inline = [0u8; 23];
             let mut buf = &mut inline[..];
             buf.put(string_data.take_all());
@@ -64,49 +63,28 @@ impl<const P: u8> ValueDecoder<GeneralGeneric<P>, smol_str::SmolStr> for () {
             string_data.chunk().get(..string_len),
             cfg!(feature = "test-smolstr-force-noncontiguous"),
         ) {
-            // Otherwise, the string is too long to fit inline, but it is available contiguously.
-            //
-            // We prefer taking this path even if the next branch where we create an Arc directly
-            // is available, since on this path we can validate the string data *before* we copy
-            // it rather than after.
             let input_string_data = from_utf8(whole_value_bytes).map_err(|_| InvalidValue)?;
             let res = smol_str::SmolStr::new(input_string_data);
-            // We got the data by reading the chunk from the buf directly, so we must advance it
-            // manually as well.
             buf.advance(string_len);
             res
         } else {
             #[cfg(all(rustc_1_82, not(feature = "forbid-unsafe")))]
             {
-                // Otherwise, the data won't fit inline and isn't contiguous, so we have to copy it
-                // out.
-                //
-                // We prefer this fast-path, when available: we create a preallocated Arc of the
-                // right size, copy the data into it, validate it, and then convert it directly
-                // into the result type which retains the Arc.
                 use alloc::sync::Arc;
+
                 #[allow(clippy::incompatible_msrv)]
                 let mut arc = Arc::new_uninit_slice(string_len);
                 let mut arc_slice = Arc::get_mut(&mut arc).unwrap();
                 arc_slice.put(string_data.take_all());
-                // Check that we wrote every byte in the buf
                 debug_assert!(arc_slice.is_empty());
-                // SAFETY: we just wrote to the buf's entire contents
                 #[allow(clippy::incompatible_msrv)]
                 let arc = unsafe { arc.assume_init() };
-                // Validate that buf contains utf8
                 from_utf8(&arc).map_err(|_| InvalidValue)?;
-                // SAFETY: we just validated the contents of the arc are valid for str
                 let arc = unsafe { core::mem::transmute::<Arc<[u8]>, Arc<str>>(arc) };
                 smol_str::SmolStr::from(arc)
             }
             #[cfg(any(not(rustc_1_82), feature = "forbid-unsafe"))]
             {
-                // Regrettably we can't use `SmolStrBuilder` because the chunks we read may not
-                // all be valid utf8 on their own, and that api isn't avoiding an extra copy yet
-                // anyway. And there are no nice ways to create that `Arc<[u8]>` until 1.82, and no
-                // safe apis for turning it into a validated `Arc<str>` in any version. So in this
-                // condition we just write it into a temporary `Vec`, copying the data twice.
                 let mut temp_vec = alloc::vec::Vec::with_capacity(string_len);
                 temp_vec.put(string_data.take_all());
                 let allocated_string_data = from_utf8(&temp_vec).map_err(|_| InvalidValue)?;
@@ -133,8 +111,9 @@ impl<const P: u8> DistinguishedValueDecoder<GeneralGeneric<P>, smol_str::SmolStr
 }
 
 delegate_value_encoding!(
-    encoding (GeneralGeneric<P>) borrows type (smol_str::SmolStr) as owned including distinguished
-    with generics (const P: u8)
+    encoding(
+        GeneralGeneric < P >
+    ) borrows type(smol_str::SmolStr) as owned including distinguished with generics(const P: u8)
 );
 
 #[cfg(test)]
@@ -144,12 +123,11 @@ mod test {
     use crate::encoding::General;
     use alloc::string::String;
 
-    check_type_test!(General, relaxed, from String,
-                     into smol_str::SmolStr, WireType::LengthDelimited);
-    check_type_test!(General, distinguished, from String, into smol_str::SmolStr,
-                     WireType::LengthDelimited);
+    check_type_test!(General, relaxed, from String, into smol_str:: SmolStr, WireType::LengthDelimited);
 
-    /// Test case covering the path that decodes noncontinguous
+    check_type_test!(General, distinguished, from String, into smol_str:: SmolStr, WireType::LengthDelimited);
+
+    #[doc = " Test case covering the path that decodes noncontinguous"]
     #[test]
     fn decode_noncontiguous() {
         for (string_data, error) in [
@@ -163,10 +141,9 @@ mod test {
                 "\u{1f9d0}unicode, too long to be inline, once again goes off stack".as_bytes(),
                 None,
             ),
-            ([0xff; 10].as_slice(), Some(InvalidValue)), // inline invalid
-            ([0xff; 50].as_slice(), Some(InvalidValue)), // out-of-line invalid
+            ([0xff; 10].as_slice(), Some(InvalidValue)),
+            ([0xff; 50].as_slice(), Some(InvalidValue)),
         ] {
-            // Put the string data into a non-contiguous buf
             let (pre, post) = string_data.split_at(3);
             let mut buf = pre.chain(post);
             prepend_varint(buf.len() as u64, &mut buf);
@@ -183,7 +160,6 @@ mod test {
                 assert!(decode_result.is_ok());
                 assert_eq!(Ok(val.as_str()), from_utf8(string_data));
             }
-            // The entire buffer should have been read regardless
             assert!(buf.is_empty());
         }
     }

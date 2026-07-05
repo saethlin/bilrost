@@ -12,7 +12,7 @@ use alloc::vec::Vec;
 use bytes::{Buf, BufMut};
 use core::fmt::Display;
 
-empty_state_via_default!(&'a bstr::BStr, with generics ('a));
+empty_state_via_default!(&'a bstr:: BStr, with generics('a));
 
 impl<const P: u8> Wiretyped<GeneralGeneric<P>, &bstr::BStr> for () {
     const WIRE_TYPE: WireType = WireType::LengthDelimited;
@@ -76,9 +76,11 @@ impl<'a, const P: u8> DistinguishedValueBorrowDecoder<'a, GeneralGeneric<P>, &'a
 #[cfg(test)]
 mod ref_bstr {
     crate::encoding::test::check_borrowable!(
-        borrowed: bstr::BStr,
-        encoding: crate::encoding::General,
-        converter(s: Vec<u8>) { bstr::BString::new(s) },
+        borrowed: bstr:: BStr,
+        encoding: crate:: encoding:: General,
+        converter(s: Vec < u8 >) {
+            bstr::BString::new(s)
+        },
     );
 }
 
@@ -152,10 +154,10 @@ impl<const P: u8> DistinguishedValueDecoder<GeneralGeneric<P>, bstr::BString> fo
 }
 
 impl_cow_value_encoding!(
-    borrowed bstr::BStr,
-    owned bstr::BString,
-    encoding GeneralGeneric<P>,
-    with generic (const P: u8)
+    borrowed bstr:: BStr,
+    owned bstr:: BString,
+    encoding GeneralGeneric < P >,
+    with generic(const P: u8)
 );
 
 #[cfg(test)]
@@ -163,8 +165,8 @@ mod test {
     use super::Vec;
     use crate::encoding::test::check_type_test;
     use crate::encoding::General;
-    check_type_test!(General, relaxed, from Vec<u8>, into bstr::BString,
-        WireType::LengthDelimited);
-    check_type_test!(General, distinguished, from Vec<u8>, into bstr::BString,
-        WireType::LengthDelimited);
+
+    check_type_test!(General, relaxed, from Vec < u8 >, into bstr:: BString, WireType::LengthDelimited);
+
+    check_type_test!(General, distinguished, from Vec < u8 >, into bstr:: BString, WireType::LengthDelimited);
 }

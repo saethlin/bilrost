@@ -7,65 +7,58 @@ use crate::{Canonicity, DecodeError};
 use alloc::boxed::Box;
 use bytes::{Buf, BufMut};
 
-/// Trait to be implemented by (or more commonly derived for) oneofs, which have knowledge of their
-/// variants' tags and encoding.
-///
-/// `Oneof` values can be represented in messages because they have an "empty"  state (typically a
-/// dedicated empty enum variant or Option::None). When `Oneof` is derived for an enum that does not
-/// have a unit variant, the trait that is actually derived is `NonEmptyOneof`, which has no empty
-/// states and must be wrapped in `Option` at some point to be used.
-///
-/// In addition to decoding into the variants of the oneof, implementations of the maybe-empty
-/// `Oneof` traits need to be able to return and attach useful details to the appropriate errors for
-/// collisions (when they decode a field but they already contain values) or when decoding a value
-/// for the oneof otherwise encounters an error. For this reason there are the following differences
-/// between `Oneof` and `NonEmptyOneof`:
-///
-/// * `Oneof::oneof_current_tag` returns `Option<u32>` instead of `u32`
-/// * `Oneof::oneof_decode_field` accepts a `value: &mut Self` argument, while `NonEmptyOneof` does
-///   not; the `Oneof` version of this function returns `Result<(), DecodeError>`, and the
-///   `NonEmptyOneof` version returns `Result<Self, DecodeError>` directly.
-/// * `Oneof::oneof_decode_field` is responsible for attaching error detail information when a
-///   decoding error occurs, while `NonEmptyOneof` does not need to do that.
-///
-/// There are implementations provided, like `impl<T> Oneof for Option<T> where T: NonEmptyOneof`
-/// for all relevant oneof decoder traits (see the `generic_oneof_grant_empty_state_impls` mod).
-/// These implementations take care of the above contract boundary as well.
-///
-/// Other than that: Both empty and non-empty oneofs can be `Box`ed, as there are also wrapper impls
-/// to cover that.
+#[doc = " Trait to be implemented by (or more commonly derived for) oneofs, which have knowledge of their"]
+#[doc = " variants' tags and encoding."]
+#[doc = ""]
+#[doc = " `Oneof` values can be represented in messages because they have an \"empty\"  state (typically a"]
+#[doc = " dedicated empty enum variant or Option::None). When `Oneof` is derived for an enum that does not"]
+#[doc = " have a unit variant, the trait that is actually derived is `NonEmptyOneof`, which has no empty"]
+#[doc = " states and must be wrapped in `Option` at some point to be used."]
+#[doc = ""]
+#[doc = " In addition to decoding into the variants of the oneof, implementations of the maybe-empty"]
+#[doc = " `Oneof` traits need to be able to return and attach useful details to the appropriate errors for"]
+#[doc = " collisions (when they decode a field but they already contain values) or when decoding a value"]
+#[doc = " for the oneof otherwise encounters an error. For this reason there are the following differences"]
+#[doc = " between `Oneof` and `NonEmptyOneof`:"]
+#[doc = ""]
+#[doc = " * `Oneof::oneof_current_tag` returns `Option<u32>` instead of `u32`"]
+#[doc = " * `Oneof::oneof_decode_field` accepts a `value: &mut Self` argument, while `NonEmptyOneof` does"]
+#[doc = "   not; the `Oneof` version of this function returns `Result<(), DecodeError>`, and the"]
+#[doc = "   `NonEmptyOneof` version returns `Result<Self, DecodeError>` directly."]
+#[doc = " * `Oneof::oneof_decode_field` is responsible for attaching error detail information when a"]
+#[doc = "   decoding error occurs, while `NonEmptyOneof` does not need to do that."]
+#[doc = ""]
+#[doc = " There are implementations provided, like `impl<T> Oneof for Option<T> where T: NonEmptyOneof`"]
+#[doc = " for all relevant oneof decoder traits (see the `generic_oneof_grant_empty_state_impls` mod)."]
+#[doc = " These implementations take care of the above contract boundary as well."]
+#[doc = ""]
+#[doc = " Other than that: Both empty and non-empty oneofs can be `Box`ed, as there are also wrapper impls"]
+#[doc = " to cover that."]
 pub trait Oneof {
     const FIELD_TAGS: &'static [u32];
 
-    /// Returns a new empty oneof.
+    #[doc = " Returns a new empty oneof."]
     fn empty() -> Self;
-
-    /// Returns whether the oneof is in the empty variant.
+    #[doc = " Returns whether the oneof is in the empty variant."]
     fn is_empty(&self) -> bool;
-
-    /// Resets the oneof to the empty variant.
+    #[doc = " Resets the oneof to the empty variant."]
     fn clear(&mut self);
-
-    /// Encodes the fields of the oneof into the given buffer.
+    #[doc = " Encodes the fields of the oneof into the given buffer."]
     fn oneof_encode<B: BufMut + ?Sized>(&self, buf: &mut B, tw: &mut TagWriter);
-
-    /// Prepends the fields of the oneof into the given buffer.
+    #[doc = " Prepends the fields of the oneof into the given buffer."]
     fn oneof_prepend<B: ReverseBuf + ?Sized>(&self, buf: &mut B, tw: &mut TagRevWriter);
-
-    /// Measures the number of bytes that would encode this oneof.
+    #[doc = " Measures the number of bytes that would encode this oneof."]
     fn oneof_encoded_len(&self, tm: &mut impl TagMeasurer) -> usize;
-
-    /// Returns the current tag of the oneof, if any.
+    #[doc = " Returns the current tag of the oneof, if any."]
     fn oneof_current_tag(&self) -> Option<u32>;
-
-    /// Returns the diagnostic name of the variant with the given tag. The first returned value is
-    /// the name of the oneof enum, and the second is the name of the field.
+    #[doc = " Returns the diagnostic name of the variant with the given tag. The first returned value is"]
+    #[doc = " the name of the oneof enum, and the second is the name of the field."]
     fn oneof_variant_name(tag: u32) -> (&'static str, &'static str);
 }
 
-/// Relaxed owned decoding trait for oneofs.
+#[doc = " Relaxed owned decoding trait for oneofs."]
 pub trait OneofDecoder: Oneof {
-    /// Decodes from the given buffer.
+    #[doc = " Decodes from the given buffer."]
     fn oneof_decode_field<B: Buf + ?Sized>(
         value: &mut Self,
         tag: u32,
@@ -75,9 +68,9 @@ pub trait OneofDecoder: Oneof {
     ) -> Result<(), DecodeError>;
 }
 
-/// Distinguished owned decoding trait for oneofs.
+#[doc = " Distinguished owned decoding trait for oneofs."]
 pub trait DistinguishedOneofDecoder: Oneof {
-    /// Decodes from the given buffer in distinguished mode.
+    #[doc = " Decodes from the given buffer in distinguished mode."]
     fn oneof_decode_field_distinguished<B: Buf + ?Sized>(
         value: &mut Self,
         tag: u32,
@@ -87,7 +80,7 @@ pub trait DistinguishedOneofDecoder: Oneof {
     ) -> Result<Canonicity, DecodeError>;
 }
 
-/// Relaxed borrowed decoding trait for oneofs.
+#[doc = " Relaxed borrowed decoding trait for oneofs."]
 pub trait OneofBorrowDecoder<'a>: Oneof {
     fn oneof_borrow_decode_field(
         value: &mut Self,
@@ -98,7 +91,7 @@ pub trait OneofBorrowDecoder<'a>: Oneof {
     ) -> Result<(), DecodeError>;
 }
 
-/// Distinguished borrowed decoding trait for oneofs.
+#[doc = " Distinguished borrowed decoding trait for oneofs."]
 pub trait DistinguishedOneofBorrowDecoder<'a>: Oneof {
     fn oneof_borrow_decode_field_distinguished(
         value: &mut Self,
@@ -109,33 +102,29 @@ pub trait DistinguishedOneofBorrowDecoder<'a>: Oneof {
     ) -> Result<Canonicity, DecodeError>;
 }
 
-/// Underlying trait for a oneof that has no inherent "empty" variant, opting instead to be wrapped
-/// in an `Option`. This is the real trait that is derived for `enum` types that don't have a
-/// natural unit variant. Like the other `Oneof` traits, this is not intended for use by library
-/// users.
+#[doc = " Underlying trait for a oneof that has no inherent \"empty\" variant, opting instead to be wrapped"]
+#[doc = " in an `Option`. This is the real trait that is derived for `enum` types that don't have a"]
+#[doc = " natural unit variant. Like the other `Oneof` traits, this is not intended for use by library"]
+#[doc = " users."]
 pub trait NonEmptyOneof {
     const FIELD_TAGS: &'static [u32];
 
-    /// Encodes the fields of the oneof into the given buffer.
+    #[doc = " Encodes the fields of the oneof into the given buffer."]
     fn oneof_encode<B: BufMut + ?Sized>(&self, buf: &mut B, tw: &mut TagWriter);
-
-    /// Prepends the fields of the oneof into the given buffer.
+    #[doc = " Prepends the fields of the oneof into the given buffer."]
     fn oneof_prepend<B: ReverseBuf + ?Sized>(&self, buf: &mut B, tw: &mut TagRevWriter);
-
-    /// Measures the number of bytes that would encode this oneof.
+    #[doc = " Measures the number of bytes that would encode this oneof."]
     fn oneof_encoded_len(&self, tm: &mut impl TagMeasurer) -> usize;
-
-    /// Returns the current tag of the oneof.
+    #[doc = " Returns the current tag of the oneof."]
     fn oneof_current_tag(&self) -> u32;
-
-    /// Returns the diagnostic name of the variant with the given tag. The first returned value is
-    /// the name of the oneof enum, and the second is the name of the field.
+    #[doc = " Returns the diagnostic name of the variant with the given tag. The first returned value is"]
+    #[doc = " the name of the oneof enum, and the second is the name of the field."]
     fn oneof_variant_name(tag: u32) -> (&'static str, &'static str);
 }
 
-/// Relaxed owned decoding trait for non-empty oneofs.
+#[doc = " Relaxed owned decoding trait for non-empty oneofs."]
 pub trait NonEmptyOneofDecoder: NonEmptyOneof + Sized {
-    /// Decodes from the given buffer.
+    #[doc = " Decodes from the given buffer."]
     fn oneof_decode_field<B: Buf + ?Sized>(
         tag: u32,
         wire_type: WireType,
@@ -144,9 +133,9 @@ pub trait NonEmptyOneofDecoder: NonEmptyOneof + Sized {
     ) -> Result<Self, DecodeError>;
 }
 
-/// Distinguished owned decoding trait for non-empty oneofs.
+#[doc = " Distinguished owned decoding trait for non-empty oneofs."]
 pub trait NonEmptyDistinguishedOneofDecoder: NonEmptyOneof + Sized {
-    /// Decodes from the given buffer.
+    #[doc = " Decodes from the given buffer."]
     fn oneof_decode_field_distinguished<B: Buf + ?Sized>(
         tag: u32,
         wire_type: WireType,
@@ -155,7 +144,7 @@ pub trait NonEmptyDistinguishedOneofDecoder: NonEmptyOneof + Sized {
     ) -> Result<(Self, Canonicity), DecodeError>;
 }
 
-/// Relaxed borrowed decoding trait for non-empty oneofs.
+#[doc = " Relaxed borrowed decoding trait for non-empty oneofs."]
 pub trait NonEmptyOneofBorrowDecoder<'a>: NonEmptyOneof + Sized {
     fn oneof_borrow_decode_field(
         tag: u32,
@@ -165,7 +154,7 @@ pub trait NonEmptyOneofBorrowDecoder<'a>: NonEmptyOneof + Sized {
     ) -> Result<Self, DecodeError>;
 }
 
-/// Distinguished borrowed decoding trait for non-empty oneofs.
+#[doc = " Distinguished borrowed decoding trait for non-empty oneofs."]
 pub trait NonEmptyDistinguishedOneofBorrowDecoder<'a>: NonEmptyOneof + Sized {
     fn oneof_borrow_decode_field_distinguished(
         tag: u32,
@@ -175,8 +164,8 @@ pub trait NonEmptyDistinguishedOneofBorrowDecoder<'a>: NonEmptyOneof + Sized {
     ) -> Result<(Self, Canonicity), DecodeError>;
 }
 
-/// These are the impls that grant Oneof implementation status with a proper empty state to NonEmpty
-/// oneof implementers
+#[doc = " These are the impls that grant Oneof implementation status with a proper empty state to NonEmpty"]
+#[doc = " oneof implementers"]
 mod generic_oneof_grant_empty_state_impls {
     use super::*;
     use crate::DecodeErrorKind::{ConflictingFields, UnexpectedlyRepeated};
@@ -373,7 +362,7 @@ mod generic_oneof_grant_empty_state_impls {
     }
 }
 
-/// These are the impls that make the oneof trait transparent to Box
+#[doc = " These are the impls that make the oneof trait transparent to Box"]
 mod generic_boxed_oneof_impls {
     use super::*;
 

@@ -20,222 +20,204 @@ use core::fmt::Display;
 
 pub struct Unpacked<E = GeneralPacked>(E);
 
-encoding_uses_base_empty_state!(Unpacked<E>, with generics (E));
+encoding_uses_base_empty_state!(Unpacked < E >, with generics(E));
 
-macro_rules! define_decoders {
+macro_rules! define_decoders{
     (
-        mode: $mode:ident,
-        relaxed: $relaxed:ident::$relaxed_method:ident,
-        relaxed_value: $relaxed_value:ident::$relaxed_value_method:ident,
-        relaxed_field: $relaxed_field:ident::$relaxed_field_method:ident,
-        distinguished: $distinguished:ident::$distinguished_method:ident,
-        distinguished_value: $distinguished_value:ident::$distinguished_value_method:ident,
-        distinguished_field: $distinguished_field:ident::$distinguished_field_method:ident,
-        buf_ty: $buf_ty:ty,
-        impl_buf_ty: $impl_buf_ty:ty,
-        $(buf_generic: ($($buf_generic:tt)*),)?
-        $(lifetime: $lifetime:lifetime,)?
+        mode: $mode: ident,
+        relaxed: $relaxed: ident::$relaxed_method: ident,
+        relaxed_value: $relaxed_value: ident::$relaxed_value_method: ident,
+        relaxed_field: $relaxed_field: ident::$relaxed_field_method: ident,
+        distinguished: $distinguished: ident::$distinguished_method: ident,
+        distinguished_value: $distinguished_value: ident::$distinguished_value_method: ident,
+        distinguished_field: $distinguished_field: ident::$distinguished_field_method: ident,
+        buf_ty: $buf_ty: ty,
+        impl_buf_ty: $impl_buf_ty: ty,
+        $(buf_generic:($($buf_generic: tt) *),) ? $(lifetime: $lifetime: lifetime,) ?
     ) => {
-        /// Decodes a collection value from the unpacked representation. This greedily consumes
-        /// consecutive fields as long as they have the same tag.
-        #[inline]
-        pub(crate) fn decode<$($lifetime,)? T, E>(
+        #[
+            doc = " Decodes a collection value from the unpacked representation. This greedily consumes"
+        ] #[
+            doc = " consecutive fields as long as they have the same tag."
+        ] #[inline] pub(crate) fn decode <$($lifetime,) ? T,
+        E >(
             wire_type: WireType,
-            collection: &mut T,
-            mut buf: Capped<$impl_buf_ty>,
+            collection: & mut T,
+            mut buf: Capped <$impl_buf_ty >,
             ctx: DecodeContext,
-        ) -> Result<(), DecodeError>
-        where
-            T: Collection,
-            (): EmptyState<(), T>
-                + ForOverwrite<E, T::Item>
-                + $relaxed_value <$($lifetime,)? E, T::Item>,
+        ) -> Result <(),
+        DecodeError > where T: Collection,
+        (): EmptyState <(),
+        T > + ForOverwrite < E,
+        T:: Item > + $relaxed_value <$($lifetime,) ? E,
+        T:: Item >,
         {
             check_wire_type(<() as Wiretyped<E, T::Item>>::WIRE_TYPE, wire_type)?;
             loop {
-                // Decode one item
-                let mut new_item = <() as ForOverwrite<E, T::Item>>::for_overwrite();
-                <() as $relaxed_value<E, _>>::$relaxed_value_method(&mut new_item, buf.lend(), ctx.clone())?;
+                let mut new_item = <() as ForOverwrite < E,
+                T::Item >> ::for_overwrite();
+                <() as $relaxed_value < E,
+                _ >>::$relaxed_value_method(&mut new_item, buf.lend(), ctx.clone()) ?;
                 collection.insert(new_item)?;
-
                 if let Some(next_wire_type) = peek_repeated_field(&mut buf) {
                     check_wire_type(<() as Wiretyped<E, T::Item>>::WIRE_TYPE, next_wire_type)?;
-                } else {
+                }
+                else {
                     break;
                 }
             }
             Ok(())
         }
-
-        /// Decodes an array value from either unpacked or packed representation. If there are not
-        /// exactly the expected number of fields the value is considered to be invalid.
-        #[inline]
-        pub(super) fn decode_array_either_repr<$($lifetime,)? T, const N: usize, E>(
-            wire_type: WireType,
-            arr: &mut [T; N],
-            buf: Capped<$impl_buf_ty>,
-            ctx: DecodeContext,
-        ) -> Result<(), DecodeError>
-        where
-            (): $relaxed_value <$($lifetime,)? E, T>,
+        #[
+            doc = " Decodes an array value from either unpacked or packed representation. If there are not"
+        ] #[
+            doc = " exactly the expected number of fields the value is considered to be invalid."
+        ] #[inline] pub(super) fn decode_array_either_repr <$($lifetime,) ? T,
+        const N: usize,
+        E >(wire_type: WireType, arr: & mut[
+            T;
+            N
+        ], buf: Capped <$impl_buf_ty >, ctx: DecodeContext,) -> Result <(),
+        DecodeError > where(): $relaxed_value <$($lifetime,) ? E,
+        T >,
         {
-            if wire_type == WireType::LengthDelimited
-                && <() as Wiretyped<E, T>>::WIRE_TYPE != WireType::LengthDelimited
-            {
-                // We've encountered a length-delimited field when we aren't expecting one; try
-                // decoding it in packed format instead.
-                <() as $relaxed_value<Packed<E>, _>>::$relaxed_value_method(arr, buf, ctx)
-            } else {
-                // Otherwise, decode in unpacked mode.
+            if wire_type == WireType:: LengthDelimited && <() as Wiretyped < E,
+            T >>:: WIRE_TYPE != WireType:: LengthDelimited {
+                <() as $relaxed_value < Packed < E >,
+                _ >>::$relaxed_value_method(arr, buf, ctx)
+            }
+            else {
                 decode_array_unpacked_only(wire_type, arr, buf, ctx)
             }
         }
-
-        /// Decodes an array value in only the unpacked representation. If there are not exactly the
-        /// expected number of fields the value is considered to be invalid.
-        #[inline]
-        pub(crate) fn decode_array_unpacked_only<$($lifetime,)? T, const N: usize, E>(
-            wire_type: WireType,
-            arr: &mut [T; N],
-            mut buf: Capped<$impl_buf_ty>,
-            ctx: DecodeContext,
-        ) -> Result<(), DecodeError>
-        where
-            (): $relaxed_value <$($lifetime,)? E, T>,
+        #[
+            doc = " Decodes an array value in only the unpacked representation. If there are not exactly the"
+        ] #[
+            doc = " expected number of fields the value is considered to be invalid."
+        ] #[inline] pub(crate) fn decode_array_unpacked_only <$($lifetime,) ? T,
+        const N: usize,
+        E >(wire_type: WireType, arr: & mut[
+            T;
+            N
+        ], mut buf: Capped <$impl_buf_ty >, ctx: DecodeContext,) -> Result <(),
+        DecodeError > where(): $relaxed_value <$($lifetime,) ? E,
+        T >,
         {
             check_wire_type(<() as Wiretyped<E, T>>::WIRE_TYPE, wire_type)?;
-            for (i, dest) in arr.iter_mut().enumerate() {
-                // The initial field key is consumed, but we must read the repeated field key for
-                // each one after that.
+            for(i, dest) in arr.iter_mut().enumerate() {
                 if i > 0 {
                     if let Some(next_wire_type) = peek_repeated_field(&mut buf) {
                         check_wire_type(<() as Wiretyped<E, T>>::WIRE_TYPE, next_wire_type)?;
                     } else {
-                        // Not enough value fields
                         return Err(DecodeError::new(InvalidValue));
                     }
                 }
-                // Decode one item
-                <() as $relaxed_value<E, _>>::$relaxed_value_method(dest, buf.lend(), ctx.clone())?;
+                <() as $relaxed_value < E,
+                _ >>::$relaxed_value_method(dest, buf.lend(), ctx.clone()) ?;
             }
             if peek_repeated_field(&mut buf).is_some() {
-                // Too many value fields
                 Err(DecodeError::new(InvalidValue))
-            } else {
+            }
+            else {
                 Ok(())
             }
         }
-
-        /// Decodes a collection value from the unpacked representation in distinguished mode. This
-        /// greedily consumes consecutive fields as long as they have the same tag.
-        #[inline]
-        pub(crate) fn decode_distinguished<$($lifetime,)? T, E>(
+        #[
+            doc = " Decodes a collection value from the unpacked representation in distinguished mode. This"
+        ] #[
+            doc = " greedily consumes consecutive fields as long as they have the same tag."
+        ] #[inline] pub(crate) fn decode_distinguished <$($lifetime,) ? T,
+        E >(
             wire_type: WireType,
-            collection: &mut T,
-            mut buf: Capped<$impl_buf_ty>,
+            collection: & mut T,
+            mut buf: Capped <$impl_buf_ty >,
             ctx: RestrictedDecodeContext,
-        ) -> Result<Canonicity, DecodeError>
-        where
-            T: DistinguishedCollection,
-            T::Item: Eq,
-            (): EmptyState<(), T>
-                + ForOverwrite<E, T::Item>
-                + $distinguished_value <$($lifetime,)? E, T::Item>,
+        ) -> Result < Canonicity,
+        DecodeError > where T: DistinguishedCollection,
+        T:: Item: Eq,
+        (): EmptyState <(),
+        T > + ForOverwrite < E,
+        T:: Item > + $distinguished_value <$($lifetime,) ? E,
+        T:: Item >,
         {
             check_wire_type(<() as Wiretyped<E, T::Item>>::WIRE_TYPE, wire_type)?;
             let mut canon = Canonicity::Canonical;
             loop {
-                // Decode one item
-                let mut new_item = <() as ForOverwrite<E, T::Item>>::for_overwrite();
-                // Decoded field values are nested within the collection; empty values are OK
+                let mut new_item = <() as ForOverwrite < E,
+                T::Item >> ::for_overwrite();
                 canon.update(
-                    <() as $distinguished_value<E, _>>::$distinguished_value_method::<true>(
-                        &mut new_item,
-                        buf.lend(),
-                        ctx.clone(),
-                    )?,
+                    <() as $distinguished_value < E,
+                    _ >>::$distinguished_value_method::< true >(&mut new_item, buf.lend(), ctx.clone()) ?,
                 );
                 canon.update(ctx.check(collection.insert_distinguished(new_item)?)?);
-
                 if let Some(next_wire_type) = peek_repeated_field(&mut buf) {
                     check_wire_type(<() as Wiretyped<E, T::Item>>::WIRE_TYPE, next_wire_type)?;
-                } else {
+                }
+                else {
                     break;
                 }
             }
             Ok(canon)
         }
-
-        /// Decodes an array value from either packed or unpacked in distinguished mode. If there
-        /// are not exactly the expected number of fields the value is considered to be invalid.
-        #[inline]
-        pub(super) fn decode_distinguished_array_either_repr<$($lifetime,)? T, const N: usize, E>(
-            wire_type: WireType,
-            arr: &mut [T; N],
-            buf: Capped<$impl_buf_ty>,
-            ctx: RestrictedDecodeContext,
-        ) -> Result<Canonicity, DecodeError>
-        where
-            T: Eq,
-            (): $relaxed_value <$($lifetime,)? E, T>
-                + $distinguished_value <$($lifetime,)? E, T>,
+        #[
+            doc = " Decodes an array value from either packed or unpacked in distinguished mode. If there"
+        ] #[
+            doc = " are not exactly the expected number of fields the value is considered to be invalid."
+        ] #[inline] pub(super) fn decode_distinguished_array_either_repr <$($lifetime,) ? T,
+        const N: usize,
+        E >(wire_type: WireType, arr: & mut[
+            T;
+            N
+        ], buf: Capped <$impl_buf_ty >, ctx: RestrictedDecodeContext,) -> Result < Canonicity,
+        DecodeError > where T: Eq,
+        (): $relaxed_value <$($lifetime,) ? E,
+        T > + $distinguished_value <$($lifetime,) ? E,
+        T >,
         {
-            if wire_type == WireType::LengthDelimited
-                && <() as Wiretyped<E, T>>::WIRE_TYPE != WireType::LengthDelimited
-            {
-                // We've encountered a length-delimited field when we aren't expecting one; try
-                // decoding it in packed format instead.
-                // The data is already known to be non-canonical; use relaxed decoding
+            if wire_type == WireType:: LengthDelimited && <() as Wiretyped < E,
+            T >>:: WIRE_TYPE != WireType:: LengthDelimited {
                 _ = ctx.check(Canonicity::NotCanonical)?;
-                <() as $relaxed_value<Packed<E>, _>>::$relaxed_value_method(
-                    arr, buf, ctx.into_inner(),
-                )?;
+                <() as $relaxed_value < Packed < E >,
+                _ >>::$relaxed_value_method(arr, buf, ctx.into_inner()) ?;
                 Ok(Canonicity::NotCanonical)
-            } else {
-                // Otherwise, decode in unpacked mode.
+            }
+            else {
                 decode_distinguished_array_unpacked_only(wire_type, arr, buf, ctx)
             }
         }
-
-        /// Decodes an array value from the unpacked representation in distinguished mode. If there
-        /// are not exactly the expected number of fields the value is considered to be invalid.
-        #[inline]
-        fn decode_distinguished_array_unpacked_only<$($lifetime,)? T, const N: usize, E>(
-            wire_type: WireType,
-            arr: &mut [T; N],
-            mut buf: Capped<$impl_buf_ty>,
-            ctx: RestrictedDecodeContext,
-        ) -> Result<Canonicity, DecodeError>
-        where
-            T: Eq,
-            (): $distinguished_value <$($lifetime,)? E, T>,
+        #[
+            doc = " Decodes an array value from the unpacked representation in distinguished mode. If there"
+        ] #[
+            doc = " are not exactly the expected number of fields the value is considered to be invalid."
+        ] #[inline] fn decode_distinguished_array_unpacked_only <$($lifetime,) ? T,
+        const N: usize,
+        E >(wire_type: WireType, arr: & mut[
+            T;
+            N
+        ], mut buf: Capped <$impl_buf_ty >, ctx: RestrictedDecodeContext,) -> Result < Canonicity,
+        DecodeError > where T: Eq,
+        (): $distinguished_value <$($lifetime,) ? E,
+        T >,
         {
             check_wire_type(<() as Wiretyped<E, T>>::WIRE_TYPE, wire_type)?;
             let mut canon = Canonicity::Canonical;
-            for (i, dest) in arr.iter_mut().enumerate() {
-                // The initial field key is consumed, but we must read the repeated field key for
-                // each one after that.
+            for(i, dest) in arr.iter_mut().enumerate() {
                 if i > 0 {
                     if let Some(next_wire_type) = peek_repeated_field(&mut buf) {
                         check_wire_type(<() as Wiretyped<E, T>>::WIRE_TYPE, next_wire_type)?;
                     } else {
-                        // Not enough value fields
                         return Err(DecodeError::new(InvalidValue));
                     }
                 }
-                // Decode one item. Empty values are allowed
                 canon.update(
-                    <() as $distinguished_value<E, _>>::$distinguished_value_method::<true>(
-                        dest,
-                        buf.lend(),
-                        ctx.clone(),
-                    )?,
+                    <() as $distinguished_value < E,
+                    _ >>::$distinguished_value_method::< true >(dest, buf.lend(), ctx.clone()) ?,
                 );
             }
             if peek_repeated_field(&mut buf).is_some() {
-                // Too many value fields
                 Err(DecodeError::new(InvalidValue))
-            } else {
+            }
+            else {
                 Ok(canon)
             }
         }
@@ -244,11 +226,13 @@ macro_rules! define_decoders {
 
 pub(crate) mod owned {
     use super::*;
+
     decoding_modes::__invoke!(define_decoders, owned);
 }
 
 pub(crate) mod borrowed {
     use super::*;
+
     decoding_modes::__invoke!(define_decoders, borrowed);
 }
 
@@ -278,8 +262,8 @@ where
     }
 }
 
-/// Unpacked encodes vecs as repeated fields and in relaxed decoding mode will accept both packed
-/// and un-packed encodings.
+#[doc = " Unpacked encodes vecs as repeated fields and in relaxed decoding mode will accept both packed"]
+#[doc = " and un-packed encodings."]
 impl<C, T, E> Encoder<Unpacked<E>, C> for ()
 where
     C: Collection<Item = T>,
@@ -307,7 +291,6 @@ where
     #[inline]
     fn encoded_len(tag: u32, value: &C, tm: &mut impl TagMeasurer) -> usize {
         if value.len() > 0 {
-            // Each *additional* field encoded after the first needs only 1 byte for the field key.
             tm.key_len(tag)
                 + <() as ValueEncoder<E, _>>::many_values_encoded_len(value.iter())
                 + value.len()
@@ -332,8 +315,8 @@ where
     }
 }
 
-/// Unpacked encodes arrays as repeated fields if any of the values are non-empty, and in relaxed
-/// decoding mode will accept both packed and un-packed encodings.
+#[doc = " Unpacked encodes arrays as repeated fields if any of the values are non-empty, and in relaxed"]
+#[doc = " decoding mode will accept both packed and un-packed encodings."]
 impl<T, const N: usize, E> Encoder<Unpacked<E>, [T; N]> for ()
 where
     (): ValueEncoder<E, T> + EmptyState<E, [T; N]>,
@@ -375,15 +358,15 @@ where
         schema.make_lazy_repr(|schema| {
             format!(
                 "repeated field (items: {value_repr})",
-                value_repr = <() as ValueRepr<E, T>>::repr(schema),
+                value_repr = <() as ValueRepr<E, T>>::repr(schema)
             )
         })
     }
 }
 
-/// Unpacked encodes slices the same way as arrays. This implementation always uses the natural
-/// emptiness and item iteration of the slice, since implementing `EmptyState` for the unsized `[T]`
-/// isn't practical.
+#[doc = " Unpacked encodes slices the same way as arrays. This implementation always uses the natural"]
+#[doc = " emptiness and item iteration of the slice, since implementing `EmptyState` for the unsized `[T]`"]
+#[doc = " isn't practical."]
 impl<T, E> Encoder<Unpacked<E>, [T]> for ()
 where
     (): ValueEncoder<E, T>,
@@ -410,7 +393,6 @@ where
     #[inline]
     fn encoded_len(tag: u32, value: &[T], tm: &mut impl TagMeasurer) -> usize {
         if !value.is_empty() {
-            // Each *additional* field encoded after the first needs only 1 byte for the field key.
             tm.key_len(tag)
                 + <() as ValueEncoder<E, T>>::many_values_encoded_len(value.iter())
                 + value.len()
@@ -435,7 +417,7 @@ where
     }
 }
 
-/// Unpacked encodes arrays as repeated fields if any of the values are non-empty.
+#[doc = " Unpacked encodes arrays as repeated fields if any of the values are non-empty."]
 impl<T, const N: usize, E> Encoder<Unpacked<E>, Option<[T; N]>> for ()
 where
     (): ValueEncoder<E, T> + ForOverwrite<E, [T; N]>,
@@ -471,7 +453,6 @@ where
     #[inline]
     fn encoded_len(tag: u32, value: &Option<[T; N]>, tm: &mut impl TagMeasurer) -> usize {
         if let Some(values) = value.as_ref() {
-            // Each *additional* field encoded after the first needs only 1 byte for the field key.
             tm.key_len(tag) + <() as ValueEncoder<E, T>>::many_values_encoded_len(values.iter()) + N
                 - 1
         } else {
@@ -480,142 +461,155 @@ where
     }
 }
 
-macro_rules! impl_decoders {
+macro_rules! impl_decoders{
     (
-        mode: $mode:ident,
-        relaxed: $relaxed:ident::$relaxed_method:ident,
-        relaxed_value: $relaxed_value:ident::$relaxed_value_method:ident,
-        relaxed_field: $relaxed_field:ident::$relaxed_field_method:ident,
-        distinguished: $distinguished:ident::$distinguished_method:ident,
-        distinguished_value: $distinguished_value:ident::$distinguished_value_method:ident,
-        distinguished_field: $distinguished_field:ident::$distinguished_field_method:ident,
-        buf_ty: $buf_ty:ty,
-        impl_buf_ty: $impl_buf_ty:ty,
-        $(buf_generic: ($($buf_generic:tt)*),)?
-        $(lifetime: $lifetime:lifetime,)?
+        mode: $mode: ident,
+        relaxed: $relaxed: ident::$relaxed_method: ident,
+        relaxed_value: $relaxed_value: ident::$relaxed_value_method: ident,
+        relaxed_field: $relaxed_field: ident::$relaxed_field_method: ident,
+        distinguished: $distinguished: ident::$distinguished_method: ident,
+        distinguished_value: $distinguished_value: ident::$distinguished_value_method: ident,
+        distinguished_field: $distinguished_field: ident::$distinguished_field_method: ident,
+        buf_ty: $buf_ty: ty,
+        impl_buf_ty: $impl_buf_ty: ty,
+        $(buf_generic:($($buf_generic: tt) *),) ? $(lifetime: $lifetime: lifetime,) ?
     ) => {
-        impl<$($lifetime,)? C, T, E> $relaxed <$($lifetime,)? Unpacked<E>, C> for ()
-        where
-            C: Collection<Item = T>,
-            (): EmptyState<(), C> + ForOverwrite<E, T> + $relaxed_value <$($lifetime,)? E, T>,
+        impl <$($lifetime,) ? C,
+        T,
+        E > $relaxed <$($lifetime,) ? Unpacked < E >,
+        C > for() where C: Collection < Item = T >,
+        (): EmptyState <(),
+        C > + ForOverwrite < E,
+        T > + $relaxed_value <$($lifetime,) ? E,
+        T >,
         {
-            #[inline]
-            fn $relaxed_method $($($buf_generic)*)? (
-                wire_type: WireType,
-                value: &mut C,
-                buf: Capped<$buf_ty>,
-                ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                if wire_type == WireType::LengthDelimited
-                    && <() as Wiretyped<E, C::Item>>::WIRE_TYPE != WireType::LengthDelimited
-                {
-                    // We've encountered a length-delimited field when we aren't expecting one; try decoding
-                    // it in packed format instead.
-                    <() as $relaxed_value<Packed<E>, _>>::$relaxed_value_method(value, buf, ctx)
-                } else {
-                    // Otherwise, decode in unpacked mode.
-                    $mode::decode::<C, E>(wire_type, value, buf, ctx)
+            #[
+                inline
+            ] fn $relaxed_method $(
+                $($buf_generic) *
+            ) ?(wire_type: WireType, value: & mut C, buf: Capped <$buf_ty >, ctx: DecodeContext,) -> Result <(),
+            DecodeError > {
+                if wire_type == WireType:: LengthDelimited && <() as Wiretyped < E,
+                C:: Item >>:: WIRE_TYPE != WireType:: LengthDelimited {
+                    <() as $relaxed_value < Packed < E >,
+                    _ >>::$relaxed_value_method(value, buf, ctx)
+                }
+                else {
+                    $mode:: decode::< C,
+                    E > (wire_type, value, buf, ctx)
                 }
             }
         }
-
-        /// Distinguished encoding enforces only the repeated field representation is allowed.
-        impl<$($lifetime,)? C, T, E> $distinguished <$($lifetime,)? Unpacked<E>, C> for ()
-        where
-            C: DistinguishedCollection<Item = T>,
-            T: Eq,
-            (): EmptyState<(), C>
-                + ForOverwrite<E, T>
-                + $distinguished_value <$($lifetime,)? E, T>
-                + $relaxed_value <$($lifetime,)? Packed<E>, C>
-                + $relaxed <$($lifetime,)? Unpacked<E>, C>,
+        #[
+            doc = " Distinguished encoding enforces only the repeated field representation is allowed."
+        ] impl <$($lifetime,) ? C,
+        T,
+        E > $distinguished <$($lifetime,) ? Unpacked < E >,
+        C > for() where C: DistinguishedCollection < Item = T >,
+        T: Eq,
+        (): EmptyState <(),
+        C > + ForOverwrite < E,
+        T > + $distinguished_value <$($lifetime,) ? E,
+        T > + $relaxed_value <$($lifetime,) ? Packed < E >,
+        C > + $relaxed <$($lifetime,) ? Unpacked < E >,
+        C >,
         {
-            #[inline]
-            fn $distinguished_method $($($buf_generic)*)? (
+            #[
+                inline
+            ] fn $distinguished_method $(
+                $($buf_generic) *
+            ) ?(
                 wire_type: WireType,
-                value: &mut C,
-                buf: Capped<$buf_ty>,
+                value: & mut C,
+                buf: Capped <$buf_ty >,
                 ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
-                if wire_type == WireType::LengthDelimited
-                    && <() as Wiretyped<E, T>>::WIRE_TYPE != WireType::LengthDelimited
-                {
-                    // We've encountered a length-delimited field when we aren't expecting one; try decoding
-                    // it in packed format instead.
-                    // The data is already known to be non-canonical; use relaxed decoding
+            ) -> Result < Canonicity,
+            DecodeError > {
+                if wire_type == WireType:: LengthDelimited && <() as Wiretyped < E,
+                T >>:: WIRE_TYPE != WireType:: LengthDelimited {
                     _ = ctx.check(Canonicity::NotCanonical)?;
-                    <() as $relaxed_value<Packed<E>, _>>::$relaxed_value_method(
-                        value,
-                        buf,
-                        ctx.into_inner(),
-                    )?;
+                    <() as $relaxed_value < Packed < E >,
+                    _ >>::$relaxed_value_method(value, buf, ctx.into_inner()) ?;
                     Ok(Canonicity::NotCanonical)
-                } else {
-                    // Otherwise, decode in unpacked mode.
-                    $mode::decode_distinguished::<C, E>(wire_type, value, buf, ctx)
+                }
+                else {
+                    $mode:: decode_distinguished::< C,
+                    E > (wire_type, value, buf, ctx)
                 }
             }
         }
-
-        impl<$($lifetime,)? T, const N: usize, E>
-        $relaxed <$($lifetime,)? Unpacked<E>, [T; N]> for ()
-        where
-            (): $relaxed_value <$($lifetime,)? E, T> + EmptyState<E, [T; N]>,
+        impl <$($lifetime,) ? T,
+        const N: usize,
+        E > $relaxed <$($lifetime,) ? Unpacked < E >,
+        [
+            T;
+            N
+        ] > for() where(): $relaxed_value <$($lifetime,) ? E,
+        T > + EmptyState < E,
+        [
+            T;
+            N
+        ] >,
         {
-            #[inline]
-            fn $relaxed_method $($($buf_generic)*)? (
-                wire_type: WireType,
-                value: &mut [T; N],
-                buf: Capped<$buf_ty>,
-                ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                $mode::decode_array_either_repr(wire_type, value, buf, ctx)
+            #[inline] fn $relaxed_method $($($buf_generic) *) ?(wire_type: WireType, value: & mut[
+                T;
+                N
+            ], buf: Capped <$buf_ty >, ctx: DecodeContext,) -> Result <(),
+            DecodeError > {
+                $mode:: decode_array_either_repr(wire_type, value, buf, ctx)
             }
         }
-
-        /// Distinguished encoding considers only the repeated field representation to be canonical.
-        impl<$($lifetime,)? T, const N: usize, E>
-        $distinguished <$($lifetime,)? Unpacked<E>, [T; N]> for ()
-        where
-            T: Eq,
-            (): EmptyState<E, [T; N]>
-                + $distinguished_value <$($lifetime,)? E, T>
-                + $relaxed_value <$($lifetime,)? E, T>,
+        #[
+            doc = " Distinguished encoding considers only the repeated field representation to be canonical."
+        ] impl <$($lifetime,) ? T,
+        const N: usize,
+        E > $distinguished <$($lifetime,) ? Unpacked < E >,
+        [
+            T;
+            N
+        ] > for() where T: Eq,
+        (): EmptyState < E,
+        [
+            T;
+            N
+        ] > + $distinguished_value <$($lifetime,) ? E,
+        T > + $relaxed_value <$($lifetime,) ? E,
+        T >,
         {
-            #[inline]
-            fn $distinguished_method $($($buf_generic)*)? (
-                wire_type: WireType,
-                value: &mut [T; N],
-                buf: Capped<$buf_ty>,
-                ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
-                let canon = $mode::decode_distinguished_array_either_repr(
-                    wire_type,
-                    value,
-                    buf,
-                    ctx.clone(),
-                )?;
-                if <() as EmptyState::<E, _>>::is_empty(value) {
+            #[inline] fn $distinguished_method $($($buf_generic) *) ?(wire_type: WireType, value: & mut[
+                T;
+                N
+            ], buf: Capped <$buf_ty >, ctx: RestrictedDecodeContext,) -> Result < Canonicity,
+            DecodeError > {
+                let canon = $mode:: decode_distinguished_array_either_repr(wire_type, value, buf, ctx.clone()) ?;
+                if <() as EmptyState::< E,
+                _ >>:: is_empty(value) {
                     ctx.check(Canonicity::NotCanonical)
-                } else {
+                }
+                else {
                     Ok(canon)
                 }
             }
         }
-
-        impl<$($lifetime,)? T, const N: usize, E>
-        $relaxed <$($lifetime,)? Unpacked<E>, Option<[T; N]>> for ()
-        where
-            (): $relaxed_value <$($lifetime,)? E, T> + ForOverwrite<E, [T; N]>,
+        impl <$($lifetime,) ? T,
+        const N: usize,
+        E > $relaxed <$($lifetime,) ? Unpacked < E >,
+        Option <[
+            T;
+            N
+        ] >> for() where(): $relaxed_value <$($lifetime,) ? E,
+        T > + ForOverwrite < E,
+        [
+            T;
+            N
+        ] >,
         {
-            #[inline]
-            fn $relaxed_method $($($buf_generic)*)? (
-                wire_type: WireType,
-                value: &mut Option<[T; N]>,
-                buf: Capped<$buf_ty>,
-                ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                $mode::decode_array_either_repr(
+            #[inline] fn $relaxed_method $($($buf_generic) *) ?(wire_type: WireType, value: & mut Option <[
+                T;
+                N
+            ] >, buf: Capped <$buf_ty >, ctx: DecodeContext,) -> Result <(),
+            DecodeError > {
+                $mode:: decode_array_either_repr(
                     wire_type,
                     value.get_or_insert_with(<() as ForOverwrite::<E, _>>::for_overwrite),
                     buf,
@@ -623,25 +617,29 @@ macro_rules! impl_decoders {
                 )
             }
         }
-
-        /// Distinguished encoding enforces only the repeated field representation is considered to be
-        /// canonical.
-        impl<$($lifetime,)? T, const N: usize, E>
-        $distinguished <$($lifetime,)? Unpacked<E>, Option<[T; N]>> for ()
-        where
-            T: Eq,
-            (): ForOverwrite<E, [T; N]>
-                + $distinguished_value<$($lifetime,)? E, T>
-                + $relaxed_value<$($lifetime,)? E, T>,
+        #[
+            doc = " Distinguished encoding enforces only the repeated field representation is considered to be"
+        ] #[doc = " canonical."] impl <$($lifetime,) ? T,
+        const N: usize,
+        E > $distinguished <$($lifetime,) ? Unpacked < E >,
+        Option <[
+            T;
+            N
+        ] >> for() where T: Eq,
+        (): ForOverwrite < E,
+        [
+            T;
+            N
+        ] > + $distinguished_value <$($lifetime,) ? E,
+        T > + $relaxed_value <$($lifetime,) ? E,
+        T >,
         {
-            #[inline]
-            fn $distinguished_method $($($buf_generic)*)? (
-                wire_type: WireType,
-                value: &mut Option<[T; N]>,
-                buf: Capped<$buf_ty>,
-                ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
-                $mode::decode_distinguished_array_either_repr(
+            #[inline] fn $distinguished_method $($($buf_generic) *) ?(wire_type: WireType, value: & mut Option <[
+                T;
+                N
+            ] >, buf: Capped <$buf_ty >, ctx: RestrictedDecodeContext,) -> Result < Canonicity,
+            DecodeError > {
+                $mode:: decode_distinguished_array_either_repr(
                     wire_type,
                     value.get_or_insert_with(<() as ForOverwrite::<E, _>>::for_overwrite),
                     buf,
@@ -653,41 +651,28 @@ macro_rules! impl_decoders {
 }
 
 decoding_modes::__invoke!(impl_decoders, owned);
+
 decoding_modes::__invoke!(impl_decoders, borrowed);
 
 #[cfg(test)]
 mod test {
-    use alloc::string::String;
-    use alloc::vec::Vec;
-
-    use proptest::proptest;
-
     use crate::encoding::test::{distinguished, relaxed};
     use crate::encoding::{Fixed, Unpacked, WireType};
+    use alloc::string::String;
+    use alloc::vec::Vec;
+    use proptest::proptest;
 
     proptest! {
         #[test]
         fn varint(value: Vec<u64>, tag: u32) {
-            relaxed::check_type_unpacked::<Vec<u64>, Unpacked>(
-                value.clone(),
-                tag,
-                WireType::Varint,
-            )?;
+            relaxed::check_type_unpacked::<Vec<u64>, Unpacked>(value.clone(), tag, WireType::Varint)?;
             distinguished::check_type_unpacked::<Vec<u64>, Unpacked>(value, tag, WireType::Varint)?;
         }
 
         #[test]
         fn length_delimited(value: Vec<String>, tag: u32) {
-            relaxed::check_type_unpacked::<Vec<String>, Unpacked>(
-                value.clone(),
-                tag,
-                WireType::LengthDelimited,
-            )?;
-            distinguished::check_type_unpacked::<Vec<String>, Unpacked>(
-                value,
-                tag,
-                WireType::LengthDelimited,
-            )?;
+            relaxed::check_type_unpacked::<Vec<String>, Unpacked>(value.clone(), tag, WireType::LengthDelimited)?;
+            distinguished::check_type_unpacked::<Vec<String>, Unpacked>(value, tag, WireType::LengthDelimited)?;
         }
 
         #[test]
@@ -697,11 +682,7 @@ mod test {
                 tag,
                 WireType::ThirtyTwoBit,
             )?;
-            distinguished::check_type_unpacked::<Vec<u32>, Unpacked<Fixed>>(
-                value,
-                tag,
-                WireType::ThirtyTwoBit,
-            )?;
+            distinguished::check_type_unpacked::<Vec<u32>, Unpacked<Fixed>>(value, tag, WireType::ThirtyTwoBit)?;
         }
 
         #[test]
@@ -711,63 +692,31 @@ mod test {
                 tag,
                 WireType::SixtyFourBit,
             )?;
-            distinguished::check_type_unpacked::<Vec<u64>, Unpacked<Fixed>>(
-                value,
-                tag,
-                WireType::SixtyFourBit,
-            )?;
+            distinguished::check_type_unpacked::<Vec<u64>, Unpacked<Fixed>>(value, tag, WireType::SixtyFourBit)?;
         }
 
         #[test]
         fn varint_array(value: [u64; 2], tag: u32) {
-            relaxed::check_type_unpacked::<[u64; 2], Unpacked>(
-                value,
-                tag,
-                WireType::Varint,
-            )?;
+            relaxed::check_type_unpacked::<[u64; 2], Unpacked>(value, tag, WireType::Varint)?;
             distinguished::check_type_unpacked::<[u64; 2], Unpacked>(value, tag, WireType::Varint)?;
         }
 
         #[test]
         fn length_delimited_array(value: [String; 2], tag: u32) {
-            relaxed::check_type_unpacked::<[String; 2], Unpacked>(
-                value.clone(),
-                tag,
-                WireType::LengthDelimited,
-            )?;
-            distinguished::check_type_unpacked::<[String; 2], Unpacked>(
-                value,
-                tag,
-                WireType::LengthDelimited,
-            )?;
+            relaxed::check_type_unpacked::<[String; 2], Unpacked>(value.clone(), tag, WireType::LengthDelimited)?;
+            distinguished::check_type_unpacked::<[String; 2], Unpacked>(value, tag, WireType::LengthDelimited)?;
         }
 
         #[test]
         fn fixed32_array(value: [u32; 2], tag: u32) {
-            relaxed::check_type_unpacked::<[u32; 2], Unpacked<Fixed>>(
-                value,
-                tag,
-                WireType::ThirtyTwoBit,
-            )?;
-            distinguished::check_type_unpacked::<[u32; 2], Unpacked<Fixed>>(
-                value,
-                tag,
-                WireType::ThirtyTwoBit,
-            )?;
+            relaxed::check_type_unpacked::<[u32; 2], Unpacked<Fixed>>(value, tag, WireType::ThirtyTwoBit)?;
+            distinguished::check_type_unpacked::<[u32; 2], Unpacked<Fixed>>(value, tag, WireType::ThirtyTwoBit)?;
         }
 
         #[test]
         fn fixed64_array(value: [u64; 2], tag: u32) {
-            relaxed::check_type_unpacked::<[u64; 2], Unpacked<Fixed>>(
-                value,
-                tag,
-                WireType::SixtyFourBit,
-            )?;
-            distinguished::check_type_unpacked::<[u64; 2], Unpacked<Fixed>>(
-                value,
-                tag,
-                WireType::SixtyFourBit,
-            )?;
+            relaxed::check_type_unpacked::<[u64; 2], Unpacked<Fixed>>(value, tag, WireType::SixtyFourBit)?;
+            distinguished::check_type_unpacked::<[u64; 2], Unpacked<Fixed>>(value, tag, WireType::SixtyFourBit)?;
         }
     }
 }

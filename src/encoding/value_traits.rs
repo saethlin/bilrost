@@ -2,42 +2,40 @@ use crate::encoding::implement_core_empty_state_rules;
 use crate::{Canonicity, DecodeErrorKind};
 use core::ops::RangeInclusive;
 
-/// Trait for types that have a state that is considered "empty".
-///
-/// This type must be implemented for every type encodable as a directly included field in a bilrost
-/// message.
-///
-/// When `E` is the unit type `()`, this is the "base" implementation. Most encodings in the
-/// `bilrost` crate use base implementations for all types. However, it is not possible for a crate
-/// that does not own a type to implement this trait for the base implementation, only for an
-/// encoding type that it *does* own.
+#[doc = " Trait for types that have a state that is considered \"empty\"."]
+#[doc = ""]
+#[doc = " This type must be implemented for every type encodable as a directly included field in a bilrost"]
+#[doc = " message."]
+#[doc = ""]
+#[doc = " When `E` is the unit type `()`, this is the \"base\" implementation. Most encodings in the"]
+#[doc = " `bilrost` crate use base implementations for all types. However, it is not possible for a crate"]
+#[doc = " that does not own a type to implement this trait for the base implementation, only for an"]
+#[doc = " encoding type that it *does* own."]
 pub trait EmptyState<E, T: ?Sized>: ForOverwrite<E, T> {
     #[inline(always)]
-    /// Produces the empty state for this type.
+    #[doc = " Produces the empty state for this type."]
     fn empty() -> T
     where
         T: Sized,
     {
         <Self as ForOverwrite<E, T>>::for_overwrite()
     }
-
-    /// Returns true iff this instance is in the empty state.
+    #[doc = " Returns true iff this instance is in the empty state."]
     fn is_empty(val: &T) -> bool;
-
     fn clear(val: &mut T);
 }
 
-/// Trait for cheaply producing a new value that will always be overwritten or decoded into, rather
-/// than a value that is definitely empty. This is implemented for types that can be present
-/// optionally (in `Option` or `Vec`, for instance) but don't have an "empty" value, such as
-/// enumerations without a zero value.
-///
-/// When `E` is the unit type `()`, this is the "base" implementation. Most encodings in the
-/// `bilrost` crate use base implementations for all types. However, it is not possible for a crate
-/// that does not own a type to implement this trait for the base implementation, only for an
-/// encoding type that it *does* own.
+#[doc = " Trait for cheaply producing a new value that will always be overwritten or decoded into, rather"]
+#[doc = " than a value that is definitely empty. This is implemented for types that can be present"]
+#[doc = " optionally (in `Option` or `Vec`, for instance) but don't have an \"empty\" value, such as"]
+#[doc = " enumerations without a zero value."]
+#[doc = ""]
+#[doc = " When `E` is the unit type `()`, this is the \"base\" implementation. Most encodings in the"]
+#[doc = " `bilrost` crate use base implementations for all types. However, it is not possible for a crate"]
+#[doc = " that does not own a type to implement this trait for the base implementation, only for an"]
+#[doc = " encoding type that it *does* own."]
 pub trait ForOverwrite<E, T: ?Sized> {
-    /// Produces a new `Self` value to be overwritten.
+    #[doc = " Produces a new `Self` value to be overwritten."]
     fn for_overwrite() -> T
     where
         T: Sized;
@@ -45,91 +43,71 @@ pub trait ForOverwrite<E, T: ?Sized> {
 
 implement_core_empty_state_rules!(());
 
-/// Implements `ForOverwrite` in terms of `Default`.
+#[doc = " Implements `ForOverwrite` in terms of `Default`."]
 #[macro_export]
-macro_rules! for_overwrite_via_default {
-    (
-        $ty:ty
-        $(, with generics ($($generics:tt)*))?
-        $(, with where clause ($($where_clause:tt)*))?
-    ) => {
-        impl<$($($generics)*)?> $crate::encoding::ForOverwrite<(), $ty> for ()
-        where
-            $ty: ::core::default::Default,
-            $($($where_clause)*)?
-        {
-            #[inline]
-            fn for_overwrite() -> $ty {
+macro_rules! for_overwrite_via_default{
+    ($ty: ty $(, with generics($($generics: tt) *)) ? $(, with where clause($($where_clause: tt) *)) ?) => {
+        impl <$($($generics) *) ?> $crate:: encoding:: ForOverwrite <(),
+        $ty > for() where $ty: :: core:: default:: Default,
+        $($($where_clause) *) ? {
+            #[inline] fn for_overwrite() -> $ty {
                 ::core::default::Default::default()
             }
         }
     };
 }
+
 pub use for_overwrite_via_default;
 
-/// Implements `EmptyState` in terms of `ForOverwrite`.
+#[doc = " Implements `EmptyState` in terms of `ForOverwrite`."]
 #[macro_export]
-macro_rules! empty_state_via_for_overwrite {
-    (
-        $ty:ty
-        $(, with generics ($($generics:tt)*))?
-        $(, with where clause ($($where_clause:tt)*))?
-    ) => {
-        impl<$($($generics)*)?> $crate::encoding::EmptyState<(), $ty> for ()
-        where
-            $ty: ::core::cmp::PartialEq,
-            (): $crate::encoding::ForOverwrite<(), $ty>,
-            $($($where_clause)*)?
-        {
-            #[inline]
-            fn is_empty(val: &$ty) -> bool {
-                *val == <() as $crate::encoding::EmptyState<(), $ty>>::empty()
+macro_rules! empty_state_via_for_overwrite{
+    ($ty: ty $(, with generics($($generics: tt) *)) ? $(, with where clause($($where_clause: tt) *)) ?) => {
+        impl <$($($generics) *) ?> $crate:: encoding:: EmptyState <(),
+        $ty > for() where $ty: :: core:: cmp:: PartialEq,
+        (): $crate:: encoding:: ForOverwrite <(),
+        $ty >,
+        $($($where_clause) *) ? {
+            #[inline] fn is_empty(val: &$ty) -> bool {
+                * val == <() as $crate:: encoding:: EmptyState <(),
+                $ty >>:: empty()
             }
-
-            #[inline]
-            fn clear(val: &mut $ty) {
-                *val = <() as $crate::encoding::EmptyState<(), $ty>>::empty();
+            #[inline] fn clear(val: & mut $ty) {
+                * val = <() as $crate:: encoding:: EmptyState <(),
+                $ty >>:: empty();
             }
         }
     };
 }
+
 pub use empty_state_via_for_overwrite;
 
-/// Implements both `EmptyState` and `ForOverwrite` in terms of `Default`.
+#[doc = " Implements both `EmptyState` and `ForOverwrite` in terms of `Default`."]
 #[macro_export]
-macro_rules! empty_state_via_default {
-    (
-        $ty:ty
-        $(, with generics ($($generics:tt)*))?
-        $(, with where clause ($($where_clause:tt)*))?
-    ) => {
-        $crate::for_overwrite_via_default!(
-            $ty
-            $(, with generics ($($generics)*))?
-            $(, with where clause ($($where_clause)*))?
+macro_rules! empty_state_via_default{
+    ($ty: ty $(, with generics($($generics: tt) *)) ? $(, with where clause($($where_clause: tt) *)) ?) => {
+        $crate:: for_overwrite_via_default !(
+            $ty $(, with generics($($generics) *)) ? $(, with where clause($($where_clause) *)) ?
         );
-        $crate::empty_state_via_for_overwrite!(
-            $ty
-            $(, with generics ($($generics)*))?
-            $(, with where clause ($($where_clause)*))?
+        $crate:: empty_state_via_for_overwrite !(
+            $ty $(, with generics($($generics) *)) ? $(, with where clause($($where_clause) *)) ?
         );
     };
 }
+
 pub use empty_state_via_default;
 
-/// Proxy trait for enumeration types conversions to and from `u32`
+#[doc = " Proxy trait for enumeration types conversions to and from `u32`"]
 pub trait Enumeration: Eq + Sized {
-    /// Gets the numeric value of the enumeration.
+    #[doc = " Gets the numeric value of the enumeration."]
     fn to_number(&self) -> u32;
-
-    /// Tries to convert from the given number to the enumeration type.
+    #[doc = " Tries to convert from the given number to the enumeration type."]
     fn try_from_number(n: u32) -> Result<Self, u32>;
-
-    /// Returns `true` if the given number represents a variant of the enumeration.
+    #[doc = " Returns `true` if the given number represents a variant of the enumeration."]
     fn is_valid(n: u32) -> bool;
 }
 
-/// Trait for containers that store multiple items such as `Vec`, `BTreeSet`, and `HashSet`
+#[doc = " Trait for containers that store multiple items such as `Vec`, `BTreeSet`, and `HashSet`"]
 #[allow(clippy::len_without_is_empty)]
 pub trait Collection
 where
@@ -144,9 +122,9 @@ where
     where
         Self::Item: 'a,
         Self: 'a;
-    /// Range for how many items may be contained
+    #[doc = " Range for how many items may be contained"]
     const BOUNDS: RangeInclusive<Option<usize>> = None..=None;
-    /// Restrictions on the contained items, such as "unique".
+    #[doc = " Restrictions on the contained items, such as \"unique\"."]
     const RESTRICTIONS: Option<&'static str> = None;
 
     fn len(&self) -> usize;
@@ -155,8 +133,8 @@ where
     fn insert(&mut self, item: Self::Item) -> Result<(), DecodeErrorKind>;
 }
 
-/// Trait for collections that store multiple items and have a distinguished representation, such as
-/// `Vec` and `BTreeSet`. Returns an error if the items are inserted in the wrong order.
+#[doc = " Trait for collections that store multiple items and have a distinguished representation, such as"]
+#[doc = " `Vec` and `BTreeSet`. Returns an error if the items are inserted in the wrong order."]
 pub trait DistinguishedCollection: Collection + Eq
 where
     (): EmptyState<(), Self>,
@@ -177,7 +155,7 @@ where
     }
 }
 
-/// Trait for associative containers, such as `BTreeMap` and `HashMap`.
+#[doc = " Trait for associative containers, such as `BTreeMap` and `HashMap`."]
 #[allow(clippy::len_without_is_empty)]
 pub trait Mapping
 where
@@ -202,8 +180,8 @@ where
     fn insert(&mut self, key: Self::Key, value: Self::Value) -> Result<(), DecodeErrorKind>;
 }
 
-/// Trait for associative containers with a distinguished representation. Returns an error if the
-/// items are inserted in the wrong order.
+#[doc = " Trait for associative containers with a distinguished representation. Returns an error if the"]
+#[doc = " items are inserted in the wrong order."]
 pub trait DistinguishedMapping: Mapping
 where
     (): EmptyState<(), Self>,
