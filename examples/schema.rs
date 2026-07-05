@@ -48,24 +48,24 @@ impl ::core::cmp::PartialEq for TestAllTypes {
 const _: () = {
     use TestAllTypes as __Self;
     const _: () = {
-        use ::bilrost::encoding::{
+        use bilrost::encoding::{
             Fixed as fixed, General as general, GeneralPacked as general_packed,
             Map as map, Packed as packed, PlainBytes as plainbytes, Unpacked as unpacked,
             Varint as varint,
         };
-        impl ::bilrost::encoding::RawMessage for __Self
+        impl bilrost::encoding::RawMessage for __Self
         where
-            (): ::bilrost::encoding::EmptyState<unpacked, ArrayVec<[u64; 3]>>,
-            (): ::bilrost::encoding::Encoder<unpacked, ArrayVec<[u64; 3]>>,
+            (): bilrost::encoding::EmptyState<unpacked, ArrayVec<[u64; 3]>>,
+            (): bilrost::encoding::Encoder<unpacked, ArrayVec<[u64; 3]>>,
         {
             const __ASSERTIONS: () = {};
             fn empty() -> Self {
                 Self {
-                    unpacked_varint_arrayvec: <() as ::bilrost::encoding::EmptyState<
+                    unpacked_varint_arrayvec: <() as bilrost::encoding::EmptyState<
                         unpacked,
                         ArrayVec<[u64; 3]>,
                     >>::empty(),
-                    recursive_message: <() as ::bilrost::encoding::EmptyState<
+                    recursive_message: <() as bilrost::encoding::EmptyState<
                         general,
                         Option<Box<TestAllTypes>>,
                     >>::empty(),
@@ -73,21 +73,21 @@ const _: () = {
             }
             fn is_empty(&self) -> bool {
                 true
-                    && <() as ::bilrost::encoding::EmptyState<
+                    && <() as bilrost::encoding::EmptyState<
                         unpacked,
                         ArrayVec<[u64; 3]>,
                     >>::is_empty(&self.unpacked_varint_arrayvec)
-                    && <() as ::bilrost::encoding::EmptyState<
+                    && <() as bilrost::encoding::EmptyState<
                         general,
                         Option<Box<TestAllTypes>>,
                     >>::is_empty(&self.recursive_message)
             }
             fn clear(&mut self) {
-                <() as ::bilrost::encoding::EmptyState<
+                <() as bilrost::encoding::EmptyState<
                     unpacked,
                     ArrayVec<[u64; 3]>,
                 >>::clear(&mut self.unpacked_varint_arrayvec);
-                <() as ::bilrost::encoding::EmptyState<
+                <() as bilrost::encoding::EmptyState<
                     general,
                     Option<Box<TestAllTypes>>,
                 >>::clear(&mut self.recursive_message);
@@ -95,16 +95,16 @@ const _: () = {
             #[allow(unused_variables)]
             fn raw_encode<__B>(&self, buf: &mut __B)
             where
-                __B: ::bilrost::bytes::BufMut + ?Sized,
+                __B: bilrost::bytes::BufMut + ?Sized,
             {
-                let _ = <Self as ::bilrost::encoding::RawMessage>::__ASSERTIONS;
+                let _ = <Self as bilrost::encoding::RawMessage>::__ASSERTIONS;
                 {
-                    let tw = &mut ::bilrost::encoding::TagWriter::new();
-                    <() as ::bilrost::encoding::Encoder<
+                    let tw = &mut bilrost::encoding::TagWriter::new();
+                    <() as bilrost::encoding::Encoder<
                         unpacked,
                         ArrayVec<[u64; 3]>,
                     >>::encode(74u32, &self.unpacked_varint_arrayvec, buf, tw);
-                    <() as ::bilrost::encoding::Encoder<
+                    <() as bilrost::encoding::Encoder<
                         general,
                         Option<Box<TestAllTypes>>,
                     >>::encode(114u32, &self.recursive_message, buf, tw);
@@ -113,16 +113,16 @@ const _: () = {
             #[allow(unused_variables)]
             fn raw_prepend<__B>(&self, buf: &mut __B)
             where
-                __B: ::bilrost::buf::ReverseBuf + ?Sized,
+                __B: bilrost::buf::ReverseBuf + ?Sized,
             {
-                let _ = <Self as ::bilrost::encoding::RawMessage>::__ASSERTIONS;
+                let _ = <Self as bilrost::encoding::RawMessage>::__ASSERTIONS;
                 {
-                    let tw = &mut ::bilrost::encoding::TagRevWriter::new();
-                    <() as ::bilrost::encoding::Encoder<
+                    let tw = &mut bilrost::encoding::TagRevWriter::new();
+                    <() as bilrost::encoding::Encoder<
                         general,
                         Option<Box<TestAllTypes>>,
                     >>::prepend_encode(114u32, &self.recursive_message, buf, tw);
-                    <() as ::bilrost::encoding::Encoder<
+                    <() as bilrost::encoding::Encoder<
                         unpacked,
                         ArrayVec<[u64; 3]>,
                     >>::prepend_encode(74u32, &self.unpacked_varint_arrayvec, buf, tw);
@@ -131,50 +131,50 @@ const _: () = {
             }
             #[inline]
             fn raw_encoded_len(&self) -> usize {
-                let _ = <Self as ::bilrost::encoding::RawMessage>::__ASSERTIONS;
+                let _ = <Self as bilrost::encoding::RawMessage>::__ASSERTIONS;
                 {
-                    let tm = &mut ::bilrost::encoding::RuntimeTagMeasurer::new();
+                    let tm = &mut bilrost::encoding::RuntimeTagMeasurer::new();
                     0
-                        + <() as ::bilrost::encoding::Encoder<
+                        + <() as bilrost::encoding::Encoder<
                             unpacked,
                             ArrayVec<[u64; 3]>,
                         >>::encoded_len(74u32, &self.unpacked_varint_arrayvec, tm)
-                        + <() as ::bilrost::encoding::Encoder<
+                        + <() as bilrost::encoding::Encoder<
                             general,
                             Option<Box<TestAllTypes>>,
                         >>::encoded_len(114u32, &self.recursive_message, tm)
                 }
             }
         }
-        impl ::bilrost::encoding::RawMessageDecoder for __Self
+        impl bilrost::encoding::RawMessageDecoder for __Self
         where
-            (): ::bilrost::encoding::Decoder<unpacked, ArrayVec<[u64; 3]>>,
-            (): ::bilrost::encoding::EmptyState<unpacked, ArrayVec<[u64; 3]>>,
+            (): bilrost::encoding::Decoder<unpacked, ArrayVec<[u64; 3]>>,
+            (): bilrost::encoding::EmptyState<unpacked, ArrayVec<[u64; 3]>>,
         {
             #[allow(unused_variables)]
             #[inline]
             fn raw_decode_field<__B>(
                 &mut self,
                 tag: u32,
-                wire_type: ::bilrost::encoding::WireType,
+                wire_type: bilrost::encoding::WireType,
                 duplicated: bool,
-                buf: ::bilrost::encoding::Capped<__B>,
-                ctx: ::bilrost::encoding::DecodeContext,
-            ) -> ::core::result::Result<(), ::bilrost::DecodeError>
+                buf: bilrost::encoding::Capped<__B>,
+                ctx: bilrost::encoding::DecodeContext,
+            ) -> ::core::result::Result<(), bilrost::DecodeError>
             where
-                __B: ::bilrost::bytes::Buf + ?Sized,
+                __B: bilrost::bytes::Buf + ?Sized,
             {
-                let _ = <Self as ::bilrost::encoding::RawMessage>::__ASSERTIONS;
+                let _ = <Self as bilrost::encoding::RawMessage>::__ASSERTIONS;
                 match tag {
                     74u32 => {
                         if let ::core::result::Result::Err(mut error) = if duplicated {
                             ::core::result::Result::Err(
-                                ::bilrost::DecodeError::new(
-                                    ::bilrost::DecodeErrorKind::UnexpectedlyRepeated,
+                                bilrost::DecodeError::new(
+                                    bilrost::DecodeErrorKind::UnexpectedlyRepeated,
                                 ),
                             )
                         } else {
-                            <() as ::bilrost::encoding::Decoder<
+                            <() as bilrost::encoding::Decoder<
                                 unpacked,
                                 ArrayVec<[u64; 3]>,
                             >>::decode(
@@ -191,12 +191,12 @@ const _: () = {
                     114u32 => {
                         if let ::core::result::Result::Err(mut error) = if duplicated {
                             ::core::result::Result::Err(
-                                ::bilrost::DecodeError::new(
-                                    ::bilrost::DecodeErrorKind::UnexpectedlyRepeated,
+                                bilrost::DecodeError::new(
+                                    bilrost::DecodeErrorKind::UnexpectedlyRepeated,
                                 ),
                             )
                         } else {
-                            <() as ::bilrost::encoding::Decoder<
+                            <() as bilrost::encoding::Decoder<
                                 general,
                                 Option<Box<TestAllTypes>>,
                             >>::decode(wire_type, &mut self.recursive_message, buf, ctx)
@@ -205,37 +205,37 @@ const _: () = {
                             return ::core::result::Result::Err(error);
                         }
                     }
-                    _ => ::bilrost::encoding::skip_field(wire_type, buf)?,
+                    _ => bilrost::encoding::skip_field(wire_type, buf)?,
                 }
                 ::core::result::Result::Ok(())
             }
         }
-        impl<'__a> ::bilrost::encoding::RawMessageBorrowDecoder<'__a> for __Self
+        impl<'__a> bilrost::encoding::RawMessageBorrowDecoder<'__a> for __Self
         where
-            (): ::bilrost::encoding::BorrowDecoder<'__a, unpacked, ArrayVec<[u64; 3]>>,
-            (): ::bilrost::encoding::EmptyState<unpacked, ArrayVec<[u64; 3]>>,
+            (): bilrost::encoding::BorrowDecoder<'__a, unpacked, ArrayVec<[u64; 3]>>,
+            (): bilrost::encoding::EmptyState<unpacked, ArrayVec<[u64; 3]>>,
         {
             #[allow(unused_variables)]
             #[inline]
             fn raw_borrow_decode_field(
                 &mut self,
                 tag: u32,
-                wire_type: ::bilrost::encoding::WireType,
+                wire_type: bilrost::encoding::WireType,
                 duplicated: bool,
-                buf: ::bilrost::encoding::Capped<&'__a [u8]>,
-                ctx: ::bilrost::encoding::DecodeContext,
-            ) -> ::core::result::Result<(), ::bilrost::DecodeError> {
-                let _ = <Self as ::bilrost::encoding::RawMessage>::__ASSERTIONS;
+                buf: bilrost::encoding::Capped<&'__a [u8]>,
+                ctx: bilrost::encoding::DecodeContext,
+            ) -> ::core::result::Result<(), bilrost::DecodeError> {
+                let _ = <Self as bilrost::encoding::RawMessage>::__ASSERTIONS;
                 match tag {
                     74u32 => {
                         if let ::core::result::Result::Err(mut error) = if duplicated {
                             ::core::result::Result::Err(
-                                ::bilrost::DecodeError::new(
-                                    ::bilrost::DecodeErrorKind::UnexpectedlyRepeated,
+                                bilrost::DecodeError::new(
+                                    bilrost::DecodeErrorKind::UnexpectedlyRepeated,
                                 ),
                             )
                         } else {
-                            <() as ::bilrost::encoding::BorrowDecoder<
+                            <() as bilrost::encoding::BorrowDecoder<
                                 unpacked,
                                 ArrayVec<[u64; 3]>,
                             >>::borrow_decode(
@@ -252,12 +252,12 @@ const _: () = {
                     114u32 => {
                         if let ::core::result::Result::Err(mut error) = if duplicated {
                             ::core::result::Result::Err(
-                                ::bilrost::DecodeError::new(
-                                    ::bilrost::DecodeErrorKind::UnexpectedlyRepeated,
+                                bilrost::DecodeError::new(
+                                    bilrost::DecodeErrorKind::UnexpectedlyRepeated,
                                 ),
                             )
                         } else {
-                            <() as ::bilrost::encoding::BorrowDecoder<
+                            <() as bilrost::encoding::BorrowDecoder<
                                 general,
                                 Option<Box<TestAllTypes>>,
                             >>::borrow_decode(
@@ -271,38 +271,38 @@ const _: () = {
                             return ::core::result::Result::Err(error);
                         }
                     }
-                    _ => ::bilrost::encoding::skip_field(wire_type, buf)?,
+                    _ => bilrost::encoding::skip_field(wire_type, buf)?,
                 }
                 ::core::result::Result::Ok(())
             }
         }
-        impl ::bilrost::encoding::ForOverwrite<(), __Self> for ()
+        impl bilrost::encoding::ForOverwrite<(), __Self> for ()
         where
-            (): ::bilrost::encoding::EmptyState<unpacked, ArrayVec<[u64; 3]>>,
-            (): ::bilrost::encoding::Encoder<unpacked, ArrayVec<[u64; 3]>>,
+            (): bilrost::encoding::EmptyState<unpacked, ArrayVec<[u64; 3]>>,
+            (): bilrost::encoding::Encoder<unpacked, ArrayVec<[u64; 3]>>,
         {
             fn for_overwrite() -> __Self {
-                <__Self as ::bilrost::encoding::RawMessage>::empty()
+                <__Self as bilrost::encoding::RawMessage>::empty()
             }
         }
-        impl ::bilrost::encoding::EmptyState<(), __Self> for ()
+        impl bilrost::encoding::EmptyState<(), __Self> for ()
         where
-            (): ::bilrost::encoding::EmptyState<unpacked, ArrayVec<[u64; 3]>>,
-            (): ::bilrost::encoding::Encoder<unpacked, ArrayVec<[u64; 3]>>,
+            (): bilrost::encoding::EmptyState<unpacked, ArrayVec<[u64; 3]>>,
+            (): bilrost::encoding::Encoder<unpacked, ArrayVec<[u64; 3]>>,
         {
             fn is_empty(val: &__Self) -> bool {
-                <__Self as ::bilrost::encoding::RawMessage>::is_empty(val)
+                <__Self as bilrost::encoding::RawMessage>::is_empty(val)
             }
             fn clear(val: &mut __Self) {
-                <__Self as ::bilrost::encoding::RawMessage>::clear(val);
+                <__Self as bilrost::encoding::RawMessage>::clear(val);
             }
         }
-        impl ::bilrost::encoding::schema::RegisterFields for __Self
+        impl bilrost::encoding::schema::RegisterFields for __Self
         where
-            (): ::bilrost::encoding::schema::FieldRepr<unpacked, ArrayVec<[u64; 3]>>,
+            (): bilrost::encoding::schema::FieldRepr<unpacked, ArrayVec<[u64; 3]>>,
             Self: ::core::any::Any,
         {
-            fn register(schema: &::bilrost::encoding::schema::Schema) {
+            fn register(schema: &bilrost::encoding::schema::Schema) {
                 schema
                     .register_message::<
                         Self,
@@ -313,7 +313,7 @@ const _: () = {
                                 .add_field(
                                     "unpacked_varint_arrayvec",
                                     74u32,
-                                    <() as ::bilrost::encoding::schema::FieldRepr<
+                                    <() as bilrost::encoding::schema::FieldRepr<
                                         unpacked,
                                         ArrayVec<[u64; 3]>,
                                     >>::repr(schema),
@@ -322,7 +322,7 @@ const _: () = {
                                 .add_field(
                                     "recursive_message",
                                     114u32,
-                                    <() as ::bilrost::encoding::schema::FieldRepr<
+                                    <() as bilrost::encoding::schema::FieldRepr<
                                         general,
                                         Option<Box<TestAllTypes>>,
                                     >>::repr(schema),

@@ -13,7 +13,6 @@ keywords = ["serialization", "no-std", "derive", "encoding"]
 categories = ["encoding", "no-std"]
 edition = "2021"
 resolver = "2"
-rust-version = "1.65"
 
 [workspace]
 members = ["bilrost-derive"]
