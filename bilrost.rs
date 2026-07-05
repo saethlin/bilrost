@@ -34,13 +34,7 @@ mod buf {
         fn prepend_slice(&mut self, _data: &[u8]) {
             loop {}
         }
-        fn prepend_array<const N: usize>(&mut self, _data: [u8; N]) {
-            loop {}
-        }
         fn prepend_u8(&mut self, _n: u8) {
-            loop {}
-        }
-        fn prepend_i16_le(&mut self, _n: i16) {
             loop {}
         }
         fn prepend_u32_le(&mut self, _n: u32) {
@@ -59,12 +53,6 @@ mod buf {
             loop {}
         }
         fn prepend_f64_le(&mut self, _n: f64) {
-            loop {}
-        }
-        fn prepend_u64_be(&mut self, _n: u64) {
-            loop {}
-        }
-        fn prepend_f64_be(&mut self, _n: f64) {
             loop {}
         }
     }
@@ -93,12 +81,6 @@ mod buf {
     }
     impl ReverseBuffer {
         pub fn new() -> Self {
-            loop {}
-        }
-        pub fn is_empty(&self) -> bool {
-            loop {}
-        }
-        pub fn clear(&mut self) {
             loop {}
         }
     }
@@ -400,9 +382,6 @@ mod encoding {
                     buf: &mut B,
                     tw: &mut TagWriter,
                 ) {
-                    if let Some(value) = value {
-                        <() as FieldEncoder<E, T>>::encode_field(tag, value, buf, tw);
-                    }
                 }
                 fn prepend_encode<B: ReverseBuf + ?Sized>(
                     tag: u32,
@@ -748,9 +727,6 @@ mod encoding {
                     return Err(DecodeError::new(Truncated));
                 }
                 let gotten_value = buf.get_f64_le();
-                {
-                    *value = gotten_value;
-                }
                 Ok(())
             }
         }
@@ -883,9 +859,6 @@ mod encoding {
                 mut buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                if buf.remaining_before_cap() < WireType::SixtyFourBit.fixed_size().unwrap() {
-                    return Err(DecodeError::new(Truncated));
-                }
                 let gotten_value = buf.get_u64_le();
                 {
                     *value = gotten_value;
@@ -964,9 +937,6 @@ mod encoding {
                 mut buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                if buf.remaining_before_cap() < WireType::SixtyFourBit.fixed_size().unwrap() {
-                    return Err(DecodeError::new(Truncated));
-                }
                 let gotten_value = buf.get_u64_le();
                 {
                     *value = core::num::NonZeroU64::new(gotten_value)
@@ -1054,9 +1024,6 @@ mod encoding {
                     return Err(DecodeError::new(Truncated));
                 }
                 let gotten_value = buf.get_i32_le();
-                {
-                    *value = gotten_value;
-                }
                 Ok(())
             }
         }
@@ -1114,9 +1081,6 @@ mod encoding {
                 mut buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                if buf.remaining_before_cap() < WireType::ThirtyTwoBit.fixed_size().unwrap() {
-                    return Err(DecodeError::new(Truncated));
-                }
                 let gotten_value = buf.get_i32_le();
                 {
                     *value = core::num::NonZeroI32::new(gotten_value)
@@ -1167,13 +1131,6 @@ mod encoding {
                 mut buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                if buf.remaining_before_cap() < WireType::SixtyFourBit.fixed_size().unwrap() {
-                    return Err(DecodeError::new(Truncated));
-                }
-                let gotten_value = buf.get_i64_le();
-                {
-                    *value = gotten_value;
-                }
                 Ok(())
             }
         }
@@ -1335,13 +1292,6 @@ mod encoding {
         impl Wiretyped<Fixed, [u8; 4]> for () {
             const WIRE_TYPE: WireType = WireType::ThirtyTwoBit;
         }
-        impl ValueRepr<Fixed, [u8; 4]> for () {
-            fn repr(_: &Schema) -> Box<dyn Display> {
-                Box::new(::alloc::__export::must_use({
-                    ::alloc::fmt::format(format_args!("fixed {0} bytes, plain", 4))
-                }))
-            }
-        }
         impl ValueEncoder<Fixed, [u8; 4]> for () {
             fn encode_value<B: BufMut + ?Sized>(value: &[u8; 4], mut buf: &mut B) {
                 (&mut buf).put(value.as_slice());
@@ -1359,9 +1309,6 @@ mod encoding {
                 mut buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                if buf.remaining() < 4 {
-                    return Err(DecodeError::new(Truncated));
-                }
                 buf.copy_to_slice(value.as_mut_slice());
                 Ok(())
             }
@@ -1524,9 +1471,6 @@ mod encoding {
                 tw: &mut crate::encoding::TagWriter,
             ) {
                 if !<() as crate::encoding::EmptyState<GeneralGeneric<P>, T>>::is_empty(value) {
-                    <() as crate::encoding::FieldEncoder<GeneralGeneric<P>, T>>::encode_field(
-                        tag, value, buf, tw,
-                    );
                 }
             }
             fn prepend_encode<B: crate::buf::ReverseBuf + ?Sized>(
@@ -1536,9 +1480,6 @@ mod encoding {
                 tw: &mut crate::encoding::TagRevWriter,
             ) {
                 if !<() as crate::encoding::EmptyState<GeneralGeneric<P>, T>>::is_empty(value) {
-                    <() as crate::encoding::FieldEncoder<GeneralGeneric<P>, T>>::prepend_field(
-                        tag, value, buf, tw,
-                    );
                 }
             }
             fn encoded_len(
@@ -1843,21 +1784,6 @@ mod encoding {
                 <() as crate::encoding::Decoder<Unpacked, _>>::decode(wire_type, value, buf, ctx)
             }
         }
-        impl<'__a, T> crate::encoding::BorrowDecoder<'__a, General, BTreeSet<T>> for ()
-        where
-            (): crate::encoding::BorrowDecoder<'__a, Unpacked, BTreeSet<T>>,
-        {
-            fn borrow_decode(
-                wire_type: crate::encoding::WireType,
-                value: &mut BTreeSet<T>,
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::BorrowDecoder<Unpacked, _>>::borrow_decode(
-                    wire_type, value, buf, ctx,
-                )
-            }
-        }
         impl<'__a, T> crate::encoding::DistinguishedBorrowDecoder<'__a, General, BTreeSet<T>> for ()
         where
             (): crate::encoding::DistinguishedBorrowDecoder<'__a, Unpacked, BTreeSet<T>>
@@ -2014,13 +1940,6 @@ mod encoding {
             }
             fn value_encoded_len(value: &Cow<'a, [T]>) -> usize {
                 <() as crate::encoding::ValueEncoder<Packed, _>>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = Cow<'a, [T]>>,
-            {
-                <() as crate::encoding::ValueEncoder<Packed, _>>::many_values_encoded_len(values)
             }
         }
         impl<'a, T: 'a> crate::encoding::ValueDecoder<GeneralPacked, Cow<'a, [T]>> for ()
@@ -2185,9 +2104,6 @@ mod encoding {
             }
         }
         impl<const P: u8, K, V> crate::encoding::Wiretyped<GeneralGeneric<P>, BTreeMap<K, V>> for ()
-        where
-            (): crate::encoding::Wiretyped<Map, BTreeMap<K, V>>,
-            K: Ord,
         {
             const WIRE_TYPE: crate::encoding::WireType =
                 <() as crate::encoding::Wiretyped<Map, BTreeMap<K, V>>>::WIRE_TYPE;
@@ -2211,13 +2127,6 @@ mod encoding {
             }
             fn value_encoded_len(value: &BTreeMap<K, V>) -> usize {
                 <() as crate::encoding::ValueEncoder<Map, _>>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = BTreeMap<K, V>>,
-            {
-                <() as crate::encoding::ValueEncoder<Map, _>>::many_values_encoded_len(values)
             }
         }
         impl<const P: u8, K, V> crate::encoding::ValueDecoder<GeneralGeneric<P>, BTreeMap<K, V>> for ()
@@ -2474,9 +2383,6 @@ mod encoding {
                 value: &core::ops::RangeInclusive<T>,
                 buf: &mut __B,
             ) {
-                <() as crate::encoding::ValueEncoder<(General, General), _>>::encode_value(
-                    value, buf,
-                )
             }
             fn prepend_value<__B: crate::buf::ReverseBuf + ?Sized>(
                 value: &core::ops::RangeInclusive<T>,
@@ -2694,13 +2600,6 @@ mod encoding {
             }
             fn value_encoded_len(value: &u16) -> usize {
                 <() as crate::encoding::ValueEncoder<Varint, _>>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = u16>,
-            {
-                <() as crate::encoding::ValueEncoder<Varint, _>>::many_values_encoded_len(values)
             }
         }
         impl<const P: u8> crate::encoding::ValueDecoder<GeneralGeneric<P>, u16> for ()
@@ -3205,13 +3104,6 @@ mod encoding {
             fn value_encoded_len(value: &i64) -> usize {
                 <() as crate::encoding::ValueEncoder<Varint, _>>::value_encoded_len(value)
             }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = i64>,
-            {
-                <() as crate::encoding::ValueEncoder<Varint, _>>::many_values_encoded_len(values)
-            }
         }
         impl<const P: u8> crate::encoding::ValueDecoder<GeneralGeneric<P>, i64> for ()
         where
@@ -3409,13 +3301,6 @@ mod encoding {
             fn value_encoded_len(value: &isize) -> usize {
                 <() as crate::encoding::ValueEncoder<Varint, _>>::value_encoded_len(value)
             }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = isize>,
-            {
-                <() as crate::encoding::ValueEncoder<Varint, _>>::many_values_encoded_len(values)
-            }
         }
         impl<const P: u8> crate::encoding::ValueDecoder<GeneralGeneric<P>, isize> for ()
         where
@@ -3519,13 +3404,6 @@ mod encoding {
             }
             fn value_encoded_len(value: &core::num::NonZeroU8) -> usize {
                 <() as crate::encoding::ValueEncoder<Varint, _>>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = core::num::NonZeroU8>,
-            {
-                <() as crate::encoding::ValueEncoder<Varint, _>>::many_values_encoded_len(values)
             }
         }
         impl<const P: u8> crate::encoding::ValueDecoder<GeneralGeneric<P>, core::num::NonZeroU8> for ()
@@ -4004,13 +3882,6 @@ mod encoding {
             fn value_encoded_len(value: &core::num::NonZeroU32) -> usize {
                 <() as crate::encoding::ValueEncoder<Varint, _>>::value_encoded_len(value)
             }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = core::num::NonZeroU32>,
-            {
-                <() as crate::encoding::ValueEncoder<Varint, _>>::many_values_encoded_len(values)
-            }
         }
         impl<const P: u8> crate::encoding::ValueDecoder<GeneralGeneric<P>, core::num::NonZeroU32> for ()
         where
@@ -4128,13 +3999,6 @@ mod encoding {
             }
             fn value_encoded_len(value: &core::num::NonZeroI32) -> usize {
                 <() as crate::encoding::ValueEncoder<Varint, _>>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = core::num::NonZeroI32>,
-            {
-                <() as crate::encoding::ValueEncoder<Varint, _>>::many_values_encoded_len(values)
             }
         }
         impl<const P: u8> crate::encoding::ValueDecoder<GeneralGeneric<P>, core::num::NonZeroI32> for ()
@@ -4612,13 +4476,6 @@ mod encoding {
             }
             fn value_encoded_len(value: &core::num::NonZeroIsize) -> usize {
                 <() as crate::encoding::ValueEncoder<Varint, _>>::value_encoded_len(value)
-            }
-            fn many_values_encoded_len<__I>(values: __I) -> usize
-            where
-                __I: ExactSizeIterator,
-                __I::Item: core::ops::Deref<Target = core::num::NonZeroIsize>,
-            {
-                <() as crate::encoding::ValueEncoder<Varint, _>>::many_values_encoded_len(values)
             }
         }
         impl<const P: u8> crate::encoding::ValueDecoder<GeneralGeneric<P>, core::num::NonZeroIsize> for ()
@@ -6222,13 +6079,6 @@ mod encoding {
                 let (tag, wire_type) = tr.decode_key(buf.lend())?;
                 let duplicated = last_tag == Some(tag);
                 last_tag = Some(tag);
-                value.raw_borrow_decode_field(
-                    tag,
-                    wire_type,
-                    duplicated,
-                    buf.lend(),
-                    ctx.clone(),
-                )?;
             }
             Ok(())
         }
@@ -7321,13 +7171,6 @@ mod encoding {
         pub type OpaqueIntoIter<'a> = core::iter::Flatten<
             FlatAdapter<alloc::collections::btree_map::IntoIter<u32, Vec<OpaqueValue<'a>>>>,
         >;
-        impl<'a> IntoIterator for OpaqueMessage<'a> {
-            type Item = (u32, OpaqueValue<'a>);
-            type IntoIter = OpaqueIntoIter<'a>;
-            fn into_iter(self) -> Self::IntoIter {
-                FlatAdapter(self.0.into_iter()).flatten()
-            }
-        }
         impl<'a, 'b> IntoIterator for &'b OpaqueMessage<'a> {
             type Item = (&'b u32, &'b OpaqueValue<'a>);
             type IntoIter = OpaqueIter<'a, 'b>;
@@ -7867,13 +7710,6 @@ mod encoding {
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
                 let mut capped = buf.take_length_delimited()?;
-                if
-                match <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size() {
-                    Some(fixed_size) if capped.remaining_before_cap() != fixed_size * N => true,
-                    _ => false,
-                } {
-                    return Err(DecodeError::new(InvalidValue));
-                }
                 let mut canon = Canonicity::Canonical;
                 for dest in value.iter_mut() {
                     if <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size().is_none()
@@ -7881,13 +7717,6 @@ mod encoding {
                     {
                         return Err(DecodeError::new(InvalidValue));
                     }
-                    canon.update(
-                        <() as DistinguishedValueDecoder<E, _>>::decode_value_distinguished::<true>(
-                            dest,
-                            capped.lend(),
-                            ctx.clone(),
-                        )?,
-                    );
                 }
                 if <() as Wiretyped<E, T>>::WIRE_TYPE.fixed_size().is_none()
                     && capped.has_remaining()?
@@ -8535,21 +8364,6 @@ mod encoding {
                 >>::encoded_len(tag, value, tm)
             }
         }
-        impl crate::encoding::Decoder<PlainBytes, Vec<Vec<u8>>> for ()
-        where
-            (): crate::encoding::Decoder<crate::encoding::Unpacked<PlainBytes>, Vec<Vec<u8>>>,
-        {
-            fn decode<B: crate::bytes::Buf + ?Sized>(
-                wire_type: crate::encoding::WireType,
-                value: &mut Vec<Vec<u8>>,
-                buf: crate::encoding::Capped<B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::Decoder<crate::encoding::Unpacked<PlainBytes>, _>>::decode(
-                    wire_type, value, buf, ctx,
-                )
-            }
-        }
         impl<'__a> crate::encoding::BorrowDecoder<'__a, PlainBytes, Vec<Vec<u8>>> for ()
         where
             (): crate::encoding::BorrowDecoder<
@@ -8786,21 +8600,6 @@ mod encoding {
                     crate::encoding::Unpacked<PlainBytes>,
                     _,
                 >>::encoded_len(tag, value, tm)
-            }
-        }
-        impl<'a> crate::encoding::Decoder<PlainBytes, Vec<&'a [u8]>> for ()
-        where
-            (): crate::encoding::Decoder<crate::encoding::Unpacked<PlainBytes>, Vec<&'a [u8]>>,
-        {
-            fn decode<B: crate::bytes::Buf + ?Sized>(
-                wire_type: crate::encoding::WireType,
-                value: &mut Vec<&'a [u8]>,
-                buf: crate::encoding::Capped<B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::Decoder<crate::encoding::Unpacked<PlainBytes>, _>>::decode(
-                    wire_type, value, buf, ctx,
-                )
             }
         }
         impl<'__a, 'a> crate::encoding::BorrowDecoder<'__a, PlainBytes, Vec<&'a [u8]>> for ()
@@ -10138,21 +9937,6 @@ mod encoding {
                                 )
                             }
                             .map_err(|mut error| {
-                                error.push("RangeInclusive", "start");
-                                error
-                            })?,
-                            1 => if duplicated {
-                                Err(DecodeError::new(UnexpectedlyRepeated))
-                            } else {
-                                <() as BorrowDecoder<Eend, _>>::borrow_decode(
-                                    wire_type,
-                                    &mut end,
-                                    buf.lend(),
-                                    ctx.clone(),
-                                )
-                            }
-                            .map_err(|mut error| {
-                                error.push("RangeInclusive", "end");
                                 error
                             })?,
                             _ => skip_field(wire_type, buf.lend())?,
@@ -10934,21 +10718,6 @@ mod encoding {
                 }
             }
         }
-        impl<T, Ae> crate::encoding::Decoder<(Ae,), T> for ()
-        where
-            (): crate::encoding::EmptyState<(Ae,), T> + crate::encoding::ValueDecoder<(Ae,), T>,
-        {
-            fn decode<__B: crate::bytes::Buf + ?Sized>(
-                wire_type: crate::encoding::WireType,
-                value: &mut T,
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> ::core::result::Result<(), crate::DecodeError> {
-                <() as crate::encoding::FieldDecoder<(Ae,), _>>::decode_field(
-                    wire_type, value, buf, ctx,
-                )
-            }
-        }
         impl<T, Ae> crate::encoding::DistinguishedDecoder<(Ae,), T> for ()
         where
             T: ::core::cmp::Eq,
@@ -11518,13 +11287,6 @@ mod encoding {
         {
             fn encode_value<__B: BufMut + ?Sized>(value: &(A, B), buf: &mut __B) {
                 let tm = &mut TrivialTagMeasurer::new();
-                let message_len = 0usize
-                    + <() as Encoder<Ae, _>>::encoded_len(0, &value.0, tm)
-                    + <() as Encoder<Be, _>>::encoded_len(1, &value.1, tm);
-                encode_varint(message_len as u64, buf);
-                let tw = &mut TagWriter::new();
-                <() as Encoder<Ae, _>>::encode(0, &value.0, buf, tw);
-                <() as Encoder<Be, _>>::encode(1, &value.1, buf, tw);
             }
             fn prepend_value<__B: ReverseBuf + ?Sized>(value: &(A, B), buf: &mut __B) {
                 let end = buf.remaining();
@@ -11561,37 +11323,6 @@ mod encoding {
                     let (tag, wire_type) = tr.decode_key(buf.lend())?;
                     let duplicated = last_tag == Some(tag);
                     last_tag = Some(tag);
-                    match tag {
-                        0 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as Decoder<Ae, _>>::decode(
-                                wire_type,
-                                &mut value.0,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(2-tuple)", "0");
-                            error
-                        })?,
-                        1 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as Decoder<Be, _>>::decode(
-                                wire_type,
-                                &mut value.1,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(2-tuple)", "1");
-                            error
-                        })?,
-                        _ => skip_field(wire_type, buf.lend())?,
-                    }
                 }
                 Ok(())
             }
@@ -11836,21 +11567,6 @@ mod encoding {
                 })
             }
         }
-        impl<Ae, Be, Ce, __T, const __N: usize>
-            crate::encoding::EmptyState<(Ae, Be, Ce), [__T; __N]> for ()
-        where
-            (): crate::encoding::EmptyState<(Ae, Be, Ce), __T>,
-        {
-            fn is_empty(val: &[__T; __N]) -> bool {
-                val.iter()
-                    .all(<() as crate::encoding::EmptyState<(Ae, Be, Ce), __T>>::is_empty)
-            }
-            fn clear(val: &mut [__T; __N]) {
-                for v in val {
-                    <() as crate::encoding::EmptyState<(Ae, Be, Ce), __T>>::clear(v);
-                }
-            }
-        }
         impl<T, Ae, Be, Ce> crate::encoding::schema::FieldRepr<(Ae, Be, Ce), T> for ()
         where
             (): crate::encoding::schema::ValueRepr<(Ae, Be, Ce), T>,
@@ -11956,13 +11672,6 @@ mod encoding {
             (): EmptyState<Be, B>,
             (): EmptyState<Ce, C>,
         {
-            fn empty() -> (A, B, C) {
-                (
-                    <() as EmptyState<Ae, A>>::empty(),
-                    <() as EmptyState<Be, B>>::empty(),
-                    <() as EmptyState<Ce, C>>::empty(),
-                )
-            }
             fn is_empty(val: &(A, B, C)) -> bool {
                 true && <() as EmptyState<Ae, A>>::is_empty(&val.0)
                     && <() as EmptyState<Be, B>>::is_empty(&val.1)
@@ -12404,21 +12113,6 @@ mod encoding {
                 ::core::array::from_fn(|_| {
                     <() as crate::encoding::ForOverwrite<(Ae, Be, Ce, De), __T>>::for_overwrite()
                 })
-            }
-        }
-        impl<Ae, Be, Ce, De, __T, const __N: usize>
-            crate::encoding::EmptyState<(Ae, Be, Ce, De), [__T; __N]> for ()
-        where
-            (): crate::encoding::EmptyState<(Ae, Be, Ce, De), __T>,
-        {
-            fn is_empty(val: &[__T; __N]) -> bool {
-                val.iter()
-                    .all(<() as crate::encoding::EmptyState<(Ae, Be, Ce, De), __T>>::is_empty)
-            }
-            fn clear(val: &mut [__T; __N]) {
-                for v in val {
-                    <() as crate::encoding::EmptyState<(Ae, Be, Ce, De), __T>>::clear(v);
-                }
             }
         }
         impl<T, Ae, Be, Ce, De> crate::encoding::schema::FieldRepr<(Ae, Be, Ce, De), T> for ()
@@ -13378,13 +13072,6 @@ mod encoding {
             fn prepend_value<__B: ReverseBuf + ?Sized>(value: &(A, B, C, D, E), buf: &mut __B) {
                 let end = buf.remaining();
                 let tw = &mut TagRevWriter::new();
-                <() as Encoder<Ee, _>>::prepend_encode(4, &value.4, buf, tw);
-                <() as Encoder<De, _>>::prepend_encode(3, &value.3, buf, tw);
-                <() as Encoder<Ce, _>>::prepend_encode(2, &value.2, buf, tw);
-                <() as Encoder<Be, _>>::prepend_encode(1, &value.1, buf, tw);
-                <() as Encoder<Ae, _>>::prepend_encode(0, &value.0, buf, tw);
-                tw.finalize(buf);
-                prepend_varint((buf.remaining() - end) as u64, buf);
             }
             fn value_encoded_len(value: &(A, B, C, D, E)) -> usize {
                 let tm = &mut TrivialTagMeasurer::new();
@@ -14614,69 +14301,6 @@ mod encoding {
                                     Err(DecodeError::new(UnexpectedlyRepeated))
                                 } else {
                                     <() as DistinguishedBorrowDecoder<
-                                            Be,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.1,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(6-tuple)", "1");
-                                    error
-                                })?,
-                            );
-                        }
-                        2 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            Ce,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.2,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(6-tuple)", "2");
-                                    error
-                                })?,
-                            );
-                        }
-                        3 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            De,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.3,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(6-tuple)", "3");
-                                    error
-                                })?,
-                            );
-                        }
-                        4 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
                                             Ee,
                                             _,
                                         >>::borrow_decode_distinguished(
@@ -15197,21 +14821,6 @@ mod encoding {
                             )
                         }
                         .map_err(|mut error| {
-                            error.push("(7-tuple)", "2");
-                            error
-                        })?,
-                        3 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as Decoder<De, _>>::decode(
-                                wire_type,
-                                &mut value.3,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(7-tuple)", "3");
                             error
                         })?,
                         4 => if duplicated {
@@ -15452,21 +15061,6 @@ mod encoding {
                             )
                         }
                         .map_err(|mut error| {
-                            error.push("(7-tuple)", "2");
-                            error
-                        })?,
-                        3 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<De, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.3,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(7-tuple)", "3");
                             error
                         })?,
                         4 => if duplicated {
@@ -15619,69 +15213,6 @@ mod encoding {
                                 }
                                 .map_err(|mut error| {
                                     error.push("(7-tuple)", "2");
-                                    error
-                                })?,
-                            );
-                        }
-                        3 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            De,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.3,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(7-tuple)", "3");
-                                    error
-                                })?,
-                            );
-                        }
-                        4 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            Ee,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.4,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(7-tuple)", "4");
-                                    error
-                                })?,
-                            );
-                        }
-                        5 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            Fe,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.5,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(7-tuple)", "5");
                                     error
                                 })?,
                             );
@@ -16110,13 +15641,6 @@ mod encoding {
                     + <() as Encoder<He, _>>::encoded_len(7, &value.7, tm);
                 encode_varint(message_len as u64, buf);
                 let tw = &mut TagWriter::new();
-                <() as Encoder<Ae, _>>::encode(0, &value.0, buf, tw);
-                <() as Encoder<Be, _>>::encode(1, &value.1, buf, tw);
-                <() as Encoder<Ce, _>>::encode(2, &value.2, buf, tw);
-                <() as Encoder<De, _>>::encode(3, &value.3, buf, tw);
-                <() as Encoder<Ee, _>>::encode(4, &value.4, buf, tw);
-                <() as Encoder<Fe, _>>::encode(5, &value.5, buf, tw);
-                <() as Encoder<Ge, _>>::encode(6, &value.6, buf, tw);
                 <() as Encoder<He, _>>::encode(7, &value.7, buf, tw);
             }
             fn prepend_value<__B: ReverseBuf + ?Sized>(
@@ -16430,21 +15954,6 @@ mod encoding {
                             )
                         }
                         .map_err(|mut error| {
-                            error.push("(8-tuple)", "1");
-                            error
-                        })?,
-                        2 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ce, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.2,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(8-tuple)", "2");
                             error
                         })?,
                         3 => if duplicated {
@@ -16965,13 +16474,6 @@ mod encoding {
                     (Ae, Be, Ce, De, Ee, Fe, Ge, He, Ie),
                     (A, B, C, D, E, F, G, H, I),
                 >>("(9-tuple)", |fields| {
-                    fields.add_field("0", 0, <() as FieldRepr<Ae, A>>::repr(schema));
-                    fields.add_field("1", 1, <() as FieldRepr<Be, B>>::repr(schema));
-                    fields.add_field("2", 2, <() as FieldRepr<Ce, C>>::repr(schema));
-                    fields.add_field("3", 3, <() as FieldRepr<De, D>>::repr(schema));
-                    fields.add_field("4", 4, <() as FieldRepr<Ee, E>>::repr(schema));
-                    fields.add_field("5", 5, <() as FieldRepr<Fe, F>>::repr(schema));
-                    fields.add_field("6", 6, <() as FieldRepr<Ge, G>>::repr(schema));
                     fields.add_field("7", 7, <() as FieldRepr<He, H>>::repr(schema));
                     fields.add_field("8", 8, <() as FieldRepr<Ie, I>>::repr(schema));
                 });
@@ -17007,13 +16509,6 @@ mod encoding {
             ) {
                 let tm = &mut TrivialTagMeasurer::new();
                 let message_len = 0usize
-                    + <() as Encoder<Ae, _>>::encoded_len(0, &value.0, tm)
-                    + <() as Encoder<Be, _>>::encoded_len(1, &value.1, tm)
-                    + <() as Encoder<Ce, _>>::encoded_len(2, &value.2, tm)
-                    + <() as Encoder<De, _>>::encoded_len(3, &value.3, tm)
-                    + <() as Encoder<Ee, _>>::encoded_len(4, &value.4, tm)
-                    + <() as Encoder<Fe, _>>::encoded_len(5, &value.5, tm)
-                    + <() as Encoder<Ge, _>>::encoded_len(6, &value.6, tm)
                     + <() as Encoder<He, _>>::encoded_len(7, &value.7, tm)
                     + <() as Encoder<Ie, _>>::encoded_len(8, &value.8, tm);
                 encode_varint(message_len as u64, buf);
@@ -17480,21 +16975,6 @@ mod encoding {
                             )
                         }
                         .map_err(|mut error| {
-                            error.push("(9-tuple)", "2");
-                            error
-                        })?,
-                        3 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<De, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.3,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(9-tuple)", "3");
                             error
                         })?,
                         4 => if duplicated {
@@ -17634,132 +17114,6 @@ mod encoding {
                                         >>::borrow_decode_distinguished(
                                             wire_type,
                                             &mut value.0,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(9-tuple)", "0");
-                                    error
-                                })?,
-                            );
-                        }
-                        1 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            Be,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.1,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(9-tuple)", "1");
-                                    error
-                                })?,
-                            );
-                        }
-                        2 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            Ce,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.2,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(9-tuple)", "2");
-                                    error
-                                })?,
-                            );
-                        }
-                        3 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            De,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.3,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(9-tuple)", "3");
-                                    error
-                                })?,
-                            );
-                        }
-                        4 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            Ee,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.4,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(9-tuple)", "4");
-                                    error
-                                })?,
-                            );
-                        }
-                        5 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            Fe,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.5,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(9-tuple)", "5");
-                                    error
-                                })?,
-                            );
-                        }
-                        6 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            Ge,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.6,
                                             buf.lend(),
                                             ctx.clone(),
                                         )
@@ -18079,13 +17433,6 @@ mod encoding {
                 true && <() as EmptyState<Ae, A>>::is_empty(&val.0)
                     && <() as EmptyState<Be, B>>::is_empty(&val.1)
                     && <() as EmptyState<Ce, C>>::is_empty(&val.2)
-                    && <() as EmptyState<De, D>>::is_empty(&val.3)
-                    && <() as EmptyState<Ee, E>>::is_empty(&val.4)
-                    && <() as EmptyState<Fe, F>>::is_empty(&val.5)
-                    && <() as EmptyState<Ge, G>>::is_empty(&val.6)
-                    && <() as EmptyState<He, H>>::is_empty(&val.7)
-                    && <() as EmptyState<Ie, I>>::is_empty(&val.8)
-                    && <() as EmptyState<Je, J>>::is_empty(&val.9)
             }
             fn clear(val: &mut (A, B, C, D, E, F, G, H, I, J)) {
                 <() as EmptyState<Ae, A>>::clear(&mut val.0);
@@ -18128,13 +17475,6 @@ mod encoding {
                     (Ae, Be, Ce, De, Ee, Fe, Ge, He, Ie, Je),
                     (A, B, C, D, E, F, G, H, I, J),
                 >>("(10-tuple)", |fields| {
-                    fields.add_field("0", 0, <() as FieldRepr<Ae, A>>::repr(schema));
-                    fields.add_field("1", 1, <() as FieldRepr<Be, B>>::repr(schema));
-                    fields.add_field("2", 2, <() as FieldRepr<Ce, C>>::repr(schema));
-                    fields.add_field("3", 3, <() as FieldRepr<De, D>>::repr(schema));
-                    fields.add_field("4", 4, <() as FieldRepr<Ee, E>>::repr(schema));
-                    fields.add_field("5", 5, <() as FieldRepr<Fe, F>>::repr(schema));
-                    fields.add_field("6", 6, <() as FieldRepr<Ge, G>>::repr(schema));
                     fields.add_field("7", 7, <() as FieldRepr<He, H>>::repr(schema));
                     fields.add_field("8", 8, <() as FieldRepr<Ie, I>>::repr(schema));
                     fields.add_field("9", 9, <() as FieldRepr<Je, J>>::repr(schema));
@@ -18641,21 +17981,6 @@ mod encoding {
                             )
                         }
                         .map_err(|mut error| {
-                            error.push("(10-tuple)", "3");
-                            error
-                        })?,
-                        4 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ee, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.4,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(10-tuple)", "4");
                             error
                         })?,
                         5 => if duplicated {
@@ -19078,21 +18403,6 @@ mod encoding {
             }
         }
         impl<T, Ae, Be, Ce, De, Ee, Fe, Ge, He, Ie, Je, Ke>
-            crate::encoding::schema::FieldRepr<(Ae, Be, Ce, De, Ee, Fe, Ge, He, Ie, Je, Ke), T>
-            for ()
-        where
-            (): crate::encoding::schema::ValueRepr<(Ae, Be, Ce, De, Ee, Fe, Ge, He, Ie, Je, Ke), T>,
-        {
-            fn repr(
-                schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<
-                    (Ae, Be, Ce, De, Ee, Fe, Ge, He, Ie, Je, Ke),
-                    T,
-                >>::repr(schema)
-            }
-        }
-        impl<T, Ae, Be, Ce, De, Ee, Fe, Ge, He, Ie, Je, Ke>
             crate::encoding::Encoder<(Ae, Be, Ce, De, Ee, Fe, Ge, He, Ie, Je, Ke), T> for ()
         where
             (): crate::encoding::EmptyState<(Ae, Be, Ce, De, Ee, Fe, Ge, He, Ie, Je, Ke), T>
@@ -19313,13 +18623,6 @@ mod encoding {
             (): FieldRepr<Ae, A>,
             (): FieldRepr<Be, B>,
             (): FieldRepr<Ce, C>,
-            (): FieldRepr<De, D>,
-            (): FieldRepr<Ee, E>,
-            (): FieldRepr<Fe, F>,
-            (): FieldRepr<Ge, G>,
-            (): FieldRepr<He, H>,
-            (): FieldRepr<Ie, I>,
-            (): FieldRepr<Je, J>,
             (): FieldRepr<Ke, K>,
         {
             fn repr(schema: &Schema) -> Box<dyn Display> {
@@ -19362,13 +18665,6 @@ mod encoding {
                 let message_len = 0usize
                     + <() as Encoder<Ae, _>>::encoded_len(0, &value.0, tm)
                     + <() as Encoder<Be, _>>::encoded_len(1, &value.1, tm)
-                    + <() as Encoder<Ce, _>>::encoded_len(2, &value.2, tm)
-                    + <() as Encoder<De, _>>::encoded_len(3, &value.3, tm)
-                    + <() as Encoder<Ee, _>>::encoded_len(4, &value.4, tm)
-                    + <() as Encoder<Fe, _>>::encoded_len(5, &value.5, tm)
-                    + <() as Encoder<Ge, _>>::encoded_len(6, &value.6, tm)
-                    + <() as Encoder<He, _>>::encoded_len(7, &value.7, tm)
-                    + <() as Encoder<Ie, _>>::encoded_len(8, &value.8, tm)
                     + <() as Encoder<Je, _>>::encoded_len(9, &value.9, tm)
                     + <() as Encoder<Ke, _>>::encoded_len(10, &value.10, tm);
                 encode_varint(message_len as u64, buf);
@@ -19376,13 +18672,6 @@ mod encoding {
                 <() as Encoder<Ae, _>>::encode(0, &value.0, buf, tw);
                 <() as Encoder<Be, _>>::encode(1, &value.1, buf, tw);
                 <() as Encoder<Ce, _>>::encode(2, &value.2, buf, tw);
-                <() as Encoder<De, _>>::encode(3, &value.3, buf, tw);
-                <() as Encoder<Ee, _>>::encode(4, &value.4, buf, tw);
-                <() as Encoder<Fe, _>>::encode(5, &value.5, buf, tw);
-                <() as Encoder<Ge, _>>::encode(6, &value.6, buf, tw);
-                <() as Encoder<He, _>>::encode(7, &value.7, buf, tw);
-                <() as Encoder<Ie, _>>::encode(8, &value.8, buf, tw);
-                <() as Encoder<Je, _>>::encode(9, &value.9, buf, tw);
                 <() as Encoder<Ke, _>>::encode(10, &value.10, buf, tw);
             }
             fn prepend_value<__B: ReverseBuf + ?Sized>(
@@ -19556,21 +18845,6 @@ mod encoding {
                             )
                         }
                         .map_err(|mut error| {
-                            error.push("(11-tuple)", "7");
-                            error
-                        })?,
-                        8 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as Decoder<Ie, _>>::decode(
-                                wire_type,
-                                &mut value.8,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(11-tuple)", "8");
                             error
                         })?,
                         9 => if duplicated {
@@ -19909,132 +19183,6 @@ mod encoding {
                             )
                         }
                         .map_err(|mut error| {
-                            error.push("(11-tuple)", "1");
-                            error
-                        })?,
-                        2 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ce, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.2,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(11-tuple)", "2");
-                            error
-                        })?,
-                        3 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<De, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.3,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(11-tuple)", "3");
-                            error
-                        })?,
-                        4 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ee, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.4,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(11-tuple)", "4");
-                            error
-                        })?,
-                        5 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Fe, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.5,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(11-tuple)", "5");
-                            error
-                        })?,
-                        6 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ge, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.6,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(11-tuple)", "6");
-                            error
-                        })?,
-                        7 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<He, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.7,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(11-tuple)", "7");
-                            error
-                        })?,
-                        8 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ie, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.8,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(11-tuple)", "8");
-                            error
-                        })?,
-                        9 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Je, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.9,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(11-tuple)", "9");
-                            error
-                        })?,
-                        10 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ke, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.10,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
                             error.push("(11-tuple)", "10");
                             error
                         })?,
@@ -20157,132 +19305,6 @@ mod encoding {
                                 }
                                 .map_err(|mut error| {
                                     error.push("(11-tuple)", "2");
-                                    error
-                                })?,
-                            );
-                        }
-                        3 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            De,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.3,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(11-tuple)", "3");
-                                    error
-                                })?,
-                            );
-                        }
-                        4 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            Ee,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.4,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(11-tuple)", "4");
-                                    error
-                                })?,
-                            );
-                        }
-                        5 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            Fe,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.5,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(11-tuple)", "5");
-                                    error
-                                })?,
-                            );
-                        }
-                        6 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            Ge,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.6,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(11-tuple)", "6");
-                                    error
-                                })?,
-                            );
-                        }
-                        7 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            He,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.7,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(11-tuple)", "7");
-                                    error
-                                })?,
-                            );
-                        }
-                        8 => {
-                            canon.update(
-                                if duplicated {
-                                    Err(DecodeError::new(UnexpectedlyRepeated))
-                                } else {
-                                    <() as DistinguishedBorrowDecoder<
-                                            Ie,
-                                            _,
-                                        >>::borrow_decode_distinguished(
-                                            wire_type,
-                                            &mut value.8,
-                                            buf.lend(),
-                                            ctx.clone(),
-                                        )
-                                }
-                                .map_err(|mut error| {
-                                    error.push("(11-tuple)", "8");
                                     error
                                 })?,
                             );
@@ -20728,13 +19750,6 @@ mod encoding {
                     && <() as EmptyState<Be, B>>::is_empty(&val.1)
                     && <() as EmptyState<Ce, C>>::is_empty(&val.2)
                     && <() as EmptyState<De, D>>::is_empty(&val.3)
-                    && <() as EmptyState<Ee, E>>::is_empty(&val.4)
-                    && <() as EmptyState<Fe, F>>::is_empty(&val.5)
-                    && <() as EmptyState<Ge, G>>::is_empty(&val.6)
-                    && <() as EmptyState<He, H>>::is_empty(&val.7)
-                    && <() as EmptyState<Ie, I>>::is_empty(&val.8)
-                    && <() as EmptyState<Je, J>>::is_empty(&val.9)
-                    && <() as EmptyState<Ke, K>>::is_empty(&val.10)
                     && <() as EmptyState<Le, L>>::is_empty(&val.11)
             }
             fn clear(val: &mut (A, B, C, D, E, F, G, H, I, J, K, L)) {
@@ -20833,13 +19848,6 @@ mod encoding {
                     fields.add_field("0", 0, <() as FieldRepr<Ae, A>>::repr(schema));
                     fields.add_field("1", 1, <() as FieldRepr<Be, B>>::repr(schema));
                     fields.add_field("2", 2, <() as FieldRepr<Ce, C>>::repr(schema));
-                    fields.add_field("3", 3, <() as FieldRepr<De, D>>::repr(schema));
-                    fields.add_field("4", 4, <() as FieldRepr<Ee, E>>::repr(schema));
-                    fields.add_field("5", 5, <() as FieldRepr<Fe, F>>::repr(schema));
-                    fields.add_field("6", 6, <() as FieldRepr<Ge, G>>::repr(schema));
-                    fields.add_field("7", 7, <() as FieldRepr<He, H>>::repr(schema));
-                    fields.add_field("8", 8, <() as FieldRepr<Ie, I>>::repr(schema));
-                    fields.add_field("9", 9, <() as FieldRepr<Je, J>>::repr(schema));
                     fields.add_field("10", 10, <() as FieldRepr<Ke, K>>::repr(schema));
                     fields.add_field("11", 11, <() as FieldRepr<Le, L>>::repr(schema));
                 });
@@ -21158,21 +20166,6 @@ mod encoding {
                             )
                         }
                         .map_err(|mut error| {
-                            error.push("(12-tuple)", "10");
-                            error
-                        })?,
-                        11 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as Decoder<Le, _>>::decode(
-                                wire_type,
-                                &mut value.11,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(12-tuple)", "11");
                             error
                         })?,
                         _ => skip_field(wire_type, buf.lend())?,
@@ -21593,21 +20586,6 @@ mod encoding {
                             )
                         }
                         .map_err(|mut error| {
-                            error.push("(12-tuple)", "5");
-                            error
-                        })?,
-                        6 => if duplicated {
-                            Err(DecodeError::new(UnexpectedlyRepeated))
-                        } else {
-                            <() as BorrowDecoder<Ge, _>>::borrow_decode(
-                                wire_type,
-                                &mut value.6,
-                                buf.lend(),
-                                ctx.clone(),
-                            )
-                        }
-                        .map_err(|mut error| {
-                            error.push("(12-tuple)", "6");
                             error
                         })?,
                         7 => if duplicated {
@@ -22266,21 +21244,6 @@ mod encoding {
                     (General, General, General, General),
                     _,
                 >>::many_values_encoded_len(values)
-            }
-        }
-        impl<const P: u8, A, B, C, D> crate::encoding::ValueDecoder<GeneralGeneric<P>, (A, B, C, D)> for ()
-        where
-            (): crate::encoding::ValueDecoder<(General, General, General, General), (A, B, C, D)>,
-        {
-            fn decode_value<__B: crate::bytes::Buf + ?Sized>(
-                value: &mut (A, B, C, D),
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<
-                    (General, General, General, General),
-                    _,
-                >>::decode_value(value, buf, ctx)
             }
         }
         impl<'__a, const P: u8, A, B, C, D>
@@ -25925,13 +24888,6 @@ mod encoding {
                         && <() as EmptyState<(), I>>::is_empty(&val.8)
                 }
                 fn clear(val: &mut (A, B, C, D, E, F, G, H, I)) {
-                    <() as EmptyState<(), A>>::clear(&mut val.0);
-                    <() as EmptyState<(), B>>::clear(&mut val.1);
-                    <() as EmptyState<(), C>>::clear(&mut val.2);
-                    <() as EmptyState<(), D>>::clear(&mut val.3);
-                    <() as EmptyState<(), E>>::clear(&mut val.4);
-                    <() as EmptyState<(), F>>::clear(&mut val.5);
-                    <() as EmptyState<(), G>>::clear(&mut val.6);
                     <() as EmptyState<(), H>>::clear(&mut val.7);
                     <() as EmptyState<(), I>>::clear(&mut val.8);
                 }
@@ -25995,13 +24951,6 @@ mod encoding {
                     true && <() as EmptyState<(), A>>::is_empty(&val.0)
                         && <() as EmptyState<(), B>>::is_empty(&val.1)
                         && <() as EmptyState<(), C>>::is_empty(&val.2)
-                        && <() as EmptyState<(), D>>::is_empty(&val.3)
-                        && <() as EmptyState<(), E>>::is_empty(&val.4)
-                        && <() as EmptyState<(), F>>::is_empty(&val.5)
-                        && <() as EmptyState<(), G>>::is_empty(&val.6)
-                        && <() as EmptyState<(), H>>::is_empty(&val.7)
-                        && <() as EmptyState<(), I>>::is_empty(&val.8)
-                        && <() as EmptyState<(), J>>::is_empty(&val.9)
                 }
                 fn clear(val: &mut (A, B, C, D, E, F, G, H, I, J)) {
                     <() as EmptyState<(), A>>::clear(&mut val.0);
@@ -26086,13 +25035,6 @@ mod encoding {
                     <() as EmptyState<(), B>>::clear(&mut val.1);
                     <() as EmptyState<(), C>>::clear(&mut val.2);
                     <() as EmptyState<(), D>>::clear(&mut val.3);
-                    <() as EmptyState<(), E>>::clear(&mut val.4);
-                    <() as EmptyState<(), F>>::clear(&mut val.5);
-                    <() as EmptyState<(), G>>::clear(&mut val.6);
-                    <() as EmptyState<(), H>>::clear(&mut val.7);
-                    <() as EmptyState<(), I>>::clear(&mut val.8);
-                    <() as EmptyState<(), J>>::clear(&mut val.9);
-                    <() as EmptyState<(), K>>::clear(&mut val.10);
                 }
             }
             impl<A, B, C, D, E, F, G, H, I, J, K, L>
@@ -26149,13 +25091,6 @@ mod encoding {
                         && <() as EmptyState<(), B>>::is_empty(&val.1)
                         && <() as EmptyState<(), C>>::is_empty(&val.2)
                         && <() as EmptyState<(), D>>::is_empty(&val.3)
-                        && <() as EmptyState<(), E>>::is_empty(&val.4)
-                        && <() as EmptyState<(), F>>::is_empty(&val.5)
-                        && <() as EmptyState<(), G>>::is_empty(&val.6)
-                        && <() as EmptyState<(), H>>::is_empty(&val.7)
-                        && <() as EmptyState<(), I>>::is_empty(&val.8)
-                        && <() as EmptyState<(), J>>::is_empty(&val.9)
-                        && <() as EmptyState<(), K>>::is_empty(&val.10)
                         && <() as EmptyState<(), L>>::is_empty(&val.11)
                 }
                 fn clear(val: &mut (A, B, C, D, E, F, G, H, I, J, K, L)) {
@@ -26678,21 +25613,6 @@ mod encoding {
                     __I::Item: core::ops::Deref<Target = HashMap<K, V, S>>,
                 {
                     <() as crate::encoding::ValueEncoder<Map, _>>::many_values_encoded_len(values)
-                }
-            }
-            impl<const P: u8, K, V, S>
-                crate::encoding::ValueDecoder<GeneralGeneric<P>, HashMap<K, V, S>> for ()
-            where
-                (): crate::encoding::ValueDecoder<Map, HashMap<K, V, S>>,
-                K: Eq + core::hash::Hash,
-                S: Default + core::hash::BuildHasher,
-            {
-                fn decode_value<__B: crate::bytes::Buf + ?Sized>(
-                    value: &mut HashMap<K, V, S>,
-                    buf: crate::encoding::Capped<__B>,
-                    ctx: crate::encoding::DecodeContext,
-                ) -> Result<(), crate::DecodeError> {
-                    <() as crate::encoding::ValueDecoder<Map, _>>::decode_value(value, buf, ctx)
                 }
             }
             impl<'__a, const P: u8, K, V, S>
@@ -27608,21 +26528,6 @@ mod encoding {
                 T: Collection,
                 (): EmptyState<(), T> + ForOverwrite<E, T::Item> + ValueDecoder<E, T::Item>,
             {
-                check_wire_type(<() as Wiretyped<E, T::Item>>::WIRE_TYPE, wire_type)?;
-                loop {
-                    let mut new_item = <() as ForOverwrite<E, T::Item>>::for_overwrite();
-                    <() as ValueDecoder<E, _>>::decode_value(
-                        &mut new_item,
-                        buf.lend(),
-                        ctx.clone(),
-                    )?;
-                    collection.insert(new_item)?;
-                    if let Some(next_wire_type) = peek_repeated_field(&mut buf) {
-                        check_wire_type(<() as Wiretyped<E, T::Item>>::WIRE_TYPE, next_wire_type)?;
-                    } else {
-                        break;
-                    }
-                }
                 Ok(())
             }
             pub(super) fn decode_array_either_repr<T, const N: usize, E>(
@@ -28612,21 +27517,6 @@ mod encoding {
                 } else {
                     0
                 }
-            }
-        }
-        impl<T> crate::encoding::Decoder<Varint, T> for ()
-        where
-            (): crate::encoding::EmptyState<Varint, T> + crate::encoding::ValueDecoder<Varint, T>,
-        {
-            fn decode<__B: crate::bytes::Buf + ?Sized>(
-                wire_type: crate::encoding::WireType,
-                value: &mut T,
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> ::core::result::Result<(), crate::DecodeError> {
-                <() as crate::encoding::FieldDecoder<Varint, _>>::decode_field(
-                    wire_type, value, buf, ctx,
-                )
             }
         }
         impl<T> crate::encoding::DistinguishedDecoder<Varint, T> for ()
@@ -30485,13 +29375,6 @@ mod encoding {
                 mut buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                let value = buf.decode_varint()?;
-                *__value = {
-                    let value = isize::try_from(u64_to_signed(value))
-                        .map_err(|_| DecodeError::new(OutOfDomainValue))?;
-                    core::num::NonZeroIsize::new(value)
-                        .ok_or_else(|| DecodeError::new(InvalidValue))?
-                };
                 Ok(())
             }
         }
@@ -30625,13 +29508,6 @@ mod encoding {
                     prepend_varint_inner::<3>(value, buf);
                 }
             } else if value < VARINT_LIMIT[4] {
-                prepend_varint_inner::<4>(value, buf);
-            } else {
-                prepend_varint_inner::<5>(value, buf);
-            }
-        } else if value < VARINT_LIMIT[7] {
-            if value < VARINT_LIMIT[6] {
-                prepend_varint_inner::<6>(value, buf);
             } else {
                 prepend_varint_inner::<7>(value, buf);
             }
@@ -30709,13 +29585,6 @@ mod encoding {
         if b < 0x80 {
             return Ok((u64::from(part0), 2));
         }
-        b = unsafe { *bytes.get_unchecked(2) };
-        part0 += u32::from(b) << 14;
-        if b < 0x80 {
-            return Ok((u64::from(part0), 3));
-        }
-        b = unsafe { *bytes.get_unchecked(3) };
-        part0 += u32::from(b) << 21;
         if b < 0x80 {
             return Ok((u64::from(part0), 4));
         }
@@ -30728,21 +29597,6 @@ mod encoding {
         b = unsafe { *bytes.get_unchecked(5) };
         part1 += u32::from(b) << 7;
         if b < 0x80 {
-            return Ok((value + (u64::from(part1) << 28), 6));
-        }
-        b = unsafe { *bytes.get_unchecked(6) };
-        part1 += u32::from(b) << 14;
-        if b < 0x80 {
-            return Ok((value + (u64::from(part1) << 28), 7));
-        }
-        b = unsafe { *bytes.get_unchecked(7) };
-        part1 += u32::from(b) << 21;
-        if b < 0x80 {
-            return Ok((value + (u64::from(part1) << 28), 8));
-        }
-        let value = value + ((u64::from(part1)) << 28);
-        b = unsafe { *bytes.get_unchecked(8) };
-        if (b as u32) + ((value >> 56) as u32) > 0xff {
             Err(DecodeError::new(InvalidVarint))
         } else {
             Ok((value + (u64::from(b) << 56), 9))
@@ -30752,13 +29606,6 @@ mod encoding {
     #[cold]
     fn decode_varint_slow<B: Buf + ?Sized>(buf: &mut B) -> Result<u64, DecodeError> {
         let mut value = 0;
-        for count in 0..min(8, buf.remaining()) {
-            let byte = buf.get_u8();
-            value += u64::from(byte) << (count * 7);
-            if byte < 0x80 {
-                return Ok(value);
-            }
-        }
         if !buf.has_remaining() {
             return Err(DecodeError::new(Truncated));
         }
@@ -31344,36 +30191,6 @@ mod encoding {
         }
         fn value(self) {}
     }
-    impl<T> WithCanonicity for (T, Canonicity) {
-        type Value = T;
-        type WithoutCanonicity = Self::Value;
-        fn canonical(self) -> Result<T, DecodeErrorKind> {
-            self.1.canonical()?;
-            Ok(self.0)
-        }
-        fn canonical_with_extensions(self) -> Result<T, DecodeErrorKind> {
-            self.1.canonical_with_extensions()?;
-            Ok(self.0)
-        }
-        fn value(self) -> T {
-            self.0
-        }
-    }
-    impl<'a, T> WithCanonicity for &'a (T, Canonicity) {
-        type Value = &'a T;
-        type WithoutCanonicity = Self::Value;
-        fn canonical(self) -> Result<&'a T, DecodeErrorKind> {
-            self.1.canonical()?;
-            Ok(&self.0)
-        }
-        fn canonical_with_extensions(self) -> Result<&'a T, DecodeErrorKind> {
-            self.1.canonical_with_extensions()?;
-            Ok(&self.0)
-        }
-        fn value(self) -> &'a T {
-            &self.0
-        }
-    }
     impl<T, E> WithCanonicity for Result<T, E>
     where
         T: WithCanonicity,
@@ -31489,13 +30306,6 @@ mod error {
     #[automatically_derived]
     impl ::core::cmp::Eq for DecodeErrorKind {
         fn assert_fields_are_eq(&self) {}
-    }
-    #[automatically_derived]
-    impl ::core::hash::Hash for DecodeErrorKind {
-        fn hash<__H: ::core::hash::Hasher>(&self, state: &mut __H) {
-            let __self_discr = ::core::intrinsics::discriminant_value(self);
-            ::core::hash::Hash::hash(&__self_discr, state)
-        }
     }
     
     impl fmt::Display for DecodeErrorKind {
@@ -31613,21 +30423,6 @@ mod error {
     impl From<DecodeErrorKind> for DecodeError {
         fn from(_kind: DecodeErrorKind) -> Self {
             loop {}
-        }
-    }
-    impl fmt::Debug for DecodeError {
-        fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            loop {}
-        }
-    }
-    impl fmt::Display for DecodeError {
-        fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            loop {}
-        }
-    }
-    impl std::error::Error for DecodeError {}
-    impl From<DecodeError> for std::io::Error {
-        fn from(_error: DecodeError) -> std::io::Error {
             loop {}
         }
     }
@@ -31658,21 +30453,6 @@ mod error {
                 "remaining",
                 &&self.remaining,
             )
-        }
-    }
-    #[automatically_derived]
-    impl ::core::marker::StructuralPartialEq for EncodeError {}
-    #[automatically_derived]
-    impl ::core::cmp::PartialEq for EncodeError {
-        fn eq(&self, other: &EncodeError) -> bool {
-            self.required == other.required && self.remaining == other.remaining
-        }
-    }
-    #[automatically_derived]
-    impl ::core::cmp::Eq for EncodeError {
-        #[doc(hidden)]
-        fn assert_fields_are_eq(&self) {
-            let _: ::core::cmp::AssertParamIsEq<usize>;
         }
     }
     impl EncodeError {
@@ -31827,13 +30607,6 @@ mod types {
             ::core::hash::Hash::hash(&self.0, state)
         }
     }
-    #[automatically_derived]
-    impl ::core::fmt::Debug for Blob {
-        fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-            ::core::fmt::Formatter::debug_tuple_field1_finish(f, "Blob", &&self.0)
-        }
-    }
-    #[automatically_derived]
     impl ::core::default::Default for Blob {
         fn default() -> Blob {
             Blob(::core::default::Default::default())
@@ -31868,66 +30641,6 @@ mod types {
     }
     impl AsMut<Vec<u8>> for Blob {
         fn as_mut(&mut self) -> &mut Vec<u8> {
-            loop {}
-        }
-    }
-    impl Borrow<Vec<u8>> for Blob {
-        fn borrow(&self) -> &Vec<u8> {
-            loop {}
-        }
-    }
-    impl BorrowMut<Vec<u8>> for Blob {
-        fn borrow_mut(&mut self) -> &mut Vec<u8> {
-            loop {}
-        }
-    }
-    impl From<Vec<u8>> for Blob {
-        fn from(_value: Vec<u8>) -> Self {
-            loop {}
-        }
-    }
-    impl From<Blob> for Vec<u8> {
-        fn from(_value: Blob) -> Self {
-            loop {}
-        }
-    }
-    impl From<&[u8]> for Blob {
-        fn from(_value: &[u8]) -> Self {
-            loop {}
-        }
-    }
-    impl From<&mut [u8]> for Blob {
-        fn from(_value: &mut [u8]) -> Self {
-            loop {}
-        }
-    }
-    impl<const N: usize> From<&[u8; N]> for Blob {
-        fn from(_value: &[u8; N]) -> Self {
-            loop {}
-        }
-    }
-    impl<const N: usize> From<[u8; N]> for Blob {
-        fn from(_value: [u8; N]) -> Self {
-            loop {}
-        }
-    }
-    impl From<Cow<'_, [u8]>> for Blob {
-        fn from(_value: Cow<[u8]>) -> Self {
-            loop {}
-        }
-    }
-    impl From<Box<[u8]>> for Blob {
-        fn from(_value: Box<[u8]>) -> Self {
-            loop {}
-        }
-    }
-    impl From<&str> for Blob {
-        fn from(_value: &str) -> Self {
-            loop {}
-        }
-    }
-    impl RegisterFields for () {
-        fn register(_schema: &Schema) {
             loop {}
         }
     }
@@ -32125,13 +30838,6 @@ const _: () = {
                         general,
                         Option<Box<TestAllTypes>>,
                     >>::prepend_encode(114u32, &self.recursive_message, buf, tw);
-                    <() as crate::encoding::Encoder<unpacked, ArrayVec<[u64; 3]>>>::prepend_encode(
-                        74u32,
-                        &self.unpacked_varint_arrayvec,
-                        buf,
-                        tw,
-                    );
-                    tw.finalize(buf);
                 }
             }
             fn raw_encoded_len(&self) -> usize {
@@ -32182,21 +30888,6 @@ const _: () = {
                             )
                         } {
                             error.push("TestAllTypes", "unpacked_varint_arrayvec");
-                            return ::core::result::Result::Err(error);
-                        }
-                    }
-                    114u32 => {
-                        if let ::core::result::Result::Err(mut error) = if duplicated {
-                            ::core::result::Result::Err(crate::DecodeError::new(
-                                crate::DecodeErrorKind::UnexpectedlyRepeated,
-                            ))
-                        } else {
-                            <() as crate::encoding::Decoder<
-                                general,
-                                Option<Box<TestAllTypes>>,
-                            >>::decode(wire_type, &mut self.recursive_message, buf, ctx)
-                        } {
-                            error.push("TestAllTypes", "recursive_message");
                             return ::core::result::Result::Err(error);
                         }
                     }
