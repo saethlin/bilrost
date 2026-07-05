@@ -275,8 +275,7 @@ mod encoding {
                 buf: Capped<B>,
                 ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                check_wire_type(<() as Wiretyped<E, T>>::WIRE_TYPE, wire_type)?;
-                <() as ValueDecoder<E, T>>::decode_value(value, buf, ctx)
+                Ok(())
             }
         }
 
@@ -290,10 +289,7 @@ mod encoding {
                 buf: Capped<impl Buf + ?Sized>,
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
-                check_wire_type(<() as Wiretyped<E, T>>::WIRE_TYPE, wire_type)?;
-                <() as DistinguishedValueDecoder<E, T>>::decode_value_distinguished::<ALLOW_EMPTY>(
-                    value, buf, ctx,
-                )
+                loop {}
             }
         }
 
@@ -3364,57 +3360,14 @@ mod encoding {
                 wire_type: WireType,
                 mut buf: Capped<B>,
             ) -> Result<OpaqueValue<'static>, DecodeError> {
-                Ok(match wire_type {
-                    WireType::Varint => Varint(buf.decode_varint()?),
-                    WireType::LengthDelimited => {
-                        let mut val = Vec::new();
-                        LengthDelimited(Cow::Owned(val))
-                    }
-                    WireType::ThirtyTwoBit => {
-                        if buf.remaining_before_cap() < 4 {
-                            return Err(DecodeError::new(Truncated));
-                        }
-                        let mut val = [0u8; 4];
-                        buf.copy_to_slice(&mut val);
-                        ThirtyTwoBit(val)
-                    }
-                    WireType::SixtyFourBit => {
-                        if buf.remaining_before_cap() < 8 {
-                            return Err(DecodeError::new(Truncated));
-                        }
-                        let mut val = [0u8; 8];
-                        buf.copy_to_slice(&mut val);
-                        SixtyFourBit(val)
-                    }
-                })
+                loop {}
             }
 
             fn borrow_decode_value<'a>(
                 wire_type: WireType,
                 mut buf: Capped<&'a [u8]>,
             ) -> Result<OpaqueValue<'a>, DecodeError> {
-                Ok(match wire_type {
-                    WireType::Varint => Varint(buf.decode_varint()?),
-                    WireType::LengthDelimited => {
-                        LengthDelimited(Cow::Borrowed(buf.take_borrowed_length_delimited()?))
-                    }
-                    WireType::ThirtyTwoBit => {
-                        if buf.remaining_before_cap() < 4 {
-                            return Err(DecodeError::new(Truncated));
-                        }
-                        let mut val = [0u8; 4];
-                        buf.copy_to_slice(&mut val);
-                        ThirtyTwoBit(val)
-                    }
-                    WireType::SixtyFourBit => {
-                        if buf.remaining_before_cap() < 8 {
-                            return Err(DecodeError::new(Truncated));
-                        }
-                        let mut val = [0u8; 8];
-                        buf.copy_to_slice(&mut val);
-                        SixtyFourBit(val)
-                    }
-                })
+                loop {}
             }
 
             pub(crate) fn borrow(&self) -> OpaqueValue<'_> {
@@ -9651,58 +9604,6 @@ mod iter {
     }
 }
 
-mod message {}
-
-mod types {
-    use crate::buf::ReverseBuf;
-    use crate::encoding::{
-        Canonicity, Capped, DecodeContext, RawDistinguishedMessageBorrowDecoder, RawMessage,
-        RawMessageBorrowDecoder, RawMessageDecoder, RestrictedDecodeContext, WireType,
-    };
-    use crate::DecodeError;
-    use bytes::{Buf};
-
-    impl RawMessage for () {
-        const __ASSERTIONS: () = ();
-
-        fn empty() {}
-
-        fn is_empty(&self) -> bool {
-            loop {}
-        }
-
-        fn clear(&mut self) {}
-
-        fn raw_prepend<B: ReverseBuf + ?Sized>(&self, _buf: &mut B) {}
-    }
-
-    impl RawMessageBorrowDecoder<'_> for () {
-        fn raw_borrow_decode_field(
-            &mut self,
-            _tag: u32,
-            _wire_type: WireType,
-            _duplicated: bool,
-            _buf: Capped<&'_ [u8]>,
-            _ctx: DecodeContext,
-        ) -> Result<(), DecodeError> {
-            loop {}
-        }
-    }
-
-    impl RawDistinguishedMessageBorrowDecoder<'_> for () {
-        fn raw_borrow_decode_field_distinguished(
-            &mut self,
-            _tag: u32,
-            _wire_type: WireType,
-            _duplicated: bool,
-            _buf: Capped<&'_ [u8]>,
-            _ctx: RestrictedDecodeContext,
-        ) -> Result<Canonicity, DecodeError> {
-            loop {}
-        }
-    }
-}
-
 use crate::encoding::Canonicity;
 use crate::encoding::{decode_varint, encoded_len_varint};
 use crate::error::{DecodeError, DecodeErrorKind};
@@ -9816,7 +9717,7 @@ const _: () = {
             (): crate::encoding::Encoder<unpacked, ArrayVec<[u64; 3]>>,
         {
             fn for_overwrite() -> __Self {
-                <__Self as crate::encoding::RawMessage>::empty()
+                loop {}
             }
         }
 
