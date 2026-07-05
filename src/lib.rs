@@ -414,127 +414,6 @@ pub mod buf {
     }
 }
 pub mod encoding {
-    //! This is the module that defines the core encoding implementation for bilrost, including the
-    //! traits that dispatch it.
-    //!
-    //! <div class="warning">
-    //!
-    //! All of the things beneath this module are "under the hood" and are intended for consumption
-    //! of `bilrost` itself, in the output of the derive macros of the exactly matching version of the
-    //! library. Historically these have undergone significant evolution, and stability of outside use
-    //! of anything in or under this module is to be considered **EXPERIMENTAL** until further notice.
-    //! That said, the changes that have been made over time are all aimed at eventual stability and a
-    //! useful set of features for advanced external users to have a set of tools to work around
-    //! annoyances and end up with a result that is as pleasing, ergonomic, and performant as possible.
-    //!
-    //! </div>
-    //!
-    //! There are a whole product of traits for encoding and decoding in bilrost, based on the type of
-    //! value and the capability.
-    //!
-    //! Values:
-    //!
-    //! * supported value that has an empty state (and can be a message field)
-    //! * any supported value (may be nested)
-    //! * (a helper trait that encodes/decodes fields for anything that implements value encoding)
-    //! * oneof with no empty state of its own (must be nested in Option)
-    //! * oneof with an empty state
-    //! * message
-    //!
-    //! Capabilities:
-    //!
-    //! * encode
-    //! * decode to owned value, relaxed mode
-    //! * decode to owned value, distinguished mode
-    //! * decode from borrowed slice, relaxed mode
-    //! * decode from borrowed slice, distinguished mode
-    //!
-    //! ...And here are the names of the traits we define for all the above combinations:
-    //!
-    //! * Value with an empty state:
-    //!     * `Encoder<E, T>`
-    //!     * `Decoder<E, T>`
-    //!     * `DistinguishedDecoder<E, T>`
-    //!     * `BorrowDecoder<'a, E, T>`
-    //!     * `DistinguishedBorrowDecoder<'a, E, T>`
-    //! * Value with the ability to be nested:
-    //!     * `ValueEncoder<E, T>`
-    //!     * `ValueDecoder<E, T>`
-    //!     * `DistinguishedValueDecoder<E, T>`
-    //!     * `ValueBorrowDecoder<'a, E, T>`
-    //!     * `DistinguishedValueBorrowDecoder<'a, E, T>`
-    //! * Oneof with no empty state:
-    //!     * `NonEmptyOneof`
-    //!     * `NonEmptyOneofDecoder`
-    //!     * `NonEmptyDistinguishedOneofDecoder`
-    //!     * `NonEmptyOneofBorrowDecoder<'a>`
-    //!     * `NonEmptyDistinguishedOneofBorrowDecoder<'a>`
-    //! * Oneof:
-    //!     * `Oneof`
-    //!     * `OneofDecoder`
-    //!     * `DistinguishedOneofDecoder`
-    //!     * `OneofBorrowDecoder<'a>`
-    //!     * `DistinguishedOneofBorrowDecoder<'a>`
-    //! * Message:
-    //!     * `RawMessage`
-    //!     * `RawMessageDecoder`
-    //!     * `RawDistinguishedMessageDecoder`
-    //!     * `RawMessageBorrowDecoder<'a>`
-    //!     * `RawDistinguishedMessageBorrowDecoder<'a>`
-    //!
-    //! These traits and their main generic implementations are defined in this module and in its
-    //! `message` and `oneof` sub-modules.
-    //!
-    //! The traits for values are parametrized by "encodings", marker structs which denote *how* the
-    //! value is to be encoded, whose implementations are also defined in sub-modules here. These
-    //! include:
-    //!
-    //! * `Fixed`, for fixed-width encodings of either 4 or 8 bytes
-    //! * `General`, the default encoding in messages
-    //! * `GeneralPacked`, the default encoding in oneofs and inside already-packed values
-    //! * `Map<KE, VE>`, which encodes key/value mappings where the keys are encoded by the given
-    //!   encodings `KE` and `VE`
-    //! * `Packed<E>`, which encodes homogenous containers as a value packed in a single field with the
-    //!   given encoding `E`
-    //! * `PlainBytes`, which implements encodings for `[u8]`-like types
-    //! * `Proxied<E>`, which encodes values with the given encoding `E` after translating them to and
-    //!   from a proxy type using the Proxiable traits
-    //! * `(T1, T2, ...)`, which implements encoding for tuples which have corresponding fields
-    //! * `Unpacked<E>`, which encodes homogenous containers as zero or more values each encoded as
-    //!   their own message field with the given encoding `E`
-    //! * `Varint`, which encodes all integers in the varint format (even `u8` and `i8`)
-    //!
-    //! Type support for third party types and for many common aspects of core type implementations can
-    //! be found in the `type_support` sub-module tree.
-    //!
-    //! In addition to the ability to encode and decode, values also have traits for initialized
-    //! states:
-    //!
-    //! * `ForOverwrite<E, T>`: Cheaply create an owned value
-    //! * `EmptyState<E, T>`: Create an owned value that is guaranteed to be empty, detect whether a
-    //!   value is currently empty, and reset a mut value to an empty state
-    //!
-    //! For every value type implemented in `bilrost`, these traits are defined in terms of the
-    //! encoding type `()`, which we call the "base empty state" implementation. All the encodings in
-    //! the library delegate to this base implementation. However, it is possible for a third-party
-    //! encoding type to implement empty states differently for its supported values rather than
-    //! delegating this way; the logic of when a value is empty or not is entirely up to the encoding.
-    //!
-    //! Additionally, there are traits for homogenous collections and associative mappings. Anything
-    //! that implements these traits will be naturally supported by the appropriate encoding (packed,
-    //! unpacked, and map encodings):
-    //!
-    //! * `Collection`
-    //! * `DistinguishedCollection`
-    //! * `Mapping`
-    //! * `DistinguishedMapping`
-    //!
-    //! Note that these traits must be able to provide iterators *and* reversed iterators, for purposes
-    //! of encoding. These do not have to be double-ended, and these only need to truly be correct and
-    //! the reverse of each other if the distinguished trait is implemented; otherwise, it doesn't
-    //! really matter what order the items are produced in. Implementations of unordered collections
-    //! and mappings like `std::collections::HashSet` never bother to iterate their items in any
-    //! special order, nor do they support distinguished decoding as a result.
     use crate::buf::ReverseBuf;
     use crate::DecodeErrorKind::{
         InvalidVarint, NotCanonical, Oversize, TagOverflowed, Truncated, UnknownField,
@@ -547,41 +426,6 @@ pub mod encoding {
     use core::default::Default;
     use core::fmt::Debug;
     use core::ops::{Deref, DerefMut};
-    pub(crate) mod decoding_modes {
-        //! These common macros allow deduplication of the code that defines common decoding for different
-        //! decoding modes.
-        //!
-        //! Arguments to use for `other_macro!`:
-        /*!
-```rust
-macro_rules! other_macro {
-    (
-        mode: $mode:ident,
-        relaxed: $relaxed:ident::$relaxed_method:ident,
-        relaxed_value: $relaxed_value:ident::$relaxed_value_method:ident,
-        relaxed_field: $relaxed_field:ident::$relaxed_field_method:ident,
-        distinguished: $distinguished:ident::$distinguished_method:ident,
-        distinguished_value: $distinguished_value:ident::$distinguished_value_method:ident,
-        distinguished_field: $distinguished_field:ident::$distinguished_field_method:ident,
-        buf_ty: $buf_ty:ty,
-        impl_buf_ty: $impl_buf_ty:ty,
-        $(buf_generic: ($($buf_generic:tt)*),)?
-        $(lifetime: $lifetime:lifetime,)?
-    ) => { .. };
-}
-```
-*/
-        //! * `mode`: will be `owned` or `borrowed`
-        //! * `relaxed`, `relaxed_value`, `distinguished`, etc.: traits and the associated decoding method
-        //!   name
-        //! * `buf_ty`: type of the buf to use in `Capped< >` when the method has a type generic applied
-        //! * `impl_buf_ty`: type of the buf to use in `Capped< >` when the method has a different generic
-        //!   and a generic buf type in Capped might need to be an `impl Trait` generic
-        //! * `buf_generic`: trait generics to use for any decoding method that doesn't have a different
-        //!   generic, like the `ALLOW_EMPTY` const generic for `DistinguishedValueDecoder`
-        //! * `lifetime`: lifetime required for the impl and for all listed decoding traits in addition to
-        //!   the encoder
-    }
     mod encoding_traits {
         use crate::buf::ReverseBuf;
         use crate::encoding::schema::RegisterFields;
@@ -8428,7 +8272,7 @@ macro_rules! other_macro {
         use crate::encoding::schema::{Schema, ValueRepr};
         use crate::encoding::value_traits::{DistinguishedMapping, Mapping};
         use crate::encoding::{
-            decoding_modes, encode_varint, encoded_len_varint,
+            encode_varint, encoded_len_varint,
             prepend_varint, Canonicity, Capped, DecodeContext, DecodeError,
             DistinguishedValueBorrowDecoder, DistinguishedValueDecoder, EmptyState,
             ForOverwrite, GeneralPacked, RestrictedDecodeContext, ValueBorrowDecoder,
@@ -10745,7 +10589,7 @@ macro_rules! other_macro {
             Collection, DistinguishedCollection, EmptyState, ForOverwrite,
         };
         use crate::encoding::{
-            decoding_modes, encode_varint, encoded_len_varint,
+            encode_varint, encoded_len_varint,
             prepend_varint, unpacked, BorrowDecoder,
             Canonicity, Capped, DecodeContext, DecodeError, Decoder,
             DistinguishedBorrowDecoder, DistinguishedDecoder,
@@ -37863,7 +37707,7 @@ macro_rules! other_macro {
             Collection, DistinguishedCollection, EmptyState, ForOverwrite,
         };
         use crate::encoding::{
-            check_wire_type, decoding_modes,
+            check_wire_type,
             peek_repeated_field, BorrowDecoder, Capped, DecodeContext, Decoder,
             DistinguishedBorrowDecoder, DistinguishedDecoder,
             DistinguishedValueBorrowDecoder, DistinguishedValueDecoder, Encoder,
