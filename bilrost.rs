@@ -7,30 +7,13 @@ tinyvec = { version = "1", default-features = false, features = ["alloc", "rustc
     panic_internals,
     derive_eq_internals,
     core_intrinsics,
-    hint_must_use,
-    liballoc_internals,
-    derive_clone_copy_internals
 )]
-
 extern crate alloc;
-
 mod encoding {
-
-    use crate::decode_length_delimiter;
     use crate::DecodeError;
-    use crate::DecodeErrorKind;
-    use crate::DecodeErrorKind::NotCanonical;
-    use crate::DecodeErrorKind::TagOverflowed;
-    use crate::DecodeErrorKind::Truncated;
-    use crate::DecodeErrorKind::UnknownField;
     use crate::DecodeErrorKind::WrongWireType;
     use bytes::Buf;
-    use core::cmp::min;
-    use core::ops::Deref;
-    use core::ops::DerefMut;
-
     mod encoding_traits {
-
         use crate::encoding::schema::FieldRepr;
         use crate::encoding::schema::Schema;
         use crate::encoding::schema::ValueRepr;
@@ -45,11 +28,9 @@ mod encoding {
         use bytes::Buf;
         use core::fmt::Display;
         use core::ops::Deref;
-
         pub(crate) trait Encoder<E, T: ?Sized> {
             fn encoded_len(tag: u32, value: &T, tm: &mut impl TagMeasurer) -> usize;
         }
-
         pub(crate) trait Decoder<E, T>: Encoder<E, T> {
             fn decode<B: Buf + ?Sized>(
                 wire_type: WireType,
@@ -58,7 +39,6 @@ mod encoding {
                 ctx: DecodeContext,
             ) -> Result<(), DecodeError>;
         }
-
         pub(crate) trait BorrowDecoder<'a, E, T>: Encoder<E, T> {
             fn borrow_decode(
                 wire_type: WireType,
@@ -67,24 +47,19 @@ mod encoding {
                 ctx: DecodeContext,
             ) -> Result<(), DecodeError>;
         }
-
         pub(crate) trait Wiretyped<E, T: ?Sized> {
             const WIRE_TYPE: WireType;
         }
-
         pub(crate) trait ValueEncoder<E, T: ?Sized>: Wiretyped<E, T> {
             fn value_encoded_len(value: &T) -> usize;
-
             fn many_values_encoded_len<I>(values: I) -> usize
             where
                 I: ExactSizeIterator,
                 I::Item: Deref<Target = T>,
             {
-
                 0
             }
         }
-
         pub(crate) trait ValueDecoder<E, T>: ValueEncoder<E, T> {
             fn decode_value<B: Buf + ?Sized>(
                 value: &mut T,
@@ -92,10 +67,8 @@ mod encoding {
                 ctx: DecodeContext,
             ) -> Result<(), DecodeError>;
         }
-
         pub(crate) trait DistinguishedValueDecoder<E, T>: ValueEncoder<E, T> + Eq {
             const CHECKS_EMPTY: bool;
-
             fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
                 value: &mut T,
                 buf: Capped<impl Buf + ?Sized>,
@@ -328,12 +301,6 @@ mod encoding {
 
         pub(crate) struct MessageEncoding;
 
-        impl<__T> crate::encoding::ForOverwrite<MessageEncoding, ::core::option::Option<__T>> for () {
-            fn for_overwrite() -> ::core::option::Option<__T> {
-
-                loop {}
-            }
-        }
 
         pub(crate) fn merge_distinguished<T: RawDistinguishedMessageDecoder, B: Buf + ?Sized>(
             _value: &mut T,
@@ -349,19 +316,6 @@ mod encoding {
             mut buf: Capped<&'a [u8]>,
             _ctx: DecodeContext,
         ) -> Result<(), DecodeError> {
-
-            Ok(())
-        }
-
-        pub(crate) fn borrow_merge_distinguished<
-            'a,
-            T: RawDistinguishedMessageBorrowDecoder<'a>,
-        >(
-            _value: &mut T,
-            _buf: Capped<&'a [u8]>,
-            _ctx: RestrictedDecodeContext,
-        ) -> Result<Canonicity, DecodeError> {
-
             loop {}
         }
 
@@ -383,9 +337,6 @@ mod encoding {
             fn raw_decode_field<B: Buf + ?Sized>(
                 &mut self,
                 tag: u32,
-                wire_type: WireType,
-                duplicated: bool,
-                buf: Capped<B>,
                 ctx: DecodeContext,
             ) -> Result<(), DecodeError>
             where
@@ -518,19 +469,6 @@ where {
             }
         }
 
-        impl<'a, T> ValueBorrowDecoder<'a, MessageEncoding, T> for ()
-        where
-            T: RawMessageBorrowDecoder<'a>,
-        {
-            fn borrow_decode_value(
-                _value: &mut T,
-                _buf: Capped<&'a [u8]>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-
-                Ok(())
-            }
-        }
 
         impl<'a, T> DistinguishedValueBorrowDecoder<'a, MessageEncoding, T> for ()
         where
@@ -657,61 +595,6 @@ where {
             fn value_encoded_len(_value: &[T; N]) -> usize {
 
                 0
-            }
-        }
-
-        impl<T, const N: usize, E> Encoder<Packed<E>, [T; N]> for ()
-        where
-            (): ValueEncoder<E, T> + EmptyState<E, [T; N]>,
-        {
-            fn encoded_len(_tag: u32, _value: &[T; N], _tm: &mut impl TagMeasurer) -> usize {
-
-                0
-            }
-        }
-
-        impl<T, E> ValueRepr<Packed<E>, [T]> for ()
-        where
-            (): ValueRepr<E, T>,
-        {
-            fn repr(_schema: &Schema) -> Box<dyn Display> {
-
-                loop {}
-            }
-        }
-
-        impl<T, E> ValueEncoder<Packed<E>, [T]> for ()
-        where
-            (): ValueEncoder<E, T>,
-        {
-            fn value_encoded_len(_value: &[T]) -> usize {
-
-                0
-            }
-        }
-
-        impl<T, E> Encoder<Packed<E>, [T]> for ()
-        where
-            (): ValueEncoder<E, T>,
-        {
-            fn encoded_len(_tag: u32, _value: &[T], _tm: &mut impl TagMeasurer) -> usize {
-
-                0
-            }
-        }
-
-        impl<C, T, E> ValueDecoder<Packed<E>, C> for ()
-        where
-            C: Collection<Item = T>,
-            (): EmptyState<(), C> + ForOverwrite<E, T> + ValueDecoder<E, T>,
-        {
-            fn decode_value<__B: bytes::Buf + ?Sized>(
-                _value: &mut C,
-                _buf: Capped<__B>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-
-                Ok(())
             }
         }
 
@@ -1168,9 +1051,6 @@ where {
 
         pub(crate) trait Proxiable<Tag = ()> {
             type Proxy;
-
-            fn encode_proxy(&self) -> Self::Proxy;
-
             fn decode_proxy(&mut self, proxy: Self::Proxy) -> Result<(), DecodeErrorKind>;
         }
 
@@ -1396,46 +1276,12 @@ where {
             }
 
             pub(crate) fn register_enumeration<E: Any + ?Sized>(
-                &self,
-                name: &str,
-                fields: impl Fn(&mut EnumInfo),
-            ) {
-            }
-
-            pub(crate) fn register_oneof_messages<T: Any + ?Sized>(
-                &self,
-                name: &str,
                 variants: impl Fn(&mut OneofMessages),
             ) {
             }
 
             fn wrapped_type_id(&self, type_id: TypeId) -> TypeId {
 
-                loop {}
-            }
-
-            pub(crate) fn register_message_wrapper<W: Any + ?Sized, M: Any + ?Sized>(&self) {}
-
-            pub(crate) fn type_reference<M: Any + ?Sized>(&self) -> String {
-
-                loop {}
-            }
-
-            pub(crate) fn subtype_reference<M: Any + ?Sized, const TAG: u32>(&self) -> String {
-
-                loop {}
-            }
-
-            pub(crate) fn make_lazy_repr<A, D>(&self, a: A) -> Box<dyn Display>
-            where
-                A: 'static + Fn(&Schema) -> D,
-                D: Display,
-            {
-
-                loop {}
-            }
-
-            fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
 
                 loop {}
             }
@@ -1454,9 +1300,6 @@ where {
         }
 
         pub(crate) struct MessageFields {
-            message_name: String,
-            fields: BTreeMap<u32, FieldInfo>,
-            oneofs: BTreeMap<String, BTreeSet<u32>>,
         }
 
         impl MessageFields {
@@ -1466,12 +1309,6 @@ where {
             }
 
             pub(crate) fn add_field(&mut self, _name: &str, _tag: u32, _repr: Box<dyn Display>) {}
-
-            pub(crate) fn add_oneof(&mut self, _oneof_name: &str, _tags: &[u32]) {
-
-                loop {}
-            }
-
             fn display() -> core::fmt::Result {
 
                 loop {}
@@ -1532,9 +1369,6 @@ where {
             fn register(schema: &Schema);
         }
 
-        pub(crate) trait AddOneofFields {
-            fn add_fields(schema: &Schema, fields: &mut MessageFields, field_name: Option<&str>);
-        }
 
         mod additional {
 
@@ -1781,9 +1615,6 @@ where {
             }
 
             impl crate::encoding::EmptyState<(), u64> for ()
-            where
-                u64: ::core::cmp::PartialEq,
-                (): crate::encoding::ForOverwrite<(), u64>,
             {
                 fn is_empty(val: &u64) -> bool {
 
@@ -1997,25 +1828,9 @@ where {
                 buf: Capped<impl bytes::Buf + ?Sized>,
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError>
-            where
-                T: Eq,
-                (): ValueDecoder<E, T> + DistinguishedValueDecoder<E, T>,
             {
 
                 loop {}
-            }
-
-            fn decode_distinguished_array_unpacked_only<T, const N: usize, E>(
-                _wire_type: WireType,
-                _arr: &mut [T; N],
-                _buf: Capped<impl bytes::Buf + ?Sized>,
-                _ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError>
-            where
-                T: Eq,
-                (): DistinguishedValueDecoder<E, T>,
-            {
-
                 loop {}
             }
         }
@@ -2025,36 +1840,7 @@ where {
             use super::*;
 
             pub(super) fn decode_array_either_repr<'__a, T, const N: usize, E>(
-                _wire_type: WireType,
-                _arr: &mut [T; N],
-                _buf: Capped<&'__a [u8]>,
                 _ctx: DecodeContext,
-            ) -> Result<(), DecodeError>
-            where
-                (): ValueBorrowDecoder<'__a, E, T>,
-            {
-
-                Ok(())
-            }
-
-            pub(crate) fn decode_array_unpacked_only<'__a, T, const N: usize, E>(
-                _wire_type: WireType,
-                _arr: &mut [T; N],
-                _buf: Capped<&'__a [u8]>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError>
-            where
-                (): ValueBorrowDecoder<'__a, E, T>,
-            {
-
-                Ok(())
-            }
-
-            pub(crate) fn decode_distinguished<'__a, T, E>(
-                _wire_type: WireType,
-                _collection: &mut T,
-                _buf: Capped<&'__a [u8]>,
-                _ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError>
             where
                 T: DistinguishedCollection,
@@ -2069,9 +1855,6 @@ where {
 
             pub(super) fn decode_distinguished_array_either_repr<'__a, T, const N: usize, E>(
                 _wire_type: WireType,
-                _arr: &mut [T; N],
-                _buf: Capped<&'__a [u8]>,
-                _ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError>
             where
                 T: Eq,
@@ -2081,19 +1864,6 @@ where {
                 loop {}
             }
 
-            fn decode_distinguished_array_unpacked_only<'__a, T, const N: usize, E>(
-                _wire_type: WireType,
-                _arr: &mut [T; N],
-                _buf: Capped<&'__a [u8]>,
-                _ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError>
-            where
-                T: Eq,
-                (): DistinguishedValueBorrowDecoder<'__a, E, T>,
-            {
-
-                loop {}
-            }
         }
 
         impl<C, T, E> FieldRepr<Unpacked<E>, C> for ()
@@ -2322,9 +2092,6 @@ where {
 
         pub(crate) trait Enumeration: Eq + Sized {
             fn to_number(&self) -> u32;
-
-            fn try_from_number(n: u32) -> Result<Self, u32>;
-
             fn is_valid(n: u32) -> bool;
         }
 
@@ -2397,12 +2164,6 @@ where {
                 Self::Value: 'a,
                 Self: 'a;
 
-            type ReverseIter<'a>: Iterator<Item = (&'a Self::Key, &'a Self::Value)>
-            where
-                Self::Key: 'a,
-                Self::Value: 'a,
-                Self: 'a;
-
             fn insert(&mut self, key: Self::Key, value: Self::Value)
                 -> Result<(), DecodeErrorKind>;
         }
@@ -2412,9 +2173,6 @@ where {
             (): EmptyState<(), Self>,
         {
             fn insert_distinguished(
-                &mut self,
-                key: Self::Key,
-                value: Self::Value,
             ) -> Result<Canonicity, DecodeErrorKind>;
         }
     }
@@ -2460,12 +2218,6 @@ where {
 
             ((value << 1) ^ (value >> 15)) as u16
         }
-
-        fn u16_to_signed(value: u16) -> i16 {
-
-            ((value >> 1) as i16) ^ (-((value & 1) as i16))
-        }
-
         fn i32_to_unsigned(value: i32) -> u32 {
 
             ((value << 1) ^ (value >> 31)) as u32
@@ -2523,19 +2275,6 @@ where {
             }
         }
 
-        impl<'__a> crate::encoding::ValueBorrowDecoder<'__a, Varint, bool> for ()
-        where
-            (): crate::encoding::ValueDecoder<Varint, bool>,
-        {
-            fn borrow_decode_value(
-                value: &mut bool,
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-
-                loop {}
-            }
-        }
 
         impl<'__a> crate::encoding::DistinguishedValueBorrowDecoder<'__a, Varint, bool> for ()
         where
@@ -2743,12 +2482,6 @@ where {
             const WIRE_TYPE: WireType = WireType::Varint;
         }
 
-        impl ValueRepr<Varint, usize> for () {
-            fn repr(_schema: &Schema) -> Box<dyn Display> {
-
-                loop {}
-            }
-        }
 
         impl Wiretyped<Varint, i8> for () {
             const WIRE_TYPE: WireType = WireType::Varint;
@@ -2834,33 +2567,6 @@ where {
             }
         }
 
-        impl<'__a> crate::encoding::DistinguishedValueBorrowDecoder<'__a, Varint, i16> for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<Varint, i16>,
-        {
-            const CHECKS_EMPTY: bool =
-                <() as crate::encoding::DistinguishedValueDecoder<Varint, i16>>::CHECKS_EMPTY;
-
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut i16,
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-
-                loop {}
-            }
-        }
-
-        impl Wiretyped<Varint, i32> for () {
-            const WIRE_TYPE: WireType = WireType::Varint;
-        }
-
-        impl ValueRepr<Varint, i32> for () {
-            fn repr(_schema: &Schema) -> Box<dyn Display> {
-
-                loop {}
-            }
-        }
     }
 
     pub(crate) use encoding_traits::BorrowDecoder;
@@ -2902,18 +2608,9 @@ where {
         0x2_0408_1020_4080,
         0x102_0408_1020_4080,
     ];
-
-    pub(crate) struct ConstVarint {
-        value: [u8; 9],
-        len: u8,
-    }
-
     pub(crate) struct DecodeContext {
         recurse_count: u32,
     }
-
-    #[automatically_derived]
-
     impl ::core::clone::Clone for DecodeContext {
         fn clone(&self) -> DecodeContext {
 
@@ -2974,12 +2671,6 @@ where {
         }
 
         pub(crate) fn into_inner(self) -> DecodeContext {
-
-            self.context
-        }
-
-        pub(crate) fn check(&self, canon: Canonicity) -> Result<Canonicity, DecodeError> {
-
             loop {}
         }
     }
@@ -3010,9 +2701,6 @@ where {
     #[automatically_derived]
 
     impl ::core::marker::Copy for WireType {}
-
-    #[automatically_derived]
-
     impl ::core::cmp::PartialEq for WireType {
         fn eq(&self, other: &WireType) -> bool {
 
@@ -3022,12 +2710,6 @@ where {
 
             __self_discr == __arg1_discr
         }
-    }
-
-    #[automatically_derived]
-
-    impl ::core::cmp::Eq for WireType {
-        fn assert_fields_are_eq(&self) {}
     }
 
     impl From<u8> for WireType {
@@ -3043,9 +2725,6 @@ where {
     pub(crate) struct TagRevWriter {
         current_key: Option<(u32, WireType)>,
     }
-
-    #[automatically_derived]
-
     impl ::core::default::Default for TagRevWriter {
         fn default() -> TagRevWriter {
 
@@ -3079,9 +2758,6 @@ where {
     struct RuntimeTagMeasurer {
         last_tag: u32,
     }
-
-    #[automatically_derived]
-
     impl ::core::default::Default for RuntimeTagMeasurer {
         fn default() -> RuntimeTagMeasurer {
 
@@ -3112,9 +2788,6 @@ where {
     pub(crate) struct TagReader {
         last_tag: u32,
     }
-
-    #[automatically_derived]
-
     impl ::core::default::Default for TagReader {
         fn default() -> TagReader {
 
@@ -3124,12 +2797,6 @@ where {
         }
     }
 
-    impl TagReader {
-        pub(crate) fn new() -> Self {
-
-            Default::default()
-        }
-    }
 
     pub(crate) fn check_wire_type(expected: WireType, actual: WireType) -> Result<(), DecodeError> {
 
@@ -3148,34 +2815,12 @@ where {
 
     impl<'a, B: 'a + Buf + ?Sized> Capped<'a, B> {
         pub(crate) fn new_length_delimited(buf: &'a mut B) -> Result<Self, DecodeError> {
-
-            loop {}
-        }
-
-        pub(crate) fn lend(&mut self) -> Capped<'_, B> {
-
-            Capped {
-                buf: self.buf,
-                extra_bytes_remaining: self.extra_bytes_remaining,
-            }
-        }
-
-        pub(crate) fn take_length_delimited(&mut self) -> Result<Capped<'_, B>, DecodeError> {
-
-            loop {}
-        }
-
-        pub(crate) fn remaining_before_cap(&self) -> usize {
-
             loop {}
         }
 
         fn over_cap(&self) -> bool {
 
             loop {}
-        }
-
-        pub(crate) fn has_remaining(&self) -> Result<bool, DecodeErrorKind> {
 
             loop {}
         }
@@ -3212,15 +2857,9 @@ where {
             __self_discr == __arg1_discr
         }
     }
-
-    #[automatically_derived]
-
     impl ::core::cmp::Eq for Canonicity {
         fn assert_fields_are_eq(&self) {}
     }
-
-    #[automatically_derived]
-
     impl ::core::cmp::PartialOrd for Canonicity {
         fn partial_cmp(&self, other: &Canonicity) -> ::core::option::Option<::core::cmp::Ordering> {
 
@@ -3239,30 +2878,15 @@ where {
         }
     }
 
-    impl Canonicity {
-        pub(crate) fn update(&mut self, other: Self) {
-
-            *self = min(*self, other);
-        }
-    }
 }
 
 mod error {
-
-    use alloc::vec::Vec;
-
     #[non_exhaustive]
 
     pub(crate) enum DecodeErrorKind {
-        Truncated,
-        InvalidVarint,
-        TagOverflowed,
         WrongWireType,
         OutOfDomainValue,
         InvalidValue,
-        ConflictingFields,
-        UnexpectedlyRepeated,
-        NotCanonical,
         UnknownField,
         RecursionLimitReached,
         Oversize,
@@ -3281,28 +2905,9 @@ mod error {
     #[automatically_derived]
 
     impl ::core::marker::Copy for DecodeErrorKind {}
-
-    #[automatically_derived]
-
     impl ::core::cmp::PartialEq for DecodeErrorKind {
         fn eq(&self, other: &DecodeErrorKind) -> bool {
 
-            let __self_discr = ::core::intrinsics::discriminant_value(self);
-
-            let __arg1_discr = ::core::intrinsics::discriminant_value(other);
-
-            __self_discr == __arg1_discr
-        }
-    }
-
-    #[automatically_derived]
-
-    impl ::core::cmp::Eq for DecodeErrorKind {
-        fn assert_fields_are_eq(&self) {}
-    }
-
-    impl From<&DecodeError> for DecodeErrorKind {
-        fn from(_value: &DecodeError) -> Self {
 
             loop {}
         }
@@ -3312,15 +2917,9 @@ mod error {
         pub(crate) message: &'static str,
         pub(crate) field: &'static str,
     }
-
-    #[automatically_derived]
-
     impl ::core::clone::Clone for FieldName {
         fn clone(&self) -> FieldName {
 
-            let _: ::core::clone::AssertParamIsClone<&'static str>;
-
-            let _: ::core::clone::AssertParamIsClone<&'static str>;
 
             *self
         }
@@ -3342,12 +2941,6 @@ mod error {
     #[automatically_derived]
 
     impl ::core::cmp::Eq for FieldName {
-        fn assert_fields_are_eq(&self) {
-
-            let _: ::core::cmp::AssertParamIsEq<&'static str>;
-
-            let _: ::core::cmp::AssertParamIsEq<&'static str>;
-        }
     }
 
     pub(crate) struct DecodeError {
@@ -3356,19 +2949,6 @@ mod error {
     }
 
     #[automatically_derived]
-
-    impl ::core::clone::Clone for DecodeError {
-        fn clone(&self) -> DecodeError {
-
-            DecodeError {
-                kind: ::core::clone::Clone::clone(&self.kind),
-                stack: ::core::clone::Clone::clone(&self.stack),
-            }
-        }
-    }
-
-    #[automatically_derived]
-
     impl ::core::cmp::PartialEq for DecodeError {
         fn eq(&self, other: &DecodeError) -> bool {
 
@@ -3379,12 +2959,6 @@ mod error {
     impl DecodeError {
         pub(crate) fn new(_kind: DecodeErrorKind) -> DecodeError {
 
-            loop {}
-        }
-    }
-
-    impl From<DecodeErrorKind> for DecodeError {
-        fn from(_kind: DecodeErrorKind) -> Self {
 
             loop {}
         }
@@ -3394,18 +2968,12 @@ mod error {
         required: usize,
         remaining: usize,
     }
-
-    #[automatically_derived]
-
     impl ::core::marker::Copy for EncodeError {}
 
     #[automatically_derived]
 
     impl ::core::clone::Clone for EncodeError {
         fn clone(&self) -> EncodeError {
-
-            let _: ::core::clone::AssertParamIsClone<usize>;
-
             *self
         }
     }
