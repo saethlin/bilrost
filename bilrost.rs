@@ -28,12 +28,6 @@ mod general {
     pub(crate) struct GeneralGeneric<const P: u8>;
     pub(crate) type General = GeneralGeneric<PREFER_UNPACKED>;
     pub(crate) type GeneralPacked = GeneralGeneric<PREFER_PACKED>;
-    impl<const P: u8, __T> crate::ForOverwrite<GeneralGeneric<P>, __T> for () {
-        fn for_overwrite() -> __T {
-            loop {}
-        }
-    }
-    impl<const P: u8, __T> crate::EmptyState<GeneralGeneric<P>, __T> for () {}
     impl<T, const P: u8> crate::schema::FieldRepr<GeneralGeneric<P>, T> for ()
     where
         (): crate::schema::ValueRepr<GeneralGeneric<P>, T>,
@@ -102,14 +96,11 @@ mod packed {
     use core::fmt::Display;
     pub(crate) struct Packed<E = GeneralPacked>(E);
     impl<E, __T> crate::ForOverwrite<Packed<E>, __T> for ()
-    where
-        (): crate::ForOverwrite<(), __T>,
     {
         fn for_overwrite() -> __T {
             loop {}
         }
     }
-    impl<E, __T> crate::EmptyState<Packed<E>, __T> for () where (): crate::EmptyState<(), __T> {}
     impl<C, T, E> ValueRepr<Packed<E>, C> for ()
     where
         C: Collection<Item = T>,
@@ -125,7 +116,6 @@ mod plain_bytes {
     use core::fmt::Display;
     use std::borrow::Cow;
     pub(crate) struct PlainBytes;
-    impl<T> crate::Encoder<PlainBytes, T> for () where (): crate::EmptyState<PlainBytes, T> {}
     impl ValueRepr<PlainBytes, &[u8]> for () {
         fn repr(_: &Schema) -> Box<dyn Display> {
             loop {}
@@ -224,7 +214,6 @@ pub(crate) mod schema {
         impl<'a, T> crate::ForOverwrite<(), Cow<'a, T>> for ()
         where
             T: 'a + ?Sized + ToOwned,
-            T::Owned: Default,
             (): ForOverwrite<(), &'a T> + ForOverwrite<(), T::Owned>,
         {
             fn for_overwrite() -> Cow<'a, T> {
@@ -309,12 +298,6 @@ mod unpacked {
 }
 mod value_traits {
     pub(crate) trait EmptyState<E, T: ?Sized>: ForOverwrite<E, T> {
-        fn empty() -> T
-        where
-            T: Sized,
-        {
-            loop {}
-        }
     }
     pub(crate) trait ForOverwrite<E, T: ?Sized> {
         fn for_overwrite() -> T
