@@ -12,34 +12,18 @@ tinyvec = { version = "1", default-features = false, features = ["alloc", "rustc
     derive_clone_copy_internals
 )]
 extern crate alloc;
-mod buf {
-    pub(crate) trait ReverseBuf {
-        fn prepend<B>(&mut self, _: B) {
-        }
-        fn prepend_slice(&mut self, _data: &[u8]) {
-        }
-        fn prepend_u8(&mut self, _n: u8) {
-        }
-        fn prepend_u32_le(&mut self, _n: u32) {
-        }
-    }
-}
 mod encoding {
-    use crate::buf::ReverseBuf;
     use crate::DecodeErrorKind::{
         NotCanonical, TagOverflowed, Truncated, UnknownField, WrongWireType,
     };
     use crate::{decode_length_delimiter, DecodeError, DecodeErrorKind};
-    use bytes::buf::Take;
     use bytes::Buf;
     use core::cmp::min;
     use core::ops::{Deref, DerefMut};
     mod encoding_traits {
-        use crate::buf::ReverseBuf;
         use crate::encoding::schema::{FieldRepr, Schema, ValueRepr};
         use crate::encoding::{
-            Capped, DecodeContext, RestrictedDecodeContext,
-            TagMeasurer, TagRevWriter, WireType,
+            Capped, DecodeContext, RestrictedDecodeContext, TagMeasurer, TagRevWriter, WireType,
         };
         use crate::{Canonicity, DecodeError};
         use bytes::Buf;
@@ -74,11 +58,7 @@ mod encoding {
                 I: ExactSizeIterator,
                 I::Item: Deref<Target = T>,
             {
-                let len = values.len();
-                Self::WIRE_TYPE.fixed_size().map_or_else(
-                    || values.map(|val| Self::value_encoded_len(&val)).sum(),
-                    |fixed_size| fixed_size * len,
-                )
+                0
             }
         }
         pub(crate) trait ValueDecoder<E, T>: ValueEncoder<E, T> {
@@ -114,12 +94,7 @@ mod encoding {
             ) -> Result<Canonicity, DecodeError>;
         }
         pub(crate) trait FieldEncoder<E, T: ?Sized>: ValueEncoder<E, T> {
-            fn prepend_field<B: ReverseBuf + ?Sized>(
-                tag: u32,
-                value: &T,
-                buf: &mut B,
-                tw: &mut TagRevWriter,
-            );
+            fn prepend_field<B: ?Sized>(tag: u32, value: &T, buf: &mut B, tw: &mut TagRevWriter);
             fn field_encoded_len(tag: u32, value: &T, tm: &mut impl TagMeasurer) -> usize;
         }
         pub(crate) trait FieldBorrowDecoder<'a, E, T>: ValueBorrowDecoder<'a, E, T> {
@@ -130,8 +105,7 @@ mod encoding {
                 ctx: DecodeContext,
             ) -> Result<(), DecodeError>;
         }
-        pub(crate) trait DistinguishedFieldBorrowDecoder<'a, E, T>:
-        {
+        pub(crate) trait DistinguishedFieldBorrowDecoder<'a, E, T> {
             fn borrow_decode_field_distinguished<const ALLOW_EMPTY: bool>(
                 wire_type: WireType,
                 value: &mut T,
@@ -143,7 +117,7 @@ mod encoding {
         where
             (): ValueEncoder<E, T>,
         {
-            fn prepend_field<B: ReverseBuf + ?Sized>(
+            fn prepend_field<B: ?Sized>(
                 _tag: u32,
                 _value: &T,
                 _buf: &mut B,
@@ -180,13 +154,10 @@ mod encoding {
         }
     }
     mod general {
-        
+
         use crate::encoding::schema::{Schema, ValueRepr};
-        use crate::encoding::{
-            EmptyState, MessageEncoding,
-            Varint,
-        };
-        
+        use crate::encoding::{EmptyState, MessageEncoding, Varint};
+
         use core::fmt::Display;
         const PREFER_UNPACKED: u8 = 0;
         const PREFER_PACKED: u8 = 1;
@@ -211,8 +182,7 @@ mod encoding {
             fn is_empty(__val: &__T) -> bool {
                 loop {}
             }
-            fn clear(__val: &mut __T) {
-            }
+            fn clear(__val: &mut __T) {}
         }
         impl<T, const P: u8> crate::encoding::schema::FieldRepr<GeneralGeneric<P>, T> for ()
         where
@@ -224,37 +194,29 @@ mod encoding {
                 loop {}
             }
         }
-        impl<const P: u8> crate::encoding::schema::ValueRepr<GeneralGeneric<P>, u64> for ()
-        where
-        {
+        impl<const P: u8> crate::encoding::schema::ValueRepr<GeneralGeneric<P>, u64> for () {
             fn repr(
                 _schema: &crate::encoding::schema::Schema,
             ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
                 loop {}
             }
         }
-        impl<const P: u8> crate::encoding::Wiretyped<GeneralGeneric<P>, u64> for ()
-        where
-        {
+        impl<const P: u8> crate::encoding::Wiretyped<GeneralGeneric<P>, u64> for () {
             const WIRE_TYPE: crate::encoding::WireType =
                 <() as crate::encoding::Wiretyped<Varint, u64>>::WIRE_TYPE;
         }
-        impl<const P: u8> crate::encoding::ValueEncoder<GeneralGeneric<P>, u64> for ()
-        where
-        {
+        impl<const P: u8> crate::encoding::ValueEncoder<GeneralGeneric<P>, u64> for () {
             fn value_encoded_len(_value: &u64) -> usize {
                 loop {}
             }
         }
-        impl<const P: u8> crate::encoding::ValueDecoder<GeneralGeneric<P>, u64> for ()
-        where
-        {
+        impl<const P: u8> crate::encoding::ValueDecoder<GeneralGeneric<P>, u64> for () {
             fn decode_value<__B: bytes::Buf + ?Sized>(
                 value: &mut u64,
                 buf: crate::encoding::Capped<__B>,
                 ctx: crate::encoding::DecodeContext,
             ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<Varint, _>>::decode_value(value, buf, ctx)
+                Ok(())
             }
         }
         mod delegate_to_message_encoding {
@@ -270,14 +232,13 @@ mod encoding {
         }
     }
     pub(crate) mod message {
-        use crate::buf::ReverseBuf;
         use crate::encoding::schema::{RegisterFields, Schema, ValueRepr};
         use crate::encoding::{
             Canonicity, Capped, DecodeContext, DistinguishedValueBorrowDecoder,
-            DistinguishedValueDecoder, RestrictedDecodeContext,
-            TagReader, ValueBorrowDecoder, ValueDecoder, ValueEncoder, WireType, Wiretyped,
+            DistinguishedValueDecoder, RestrictedDecodeContext, TagReader, ValueBorrowDecoder,
+            ValueDecoder, ValueEncoder, WireType, Wiretyped,
         };
-        
+
         use crate::DecodeError;
         use bytes::Buf;
         use core::any::Any;
@@ -300,11 +261,6 @@ mod encoding {
             mut buf: Capped<&'a [u8]>,
             _ctx: DecodeContext,
         ) -> Result<(), DecodeError> {
-            let tr = &mut TagReader::new();
-            let _last_tag = None::<u32>;
-            while buf.has_remaining()? {
-                let (_tag, _wire_type) = tr.decode_key(buf.lend())?;
-            }
             Ok(())
         }
         pub(crate) fn borrow_merge_distinguished<
@@ -324,7 +280,7 @@ mod encoding {
                 Self: Sized;
             fn is_empty(&self) -> bool;
             fn clear(&mut self);
-            fn raw_prepend<B: ReverseBuf + ?Sized>(&self, buf: &mut B);
+            fn raw_prepend<B: ?Sized>(&self, buf: &mut B);
         }
         pub(crate) trait RawMessageDecoder: RawMessage {
             fn raw_decode_field<B: Buf + ?Sized>(
@@ -342,23 +298,12 @@ mod encoding {
             fn raw_decode_field_distinguished<B: Buf + ?Sized>(
                 &mut self,
                 tag: u32,
-                wire_type: WireType,
-                duplicated: bool,
-                buf: Capped<B>,
-                ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError>
             where
                 Self: Sized;
         }
         pub(crate) trait RawMessageBorrowDecoder<'a>: RawMessage {
-            fn raw_borrow_decode_field(
-                &mut self,
-                tag: u32,
-                wire_type: WireType,
-                duplicated: bool,
-                buf: Capped<&'a [u8]>,
-                ctx: DecodeContext,
-            ) -> Result<(), DecodeError>
+            fn raw_borrow_decode_field(&mut self, tag: u32) -> Result<(), DecodeError>
             where
                 Self: Sized;
         }
@@ -378,8 +323,7 @@ mod encoding {
         where
             T: Any + RawMessage + RegisterFields,
         {
-            fn register(_schema: &Schema) {
-            }
+            fn register(_schema: &Schema) {}
         }
         impl<T> RawMessage for Box<T>
         where
@@ -387,51 +331,14 @@ mod encoding {
         {
             const __ASSERTIONS: () = ();
             fn empty() -> Self
-            where
-            {
+where {
                 loop {}
             }
             fn is_empty(&self) -> bool {
                 loop {}
             }
-            fn clear(&mut self) {
-            }
-            fn raw_prepend<B: ReverseBuf + ?Sized>(&self, _buf: &mut B) {
-            }
-        }
-        impl<T> RawMessageDecoder for Box<T>
-        where
-            T: RawMessageDecoder,
-        {
-            fn raw_decode_field<B: Buf + ?Sized>(
-                &mut self,
-                _tag: u32,
-                _wire_type: WireType,
-                _duplicated: bool,
-                _buf: Capped<B>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError>
-            where
-            {
-                loop {}
-            }
-        }
-        impl<'a, T> RawMessageBorrowDecoder<'a> for Box<T>
-        where
-            T: RawMessageBorrowDecoder<'a>,
-        {
-            fn raw_borrow_decode_field(
-                &mut self,
-                _tag: u32,
-                _wire_type: WireType,
-                _duplicated: bool,
-                _buf: Capped<&'a [u8]>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError>
-            where
-            {
-                loop {}
-            }
+            fn clear(&mut self) {}
+            fn raw_prepend<B: ?Sized>(&self, _buf: &mut B) {}
         }
         impl<'a, T> RawDistinguishedMessageBorrowDecoder<'a> for Box<T>
         where
@@ -445,14 +352,11 @@ mod encoding {
                 _buf: Capped<&'a [u8]>,
                 _ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError>
-            where
-            {
+where {
                 loop {}
             }
         }
-        impl<T> Wiretyped<MessageEncoding, T> for ()
-        where
-        {
+        impl<T> Wiretyped<MessageEncoding, T> for () {
             const WIRE_TYPE: WireType = WireType::LengthDelimited;
         }
         impl<T> ValueRepr<MessageEncoding, T> for ()
@@ -463,9 +367,7 @@ mod encoding {
                 loop {}
             }
         }
-        impl<T> ValueEncoder<MessageEncoding, T> for ()
-        where
-        {
+        impl<T> ValueEncoder<MessageEncoding, T> for () {
             fn value_encoded_len(_value: &T) -> usize {
                 0
             }
@@ -523,16 +425,13 @@ mod encoding {
     }
     mod packed {
         use crate::encoding::schema::{Schema, ValueRepr};
-        use crate::encoding::value_traits::{
-            Collection, EmptyState, ForOverwrite,
-        };
+        use crate::encoding::value_traits::{Collection, EmptyState, ForOverwrite};
         use crate::encoding::{
-            Canonicity, Capped,
-            DecodeContext, DecodeError, Decoder, DistinguishedValueDecoder, Encoder,
-            GeneralPacked, RestrictedDecodeContext, TagMeasurer, ValueBorrowDecoder,
+            Canonicity, Capped, DecodeContext, DecodeError, Decoder, DistinguishedValueDecoder,
+            Encoder, GeneralPacked, RestrictedDecodeContext, TagMeasurer, ValueBorrowDecoder,
             ValueDecoder, ValueEncoder, WireType, Wiretyped,
         };
-        
+
         use core::fmt::Display;
         pub(crate) struct Packed<E = GeneralPacked>(E);
         impl<E, __T> crate::encoding::ForOverwrite<Packed<E>, __T> for ()
@@ -548,13 +447,12 @@ mod encoding {
             (): crate::encoding::EmptyState<(), __T>,
         {
             fn empty() -> __T {
-                <() as crate::encoding::EmptyState<(), _>>::empty()
+                loop {}
             }
             fn is_empty(__val: &__T) -> bool {
-                <() as crate::encoding::EmptyState<(), _>>::is_empty(__val)
+                loop {}
             }
-            fn clear(__val: &mut __T) {
-            }
+            fn clear(__val: &mut __T) {}
         }
         impl<E, T: ?Sized> Wiretyped<Packed<E>, T> for () {
             const WIRE_TYPE: WireType = WireType::LengthDelimited;
@@ -580,7 +478,7 @@ mod encoding {
         impl<C, T, E> Encoder<Packed<E>, C> for ()
         where
             C: Collection<Item = T>,
-            (): EmptyState<(), C>
+            (): EmptyState<(), C>,
         {
             fn encoded_len(_tag: u32, _value: &C, _tm: &mut impl TagMeasurer) -> usize {
                 0
@@ -719,13 +617,12 @@ mod encoding {
     }
 
     mod plain_bytes {
-        
+
         use crate::encoding::schema::{Schema, ValueRepr};
         use crate::encoding::{
-            const_varint, encoded_len_varint, Canonicity, Capped, DecodeContext,
-            DecodeError, DistinguishedValueBorrowDecoder, DistinguishedValueDecoder,
-            RestrictedDecodeContext, ValueBorrowDecoder, ValueDecoder, ValueEncoder, WireType,
-            Wiretyped,
+            encoded_len_varint, Canonicity, Capped, DecodeContext, DecodeError,
+            DistinguishedValueBorrowDecoder, DistinguishedValueDecoder, RestrictedDecodeContext,
+            ValueBorrowDecoder, ValueDecoder, ValueEncoder, WireType, Wiretyped,
         };
         use crate::DecodeErrorKind::InvalidValue;
         use alloc::borrow::Cow;
@@ -750,17 +647,11 @@ mod encoding {
         where
             (): crate::encoding::EmptyState<(), __T>,
         {
-            fn empty() -> __T {
-                <() as crate::encoding::EmptyState<(), _>>::empty()
-            }
-
             fn is_empty(__val: &__T) -> bool {
-                <() as crate::encoding::EmptyState<(), _>>::is_empty(__val)
+                loop {}
             }
 
-            fn clear(__val: &mut __T) {
-                <() as crate::encoding::EmptyState<(), _>>::clear(__val);
-            }
+            fn clear(__val: &mut __T) {}
         }
 
         impl<T> crate::encoding::schema::FieldRepr<PlainBytes, T> for ()
@@ -770,7 +661,7 @@ mod encoding {
             fn repr(
                 schema: &crate::encoding::schema::Schema,
             ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::ValueRepr<PlainBytes, T>>::repr(schema)
+                loop {}
             }
         }
 
@@ -784,16 +675,9 @@ mod encoding {
                 value: &T,
                 tm: &mut impl crate::encoding::TagMeasurer,
             ) -> usize {
-                if !<() as crate::encoding::EmptyState<PlainBytes, T>>::is_empty(value) {
-                    <() as crate::encoding::FieldEncoder<PlainBytes, T>>::field_encoded_len(
-                        tag, value, tm,
-                    )
-                } else {
-                    0
-                }
+                0
             }
         }
-
 
         impl<'__a, T> crate::encoding::BorrowDecoder<'__a, PlainBytes, T> for ()
         where
@@ -806,9 +690,7 @@ mod encoding {
                 buf: crate::encoding::Capped<&'__a [u8]>,
                 ctx: crate::encoding::DecodeContext,
             ) -> ::core::result::Result<(), crate::DecodeError> {
-                <() as crate::encoding::FieldBorrowDecoder<PlainBytes, _>>::borrow_decode_field(
-                    wire_type, value, buf, ctx,
-                )
+                loop {}
             }
         }
 
@@ -818,13 +700,13 @@ mod encoding {
 
         impl ValueRepr<PlainBytes, &[u8]> for () {
             fn repr(_: &Schema) -> Box<dyn Display> {
-                Box::new("delimited bytes")
+                loop {}
             }
         }
 
         impl ValueEncoder<PlainBytes, &[u8]> for () {
             fn value_encoded_len(value: &&[u8]) -> usize {
-                encoded_len_varint(value.len() as u64) + value.len()
+                0
             }
         }
 
@@ -834,7 +716,6 @@ mod encoding {
                 mut buf: Capped<&'a [u8]>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                *value = buf.take_borrowed_length_delimited()?;
                 Ok(())
             }
         }
@@ -847,7 +728,6 @@ mod encoding {
                 mut buf: Capped<&'a [u8]>,
                 _ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
-                *value = buf.take_borrowed_length_delimited()?;
                 Ok(Canonicity::Canonical)
             }
         }
@@ -886,7 +766,6 @@ mod encoding {
                 buf: Capped<impl Buf + ?Sized>,
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
-                <() as ValueDecoder<PlainBytes, _>>::decode_value(value, buf, ctx.into_inner())?;
                 Ok(Canonicity::Canonical)
             }
         }
@@ -900,7 +779,7 @@ mod encoding {
                 buf: crate::encoding::Capped<&'__a [u8]>,
                 ctx: crate::encoding::DecodeContext,
             ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<PlainBytes, _>>::decode_value(value, buf, ctx)
+                Ok(())
             }
         }
 
@@ -918,13 +797,7 @@ mod encoding {
                 buf: crate::encoding::Capped<&'__a [u8]>,
                 ctx: crate::encoding::RestrictedDecodeContext,
             ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate
-                ::encoding
-                ::DistinguishedValueDecoder<PlainBytes, _>>::decode_value_distinguished::<ALLOW_EMPTY>(
-                    value,
-                    buf,
-                    ctx,
-                )
+                loop {}
             }
         }
 
@@ -938,10 +811,7 @@ mod encoding {
             fn repr(
                 schema: &crate::encoding::schema::Schema,
             ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::FieldRepr<
-                    crate::encoding::Unpacked<PlainBytes>,
-                    Vec<Cow<'a, [u8]>>,
-                >>::repr(schema)
+                loop {}
             }
         }
 
@@ -954,27 +824,7 @@ mod encoding {
                 value: &Vec<Cow<'a, [u8]>>,
                 tm: &mut impl crate::encoding::TagMeasurer,
             ) -> usize {
-                <() as crate::encoding::Encoder<crate::encoding::Unpacked<PlainBytes>, _>>::encoded_len(
-                    tag,
-                    value,
-                    tm,
-                )
-            }
-        }
-
-        impl<'a> crate::encoding::Decoder<PlainBytes, Vec<Cow<'a, [u8]>>> for ()
-        where
-            (): crate::encoding::Decoder<crate::encoding::Unpacked<PlainBytes>, Vec<Cow<'a, [u8]>>>,
-        {
-            fn decode<B: bytes::Buf + ?Sized>(
-                wire_type: crate::encoding::WireType,
-                value: &mut Vec<Cow<'a, [u8]>>,
-                buf: crate::encoding::Capped<B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::Decoder<crate::encoding::Unpacked<PlainBytes>, _>>::decode(
-                    wire_type, value, buf, ctx,
-                )
+                0
             }
         }
 
@@ -992,12 +842,7 @@ mod encoding {
                 buf: crate::encoding::Capped<&'__a [u8]>,
                 ctx: crate::encoding::DecodeContext,
             ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::BorrowDecoder<crate::encoding::Unpacked<PlainBytes>, _>>::borrow_decode(
-                    wire_type,
-                    value,
-                    buf,
-                    ctx,
-                )
+                Ok(())
             }
         }
 
@@ -1027,11 +872,7 @@ mod encoding {
                 value: &Vec<&'a [u8]>,
                 tm: &mut impl crate::encoding::TagMeasurer,
             ) -> usize {
-                <() as crate::encoding::Encoder<crate::encoding::Unpacked<PlainBytes>, _>>::encoded_len(
-                    tag,
-                    value,
-                    tm,
-                )
+                0
             }
         }
 
@@ -1049,12 +890,7 @@ mod encoding {
                 buf: crate::encoding::Capped<&'__a [u8]>,
                 ctx: crate::encoding::DecodeContext,
             ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::BorrowDecoder<crate::encoding::Unpacked<PlainBytes>, _>>::borrow_decode(
-                    wire_type,
-                    value,
-                    buf,
-                    ctx,
-                )
+                Ok(())
             }
         }
 
@@ -1068,10 +904,7 @@ mod encoding {
             fn repr(
                 schema: &crate::encoding::schema::Schema,
             ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-                <() as crate::encoding::schema::FieldRepr<
-                    crate::encoding::Unpacked<PlainBytes>,
-                    Vec<&'a [u8; N]>,
-                >>::repr(schema)
+                loop {}
             }
         }
 
@@ -1084,11 +917,7 @@ mod encoding {
                 value: &Vec<&'a [u8; N]>,
                 tm: &mut impl crate::encoding::TagMeasurer,
             ) -> usize {
-                <() as crate::encoding::Encoder<crate::encoding::Unpacked<PlainBytes>, _>>::encoded_len(
-                    tag,
-                    value,
-                    tm,
-                )
+                0
             }
         }
 
@@ -1102,9 +931,7 @@ mod encoding {
                 buf: crate::encoding::Capped<B>,
                 ctx: crate::encoding::DecodeContext,
             ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::Decoder<crate::encoding::Unpacked<PlainBytes>, _>>::decode(
-                    wire_type, value, buf, ctx,
-                )
+                Ok(())
             }
         }
 
@@ -1123,24 +950,13 @@ mod encoding {
                 buf: crate::encoding::Capped<&'__a [u8]>,
                 ctx: crate::encoding::DecodeContext,
             ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::BorrowDecoder<crate::encoding::Unpacked<PlainBytes>, _>>::borrow_decode(
-                    wire_type,
-                    value,
-                    buf,
-                    ctx,
-                )
+                Ok(())
             }
-        }
-
-        impl<const N: usize> Wiretyped<PlainBytes, [u8; N]> for () {
-            const WIRE_TYPE: WireType = WireType::LengthDelimited;
         }
 
         impl<const N: usize> ValueRepr<PlainBytes, [u8; N]> for () {
             fn repr(_: &Schema) -> Box<dyn Display> {
-                Box::new(::alloc::__export::must_use({
-                    ::alloc::fmt::format(format_args!("delimited bytes, exactly {0}", N))
-                }))
+                loop {}
             }
         }
 
@@ -1158,14 +974,6 @@ mod encoding {
             fn value_encoded_len(value: &&'a [u8; N]) -> usize {
                 <() as ValueEncoder<PlainBytes, _>>::value_encoded_len(&value.as_slice())
             }
-
-            fn many_values_encoded_len<I>(values: I) -> usize
-            where
-                I: ExactSizeIterator,
-                I::Item: Deref<Target = &'a [u8; N]>,
-            {
-                values.len() * (const_varint(N as u64).len() + N)
-            }
         }
 
         impl<'a, const N: usize> ValueBorrowDecoder<'a, PlainBytes, &'a [u8; N]> for () {
@@ -1174,34 +982,13 @@ mod encoding {
                 mut buf: Capped<&'a [u8]>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                *value = buf
-                    .take_borrowed_length_delimited()?
-                    .try_into()
-                    .map_err(|_| InvalidValue)?;
                 Ok(())
-            }
-        }
-
-        impl<'a, const N: usize> DistinguishedValueBorrowDecoder<'a, PlainBytes, &'a [u8; N]> for () {
-            const CHECKS_EMPTY: bool = false;
-
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut &'a [u8; N],
-                buf: Capped<&'a [u8]>,
-                ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
-                <() as ValueBorrowDecoder<PlainBytes, _>>::borrow_decode_value(
-                    value,
-                    buf,
-                    ctx.into_inner(),
-                )?;
-                Ok(Canonicity::Canonical)
             }
         }
     }
 
     mod proxy {
-        
+
         use crate::encoding::schema::{Schema, ValueRepr};
         use crate::encoding::{
             Capped, DecodeContext, DistinguishedValueBorrowDecoder, DistinguishedValueDecoder,
@@ -1245,7 +1032,7 @@ mod encoding {
             (): ValueRepr<E, T::Proxy>,
         {
             fn repr(schema: &Schema) -> Box<dyn Display> {
-                <() as ValueRepr<E, T::Proxy>>::repr(schema)
+                loop {}
             }
         }
 
@@ -1255,7 +1042,7 @@ mod encoding {
             (): ForOverwrite<E, T::Proxy> + ValueEncoder<E, T::Proxy>,
         {
             fn value_encoded_len(value: &T) -> usize {
-                <() as ValueEncoder<E, _>>::value_encoded_len(&value.encode_proxy())
+                0
             }
 
             fn many_values_encoded_len<I>(values: I) -> usize
@@ -1263,36 +1050,7 @@ mod encoding {
                 I: ExactSizeIterator,
                 I::Item: Deref<Target = T>,
             {
-                #[repr(transparent)]
-                struct WrapDeref<T>(T);
-
-                impl<T> Deref for WrapDeref<T> {
-                    type Target = T;
-
-                    fn deref(&self) -> &Self::Target {
-                        &self.0
-                    }
-                }
-
-                <() as ValueEncoder<E, _>>::many_values_encoded_len(
-                    values.map(|item| WrapDeref(item.encode_proxy())),
-                )
-            }
-        }
-
-        impl<T, E, Tag> ValueDecoder<Proxied<E, Tag>, T> for ()
-        where
-            T: Proxiable<Tag>,
-            (): ForOverwrite<E, T::Proxy> + ValueDecoder<E, T::Proxy>,
-        {
-            fn decode_value<B: Buf + ?Sized>(
-                value: &mut T,
-                buf: Capped<B>,
-                ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                let mut proxy = <() as ForOverwrite<E, T::Proxy>>::for_overwrite();
-                <() as ValueDecoder<E, _>>::decode_value(&mut proxy, buf, ctx)?;
-                Ok(value.decode_proxy(proxy)?)
+                0
             }
         }
 
@@ -1308,13 +1066,7 @@ mod encoding {
                 buf: Capped<impl Buf + ?Sized>,
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
-                let mut proxy = <() as ForOverwrite<E, T::Proxy>>::for_overwrite();
-                let mut canon =
-                    <() as DistinguishedValueDecoder<E, _>>::decode_value_distinguished::<
-                        ALLOW_EMPTY,
-                    >(&mut proxy, buf, ctx.clone())?;
-                canon.update(ctx.check(value.decode_proxy_distinguished(proxy)?)?);
-                Ok(canon)
+                loop {}
             }
         }
 
@@ -1328,9 +1080,7 @@ mod encoding {
                 buf: Capped<&'a [u8]>,
                 ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                let mut proxy = <() as ForOverwrite<E, T::Proxy>>::for_overwrite();
-                <() as ValueBorrowDecoder<E, _>>::borrow_decode_value(&mut proxy, buf, ctx)?;
-                Ok(value.decode_proxy(proxy)?)
+                Ok(())
             }
         }
 
@@ -1347,15 +1097,7 @@ mod encoding {
                 buf: Capped<&'a [u8]>,
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
-                let mut proxy = <() as ForOverwrite<E, T::Proxy>>::for_overwrite();
-                let mut canon =
-                    <() as DistinguishedValueBorrowDecoder<E, _>>::borrow_decode_value_distinguished::<ALLOW_EMPTY>(
-                        &mut proxy,
-                        buf,
-                        ctx.clone(),
-                    )?;
-                canon.update(ctx.check(value.decode_proxy_distinguished(proxy)?)?);
-                Ok(canon)
+                loop {}
             }
         }
     }
@@ -1427,22 +1169,15 @@ mod encoding {
             message_wrappers: Guard<BTreeMap<TypeId, TypeId>>,
         }
 
-        #[automatically_derived]
         impl ::core::default::Default for MessageSet {
             fn default() -> MessageSet {
-                MessageSet {
-                    types: ::core::default::Default::default(),
-                    subtypes: ::core::default::Default::default(),
-                    type_index: ::core::default::Default::default(),
-                    alternate_names: ::core::default::Default::default(),
-                    message_wrappers: ::core::default::Default::default(),
-                }
+                loop {}
             }
         }
 
         impl Schema {
             pub(crate) fn new() -> Self {
-                Self(MessageSet::default().into())
+                loop {}
             }
 
             pub(crate) fn register_message<M: Any + ?Sized>(
@@ -1473,20 +1208,6 @@ mod encoding {
                 name: &str,
                 fields: impl Fn(&mut EnumInfo),
             ) {
-                if self.0.types.read_guarded().contains_key(&TypeId::of::<E>()) {
-                    return;
-                }
-                let info = match self.0.types.get_guarded().entry(TypeId::of::<E>()) {
-                    Entry::Vacant(entry) => entry
-                        .insert(Arc::new(Guard::new(TypeInfo::Enum(EnumInfo::new(name)))))
-                        .clone(),
-                    Entry::Occupied(_) => return,
-                };
-                let mut info_ref = info.get_guarded();
-                let TypeInfo::Enum(enum_info) = info_ref.deref_mut() else {
-                    ::core::panicking::panic("internal error: entered unreachable code");
-                };
-                fields(enum_info)
             }
 
             pub(crate) fn register_oneof_messages<T: Any + ?Sized>(
@@ -1494,120 +1215,20 @@ mod encoding {
                 name: &str,
                 variants: impl Fn(&mut OneofMessages),
             ) {
-                if self
-                    .0
-                    .subtypes
-                    .read_guarded()
-                    .contains_key(&TypeId::of::<T>())
-                {
-                    return;
-                }
-                let info = match self.0.subtypes.get_guarded().entry(TypeId::of::<T>()) {
-                    Entry::Vacant(entry) => entry
-                        .insert(Arc::new(Guard::new(OneofMessages::new(name))))
-                        .clone(),
-                    Entry::Occupied(_) => return,
-                };
-                let mut info_ref = info.get_guarded();
-                variants(info_ref.deref_mut())
             }
 
             fn wrapped_type_id(&self, type_id: TypeId) -> TypeId {
-                let mut effective_id = type_id;
-                let wrappers = self.0.message_wrappers.read_guarded();
-                while let Some(&wrapped_id) = wrappers.get(&effective_id) {
-                    effective_id = wrapped_id;
-                }
-                effective_id
+                loop {}
             }
 
-            pub(crate) fn register_message_wrapper<W: Any + ?Sized, M: Any + ?Sized>(&self) {
-                let wrapper_type_id = TypeId::of::<W>();
-                let referenced_type_id = TypeId::of::<M>();
-                let root_type_id = self.wrapped_type_id(referenced_type_id);
-                if root_type_id == wrapper_type_id {
-                    return;
-                }
-                self.0
-                    .message_wrappers
-                    .get_guarded()
-                    .insert(wrapper_type_id, referenced_type_id);
-            }
-
-            pub(crate) fn register_type_alias<T: Any + ?Sized>(&self, name: &str) {
-                self.0
-                    .alternate_names
-                    .get_guarded()
-                    .entry(TypeId::of::<T>())
-                    .or_default()
-                    .insert(name.to_owned());
-            }
+            pub(crate) fn register_message_wrapper<W: Any + ?Sized, M: Any + ?Sized>(&self) {}
 
             pub(crate) fn type_reference<M: Any + ?Sized>(&self) -> String {
-                let effective_id = self.wrapped_type_id(TypeId::of::<M>());
-                let types = self.0.types.read_guarded();
-                let Some(type_info) = types.get(&effective_id) else {
-                    return ::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "<!! type {0:?} is not registered as a message !!>",
-                            type_name::<M>()
-                        ))
-                    });
-                };
-                let type_info = type_info.read_guarded();
-                let name = type_info.name();
-                if let Some(ordinal) = self.0.type_index.read_guarded().get(&(effective_id, None)) {
-                    ::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!("{0} [{1}]", name, ordinal))
-                    })
-                } else {
-                    ::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "{0} <!! no ordinal for {1:?} !!>",
-                            name, effective_id
-                        ))
-                    })
-                }
+                loop {}
             }
 
             pub(crate) fn subtype_reference<M: Any + ?Sized, const TAG: u32>(&self) -> String {
-                let id = self.wrapped_type_id(TypeId::of::<M>());
-                let subtypes = self.0.subtypes.read_guarded();
-                let Some(oneof_info) = subtypes.get(&id) else {
-                    return ::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "<!! type {0:?} is not registered as a oneof with subtypes !!>",
-                            type_name::<M>(),
-                        ))
-                    });
-                };
-                let oneof_info = oneof_info.read_guarded();
-                let Some(message) = oneof_info.variants.get(&TAG) else {
-                    return ::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "<!! type {0:?} does not have a registered variant with tag {1} !!>",
-                            type_name::<M>(),
-                            TAG,
-                        ))
-                    });
-                };
-                let name = &oneof_info.oneof_name;
-                let variant_name = &message.message_name;
-                if let Some(ordinal) = self.0.type_index.read_guarded().get(&(id, Some(TAG))) {
-                    ::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "{0}::{1} [{2}]",
-                            name, variant_name, ordinal
-                        ))
-                    })
-                } else {
-                    ::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "{0}::{1} <!! no ordinal for {2:?} !!>",
-                            name, variant_name, id
-                        ))
-                    })
-                }
+                loop {}
             }
 
             pub(crate) fn make_lazy_repr<A, D>(&self, a: A) -> Box<dyn Display>
@@ -1615,129 +1236,10 @@ mod encoding {
                 A: 'static + Fn(&Schema) -> D,
                 D: Display,
             {
-                struct LazyRepr<A> {
-                    schema: Schema,
-                    func: A,
-                }
-
-                impl<A, D: Display> Display for LazyRepr<A>
-                where
-                    A: 'static + Fn(&Schema) -> D,
-                {
-                    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-                        (self.func)(&self.schema).fmt(f)
-                    }
-                }
-
-                Box::new(LazyRepr {
-                    schema: self.clone(),
-                    func: a,
-                })
+                loop {}
             }
             fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-                let types = self.0.types.read_guarded();
-                let subtypes = self.0.subtypes.read_guarded();
-
-                struct TypeEntry {
-                    type_name: String,
-                    subtype_name: Option<String>,
-                    type_id: TypeId,
-                    subtype_tag: Option<u32>,
-                }
-
-                #[automatically_derived]
-                impl ::core::cmp::PartialEq for TypeEntry {
-                    fn eq(&self, other: &TypeEntry) -> bool {
-                        self.type_name == other.type_name
-                    }
-                }
-
-                #[automatically_derived]
-                impl ::core::cmp::Eq for TypeEntry {
-                    fn assert_fields_are_eq(&self) {
-                        let _: ::core::cmp::AssertParamIsEq<Option<u32>>;
-                    }
-                }
-
-                #[automatically_derived]
-                impl ::core::cmp::PartialOrd for TypeEntry {
-                    fn partial_cmp(
-                        &self,
-                        other: &TypeEntry,
-                    ) -> ::core::option::Option<::core::cmp::Ordering> {
-                        ::core::option::Option::Some(::core::cmp::Ord::cmp(self, other))
-                    }
-                }
-
-                #[automatically_derived]
-                impl ::core::cmp::Ord for TypeEntry {
-                    fn cmp(&self, other: &TypeEntry) -> ::core::cmp::Ordering {
-                        match ::core::cmp::Ord::cmp(&self.type_name, &other.type_name) {
-                            ::core::cmp::Ordering::Equal => {
-                                match ::core::cmp::Ord::cmp(&self.subtype_name, &other.subtype_name)
-                                {
-                                    ::core::cmp::Ordering::Equal => {
-                                        match ::core::cmp::Ord::cmp(&self.type_id, &other.type_id) {
-                                            ::core::cmp::Ordering::Equal => ::core::cmp::Ord::cmp(
-                                                &self.subtype_tag,
-                                                &other.subtype_tag,
-                                            ),
-                                            cmp => cmp,
-                                        }
-                                    }
-                                    cmp => cmp,
-                                }
-                            }
-                            cmp => cmp,
-                        }
-                    }
-                }
-
-                let mut ordered = BTreeSet::new();
-                for (&type_id, info) in types.iter() {
-                    let info = info.read_guarded();
-                    ordered.insert(TypeEntry {
-                        type_name: info.name().to_owned(),
-                        subtype_name: None,
-                        type_id,
-                        subtype_tag: None,
-                    });
-                }
-                for (&type_id, info) in subtypes.iter() {
-                    let info = info.read_guarded();
-                    for (&subtype_tag, subinfo) in info.variants.iter() {
-                        ordered.insert(TypeEntry {
-                            type_name: info.oneof_name.clone(),
-                            subtype_name: Some(subinfo.message_name.clone()),
-                            type_id,
-                            subtype_tag: Some(subtype_tag),
-                        });
-                    }
-                }
-                {
-                    let mut index = self.0.type_index.get_guarded();
-                    *index = ordered
-                        .iter()
-                        .map(|entry| (entry.type_id, entry.subtype_tag))
-                        .zip(1..)
-                        .collect();
-                }
-                let mut first_print = true;
-                for (
-                    TypeEntry {
-                        type_id: _,
-                        subtype_tag: _,
-                        ..
-                    },
-                    _ordinal,
-                ) in ordered.iter().zip(1..)
-                {
-                    if first_print {
-                        f.write_fmt(format_args!("\n"))?;
-                        first_print = false;
-                    }
-                }
-                Ok(())
+                loop {}
             }
         }
 
@@ -1748,10 +1250,7 @@ mod encoding {
 
         impl TypeInfo {
             fn name(&self) -> &str {
-                match self {
-                    TypeInfo::Message(message_fields) => &message_fields.message_name,
-                    TypeInfo::Enum(enum_info) => &enum_info.enum_name,
-                }
+                ""
             }
         }
 
@@ -1763,22 +1262,16 @@ mod encoding {
 
         impl MessageFields {
             fn new(name: &str) -> Self {
-                Self {
-                    message_name: name.to_owned(),
-                    fields: Default::default(),
-                    oneofs: Default::default(),
-                }
+                loop {}
             }
 
-            pub(crate) fn add_field(&mut self, _name: &str, _tag: u32, _repr: Box<dyn Display>) {
-            }
+            pub(crate) fn add_field(&mut self, _name: &str, _tag: u32, _repr: Box<dyn Display>) {}
 
             pub(crate) fn add_oneof(&mut self, _oneof_name: &str, _tags: &[u32]) {
                 loop {}
             }
 
-            fn display(
-            ) -> core::fmt::Result {
+            fn display() -> core::fmt::Result {
                 loop {}
             }
         }
@@ -1795,15 +1288,10 @@ mod encoding {
 
         impl EnumInfo {
             fn new(name: &str) -> Self {
-                Self {
-                    enum_name: name.to_owned(),
-                    values: Default::default(),
-                }
+                loop {}
             }
 
-            pub(crate) fn add_value(&mut self, name: &str, value: u32) {
-                self.values.insert(value, name.to_owned());
-            }
+            pub(crate) fn add_value(&mut self, name: &str, value: u32) {}
         }
 
         pub(crate) struct OneofMessages {
@@ -1825,16 +1313,6 @@ mod encoding {
                 tag: u32,
                 fields: impl Fn(&mut MessageFields),
             ) {
-                let Entry::Vacant(entry) = self.variants.entry(tag) else {
-                    {
-                        ::core::panicking::panic_fmt(format_args!(
-                            "multiple variants added with the tag {0}",
-                            tag
-                        ));
-                    };
-                };
-                let msg = entry.insert(MessageFields::new(name));
-                fields(msg);
             }
         }
 
@@ -1867,12 +1345,10 @@ mod encoding {
 
             impl EmptyState<(), bytes::Bytes> for () {
                 fn is_empty(val: &bytes::Bytes) -> bool {
-                    bytes::Bytes::is_empty(val)
+                    false
                 }
 
-                fn clear(val: &mut bytes::Bytes) {
-                    *val = <() as EmptyState<(), _>>::empty();
-                }
+                fn clear(val: &mut bytes::Bytes) {}
             }
         }
 
@@ -1883,25 +1359,6 @@ mod encoding {
             use crate::DecodeErrorKind;
             use alloc::borrow::{Cow, ToOwned};
             use alloc::boxed::Box;
-
-            impl crate::encoding::ForOverwrite<(), String> for ()
-            where
-                String: ::core::default::Default,
-            {
-                fn for_overwrite() -> String {
-                    ::core::default::Default::default()
-                }
-            }
-
-            impl EmptyState<(), String> for () {
-                fn is_empty(val: &String) -> bool {
-                    val.is_empty()
-                }
-
-                fn clear(val: &mut String) {
-                    val.clear();
-                }
-            }
 
             impl<'a, T> crate::encoding::ForOverwrite<(), Cow<'a, T>> for ()
             where
@@ -1952,7 +1409,6 @@ mod encoding {
             where
                 (): EmptyState<(), T>,
             {
-
                 fn is_empty(val: &Box<T>) -> bool {
                     <() as EmptyState<(), T>>::is_empty(val.as_ref())
                 }
@@ -2132,12 +1588,9 @@ mod encoding {
         }
 
         mod tinyvec {
-            
-            use crate::encoding::{
-                Collection, EmptyState,
-            };
+
+            use crate::encoding::{Collection, EmptyState};
             use crate::DecodeErrorKind;
-            
 
             impl<A> crate::encoding::ForOverwrite<(), tinyvec::ArrayVec<A>> for ()
             where
@@ -2193,22 +1646,20 @@ mod encoding {
     }
 
     mod unpacked {
-        
+
         use crate::encoding::schema::{FieldRepr, Schema, ValueRepr};
         use crate::encoding::value_traits::{
             Collection, DistinguishedCollection, EmptyState, ForOverwrite,
         };
         use crate::encoding::{
-            BorrowDecoder, Capped, DecodeContext, Decoder,
-            DistinguishedValueBorrowDecoder,
-            DistinguishedValueDecoder, Encoder, GeneralPacked, Packed,
-            RestrictedDecodeContext, TagMeasurer, ValueBorrowDecoder, ValueDecoder,
-            ValueEncoder, WireType, Wiretyped,
+            BorrowDecoder, Capped, DecodeContext, Decoder, DistinguishedValueBorrowDecoder,
+            DistinguishedValueDecoder, Encoder, GeneralPacked, Packed, RestrictedDecodeContext,
+            TagMeasurer, ValueBorrowDecoder, ValueDecoder, ValueEncoder, WireType, Wiretyped,
         };
-        
+
         use crate::{Canonicity, DecodeError};
         use alloc::boxed::Box;
-        
+
         use core::fmt::Display;
 
         pub(crate) struct Unpacked<E = GeneralPacked>(E);
@@ -2218,7 +1669,7 @@ mod encoding {
             (): crate::encoding::ForOverwrite<(), __T>,
         {
             fn for_overwrite() -> __T {
-                <() as crate::encoding::ForOverwrite<(), _>>::for_overwrite()
+                loop {}
             }
         }
 
@@ -2226,13 +1677,12 @@ mod encoding {
         where
             (): crate::encoding::EmptyState<(), __T>,
         {
-
             fn is_empty(__val: &__T) -> bool {
-                <() as crate::encoding::EmptyState<(), _>>::is_empty(__val)
+                loop {}
             }
 
             fn clear(__val: &mut __T) {
-                <() as crate::encoding::EmptyState<(), _>>::clear(__val);
+                loop {}
             }
         }
 
@@ -2242,39 +1692,6 @@ mod encoding {
             pub(crate) fn decode<T, E>(
                 _wire_type: WireType,
                 _collection: &mut T,
-                _buf: Capped<impl bytes::Buf + ?Sized>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError>
-            where
-                T: Collection,
-                (): EmptyState<(), T> + ForOverwrite<E, T::Item> + ValueDecoder<E, T::Item>,
-            {
-                Ok(())
-            }
-
-            pub(super) fn decode_array_either_repr<T, const N: usize, E>(
-                wire_type: WireType,
-                arr: &mut [T; N],
-                buf: Capped<impl bytes::Buf + ?Sized>,
-                ctx: DecodeContext,
-            ) -> Result<(), DecodeError>
-            where
-                (): ValueDecoder<E, T>,
-            {
-                if wire_type == WireType::LengthDelimited
-                    && <() as Wiretyped<E, T>>::WIRE_TYPE != WireType::LengthDelimited
-                {
-                    <() as ValueDecoder<Packed<E>, _>>::decode_value(arr, buf, ctx)
-                } else {
-                    decode_array_unpacked_only(wire_type, arr, buf, ctx)
-                }
-            }
-
-            pub(crate) fn decode_array_unpacked_only<T, const N: usize, E>(
-                _wire_type: WireType,
-                _arr: &mut [T; N],
-                _buf: Capped<impl bytes::Buf + ?Sized>,
-                _ctx: DecodeContext,
             ) -> Result<(), DecodeError>
             where
                 (): ValueDecoder<E, T>,
@@ -2282,12 +1699,7 @@ mod encoding {
                 Ok(())
             }
 
-            pub(crate) fn decode_distinguished<T, E>(
-                _wire_type: WireType,
-                _collection: &mut T,
-                _buf: Capped<impl bytes::Buf + ?Sized>,
-                _ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError>
+            pub(crate) fn decode_distinguished<T, E>() -> Result<Canonicity, DecodeError>
             where
                 T: DistinguishedCollection,
                 T::Item: Eq,
@@ -2308,15 +1720,7 @@ mod encoding {
                 T: Eq,
                 (): ValueDecoder<E, T> + DistinguishedValueDecoder<E, T>,
             {
-                if wire_type == WireType::LengthDelimited
-                    && <() as Wiretyped<E, T>>::WIRE_TYPE != WireType::LengthDelimited
-                {
-                    _ = ctx.check(Canonicity::NotCanonical)?;
-                    <() as ValueDecoder<Packed<E>, _>>::decode_value(arr, buf, ctx.into_inner())?;
-                    Ok(Canonicity::NotCanonical)
-                } else {
-                    decode_distinguished_array_unpacked_only(wire_type, arr, buf, ctx)
-                }
+                loop {}
             }
 
             fn decode_distinguished_array_unpacked_only<T, const N: usize, E>(
@@ -2335,22 +1739,6 @@ mod encoding {
 
         pub(crate) mod borrowed {
             use super::*;
-
-            pub(crate) fn decode<'__a, T, E>(
-                _wire_type: WireType,
-                _collection: &mut T,
-                _buf: Capped<&'__a [u8]>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError>
-            where
-                T: Collection,
-                (): EmptyState<(), T>
-                    + ForOverwrite<E, T::Item>
-                    + ValueBorrowDecoder<'__a, E, T::Item>,
-            {
-                Ok(())
-            }
-
             pub(super) fn decode_array_either_repr<'__a, T, const N: usize, E>(
                 _wire_type: WireType,
                 _arr: &mut [T; N],
@@ -2469,7 +1857,6 @@ mod encoding {
         where
             (): ValueEncoder<E, T>,
         {
-
             fn encoded_len(_tag: u32, _value: &[T], _tm: &mut impl TagMeasurer) -> usize {
                 0
             }
@@ -2488,7 +1875,11 @@ mod encoding {
         where
             (): ValueEncoder<E, T> + ForOverwrite<E, [T; N]>,
         {
-            fn encoded_len(_tag: u32, _value: &Option<[T; N]>, _tm: &mut impl TagMeasurer) -> usize {
+            fn encoded_len(
+                _tag: u32,
+                _value: &Option<[T; N]>,
+                _tm: &mut impl TagMeasurer,
+            ) -> usize {
                 0
             }
         }
@@ -2584,8 +1975,7 @@ mod encoding {
                 loop {}
             }
 
-            fn clear(__val: &mut ::core::option::Option<__T>) {
-            }
+            fn clear(__val: &mut ::core::option::Option<__T>) {}
         }
 
         impl<__T, const __N: usize> crate::encoding::ForOverwrite<(), [__T; __N]> for ()
@@ -2614,8 +2004,7 @@ mod encoding {
                 loop {}
             }
 
-            fn clear(_val: &mut [__T; __N]) {
-            }
+            fn clear(_val: &mut [__T; __N]) {}
         }
 
         pub(crate) trait Enumeration: Eq + Sized {
@@ -2687,10 +2076,6 @@ mod encoding {
                 Self::Key: 'a,
                 Self::Value: 'a,
                 Self: 'a;
-
-            fn len(&self) -> usize;
-            fn iter(&self) -> Self::RefIter<'_>;
-            fn reversed(&self) -> Self::ReverseIter<'_>;
             fn insert(&mut self, key: Self::Key, value: Self::Value)
                 -> Result<(), DecodeErrorKind>;
         }
@@ -2708,7 +2093,7 @@ mod encoding {
     }
 
     mod varint {
-        
+
         use crate::encoding::schema::{Schema, ValueRepr};
         use crate::encoding::{
             Buf, Canonicity, Capped, DecodeContext, DistinguishedValueDecoder,
@@ -2735,13 +2120,12 @@ mod encoding {
         where
             (): crate::encoding::EmptyState<(), __T>,
         {
-
             fn is_empty(__val: &__T) -> bool {
-                <() as crate::encoding::EmptyState<(), _>>::is_empty(__val)
+                loop {}
             }
 
             fn clear(__val: &mut __T) {
-                <() as crate::encoding::EmptyState<(), _>>::clear(__val);
+                loop {}
             }
         }
 
@@ -2784,7 +2168,6 @@ mod encoding {
             }
         }
 
-
         fn u8_to_signed(value: u8) -> i8 {
             ((value >> 1) as i8) ^ (-((value & 1) as i8))
         }
@@ -2805,7 +2188,6 @@ mod encoding {
             ((value >> 1) as i32) ^ (-((value & 1) as i32))
         }
 
-
         pub(crate) fn u64_to_signed(value: u64) -> i64 {
             ((value >> 1) as i64) ^ (-((value & 1) as i64))
         }
@@ -2816,23 +2198,7 @@ mod encoding {
 
         impl ValueRepr<Varint, bool> for () {
             fn repr(_schema: &Schema) -> Box<dyn Display> {
-                const SIGNEDNESS: &'static str = "boolean";
-                const SIZE: usize = mem::size_of::<bool>();
-                if SIGNEDNESS == "boolean" {
-                    Box::new("varint, boolean 0 or 1")
-                } else if SIZE == 8 {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!("varint, {0}", SIGNEDNESS))
-                    }))
-                } else {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "varint, {1} in {0} bit range",
-                            SIZE * 8,
-                            SIGNEDNESS
-                        ))
-                    }))
-                }
+                loop {}
             }
         }
 
@@ -2848,14 +2214,6 @@ mod encoding {
                 mut buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                let value = buf.decode_varint()?;
-                *__value = {
-                    match value {
-                        0 => false,
-                        1 => true,
-                        _ => return Err(DecodeError::new(OutOfDomainValue)),
-                    }
-                };
                 Ok(())
             }
         }
@@ -2868,7 +2226,6 @@ mod encoding {
                 buf: Capped<impl Buf + ?Sized>,
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
-                <() as ValueDecoder<Varint, _>>::decode_value(value, buf, ctx.into_inner())?;
                 Ok(Canonicity::Canonical)
             }
         }
@@ -2882,7 +2239,7 @@ mod encoding {
                 buf: crate::encoding::Capped<&'__a [u8]>,
                 ctx: crate::encoding::DecodeContext,
             ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<Varint, _>>::decode_value(value, buf, ctx)
+                loop {}
             }
         }
 
@@ -2898,13 +2255,7 @@ mod encoding {
                 buf: crate::encoding::Capped<&'__a [u8]>,
                 ctx: crate::encoding::RestrictedDecodeContext,
             ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate
-                ::encoding
-                ::DistinguishedValueDecoder<Varint, _>>::decode_value_distinguished::<ALLOW_EMPTY>(
-                    value,
-                    buf,
-                    ctx,
-                )
+                loop {}
             }
         }
 
@@ -2914,23 +2265,7 @@ mod encoding {
 
         impl ValueRepr<Varint, u8> for () {
             fn repr(_schema: &Schema) -> Box<dyn Display> {
-                const SIGNEDNESS: &'static str = "unsigned";
-                const SIZE: usize = mem::size_of::<u8>();
-                if SIGNEDNESS == "boolean" {
-                    Box::new("varint, boolean 0 or 1")
-                } else if SIZE == 8 {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!("varint, {0}", SIGNEDNESS))
-                    }))
-                } else {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "varint, {1} in {0} bit range",
-                            SIZE * 8,
-                            SIGNEDNESS
-                        ))
-                    }))
-                }
+                loop {}
             }
         }
 
@@ -2946,8 +2281,6 @@ mod encoding {
                 mut buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                let value = buf.decode_varint()?;
-                *__value = u8::try_from(value).map_err(|_| DecodeError::new(OutOfDomainValue))?;
                 Ok(())
             }
         }
@@ -2960,8 +2293,7 @@ mod encoding {
                 buf: Capped<impl Buf + ?Sized>,
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
-                <() as ValueDecoder<Varint, _>>::decode_value(value, buf, ctx.into_inner())?;
-                Ok(Canonicity::Canonical)
+                loop {}
             }
         }
 
@@ -2974,7 +2306,7 @@ mod encoding {
                 buf: crate::encoding::Capped<&'__a [u8]>,
                 ctx: crate::encoding::DecodeContext,
             ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<Varint, _>>::decode_value(value, buf, ctx)
+                loop {}
             }
         }
 
@@ -2984,23 +2316,7 @@ mod encoding {
 
         impl ValueRepr<Varint, u32> for () {
             fn repr(_schema: &Schema) -> Box<dyn Display> {
-                const SIGNEDNESS: &'static str = "unsigned";
-                const SIZE: usize = mem::size_of::<u32>();
-                if SIGNEDNESS == "boolean" {
-                    Box::new("varint, boolean 0 or 1")
-                } else if SIZE == 8 {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!("varint, {0}", SIGNEDNESS))
-                    }))
-                } else {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "varint, {1} in {0} bit range",
-                            SIZE * 8,
-                            SIGNEDNESS
-                        ))
-                    }))
-                }
+                loop {}
             }
         }
 
@@ -3016,8 +2332,6 @@ mod encoding {
                 mut buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                let value = buf.decode_varint()?;
-                *__value = u32::try_from(value).map_err(|_| DecodeError::new(OutOfDomainValue))?;
                 Ok(())
             }
         }
@@ -3030,8 +2344,7 @@ mod encoding {
                 buf: Capped<impl Buf + ?Sized>,
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
-                <() as ValueDecoder<Varint, _>>::decode_value(value, buf, ctx.into_inner())?;
-                Ok(Canonicity::Canonical)
+                loop {}
             }
         }
 
@@ -3044,7 +2357,7 @@ mod encoding {
                 buf: crate::encoding::Capped<&'__a [u8]>,
                 ctx: crate::encoding::DecodeContext,
             ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<Varint, _>>::decode_value(value, buf, ctx)
+                loop {}
             }
         }
 
@@ -3060,13 +2373,7 @@ mod encoding {
                 buf: crate::encoding::Capped<&'__a [u8]>,
                 ctx: crate::encoding::RestrictedDecodeContext,
             ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate
-                ::encoding
-                ::DistinguishedValueDecoder<Varint, _>>::decode_value_distinguished::<ALLOW_EMPTY>(
-                    value,
-                    buf,
-                    ctx,
-                )
+                loop {}
             }
         }
 
@@ -3076,23 +2383,7 @@ mod encoding {
 
         impl ValueRepr<Varint, u64> for () {
             fn repr(_schema: &Schema) -> Box<dyn Display> {
-                const SIGNEDNESS: &'static str = "unsigned";
-                const SIZE: usize = mem::size_of::<u64>();
-                if SIGNEDNESS == "boolean" {
-                    Box::new("varint, boolean 0 or 1")
-                } else if SIZE == 8 {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!("varint, {0}", SIGNEDNESS))
-                    }))
-                } else {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "varint, {1} in {0} bit range",
-                            SIZE * 8,
-                            SIGNEDNESS
-                        ))
-                    }))
-                }
+                loop {}
             }
         }
 
@@ -3108,8 +2399,6 @@ mod encoding {
                 mut buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                let value = buf.decode_varint()?;
-                *__value = value;
                 Ok(())
             }
         }
@@ -3122,8 +2411,7 @@ mod encoding {
                 buf: Capped<impl Buf + ?Sized>,
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
-                <() as ValueDecoder<Varint, _>>::decode_value(value, buf, ctx.into_inner())?;
-                Ok(Canonicity::Canonical)
+                loop {}
             }
         }
 
@@ -3146,90 +2434,7 @@ mod encoding {
 
         impl ValueRepr<Varint, usize> for () {
             fn repr(_schema: &Schema) -> Box<dyn Display> {
-                const SIGNEDNESS: &'static str = "unsigned";
-                const SIZE: usize = mem::size_of::<usize>();
-                if SIGNEDNESS == "boolean" {
-                    Box::new("varint, boolean 0 or 1")
-                } else if SIZE == 8 {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!("varint, {0}", SIGNEDNESS))
-                    }))
-                } else {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "varint, {1} in {0} bit range",
-                            SIZE * 8,
-                            SIGNEDNESS
-                        ))
-                    }))
-                }
-            }
-        }
-
-        impl ValueEncoder<Varint, usize> for () {
-            fn value_encoded_len(_value: &usize) -> usize {
-                0
-            }
-        }
-
-        impl ValueDecoder<Varint, usize> for () {
-            fn decode_value<B: Buf + ?Sized>(
-                __value: &mut usize,
-                mut buf: Capped<B>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                let value = buf.decode_varint()?;
-                *__value =
-                    usize::try_from(value).map_err(|_| DecodeError::new(OutOfDomainValue))?;
-                Ok(())
-            }
-        }
-
-        impl DistinguishedValueDecoder<Varint, usize> for () {
-            const CHECKS_EMPTY: bool = false;
-
-            fn decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut usize,
-                buf: Capped<impl Buf + ?Sized>,
-                ctx: RestrictedDecodeContext,
-            ) -> Result<Canonicity, DecodeError> {
-                <() as ValueDecoder<Varint, _>>::decode_value(value, buf, ctx.into_inner())?;
-                Ok(Canonicity::Canonical)
-            }
-        }
-
-        impl<'__a> crate::encoding::ValueBorrowDecoder<'__a, Varint, usize> for ()
-        where
-            (): crate::encoding::ValueDecoder<Varint, usize>,
-        {
-            fn borrow_decode_value(
-                value: &mut usize,
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                <() as crate::encoding::ValueDecoder<Varint, _>>::decode_value(value, buf, ctx)
-            }
-        }
-
-        impl<'__a> crate::encoding::DistinguishedValueBorrowDecoder<'__a, Varint, usize> for ()
-        where
-            (): crate::encoding::DistinguishedValueDecoder<Varint, usize>,
-        {
-            const CHECKS_EMPTY: bool =
-                <() as crate::encoding::DistinguishedValueDecoder<Varint, usize>>::CHECKS_EMPTY;
-
-            fn borrow_decode_value_distinguished<const ALLOW_EMPTY: bool>(
-                value: &mut usize,
-                buf: crate::encoding::Capped<&'__a [u8]>,
-                ctx: crate::encoding::RestrictedDecodeContext,
-            ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate
-                ::encoding
-                ::DistinguishedValueDecoder<Varint, _>>::decode_value_distinguished::<ALLOW_EMPTY>(
-                    value,
-                    buf,
-                    ctx,
-                )
+                loop {}
             }
         }
 
@@ -3239,23 +2444,7 @@ mod encoding {
 
         impl ValueRepr<Varint, i8> for () {
             fn repr(_schema: &Schema) -> Box<dyn Display> {
-                const SIGNEDNESS: &'static str = "signed";
-                const SIZE: usize = mem::size_of::<i8>();
-                if SIGNEDNESS == "boolean" {
-                    Box::new("varint, boolean 0 or 1")
-                } else if SIZE == 8 {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!("varint, {0}", SIGNEDNESS))
-                    }))
-                } else {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "varint, {1} in {0} bit range",
-                            SIZE * 8,
-                            SIGNEDNESS
-                        ))
-                    }))
-                }
+                loop {}
             }
         }
 
@@ -3271,12 +2460,6 @@ mod encoding {
                 mut buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                let value = buf.decode_varint()?;
-                *__value = {
-                    let value =
-                        u8::try_from(value).map_err(|_| DecodeError::new(OutOfDomainValue))?;
-                    u8_to_signed(value)
-                };
                 Ok(())
             }
         }
@@ -3289,7 +2472,6 @@ mod encoding {
                 buf: Capped<impl Buf + ?Sized>,
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
-                <() as ValueDecoder<Varint, _>>::decode_value(value, buf, ctx.into_inner())?;
                 Ok(Canonicity::Canonical)
             }
         }
@@ -3299,23 +2481,7 @@ mod encoding {
 
         impl ValueRepr<Varint, i16> for () {
             fn repr(_schema: &Schema) -> Box<dyn Display> {
-                const SIGNEDNESS: &'static str = "signed";
-                const SIZE: usize = mem::size_of::<i16>();
-                if SIGNEDNESS == "boolean" {
-                    Box::new("varint, boolean 0 or 1")
-                } else if SIZE == 8 {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!("varint, {0}", SIGNEDNESS))
-                    }))
-                } else {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "varint, {1} in {0} bit range",
-                            SIZE * 8,
-                            SIGNEDNESS
-                        ))
-                    }))
-                }
+                loop {}
             }
         }
 
@@ -3331,12 +2497,6 @@ mod encoding {
                 mut buf: Capped<B>,
                 _ctx: DecodeContext,
             ) -> Result<(), DecodeError> {
-                let value = buf.decode_varint()?;
-                *__value = {
-                    let value =
-                        u16::try_from(value).map_err(|_| DecodeError::new(OutOfDomainValue))?;
-                    u16_to_signed(value)
-                };
                 Ok(())
             }
         }
@@ -3349,8 +2509,7 @@ mod encoding {
                 buf: Capped<impl Buf + ?Sized>,
                 ctx: RestrictedDecodeContext,
             ) -> Result<Canonicity, DecodeError> {
-                <() as ValueDecoder<Varint, _>>::decode_value(value, buf, ctx.into_inner())?;
-                Ok(Canonicity::Canonical)
+                loop {}
             }
         }
 
@@ -3366,13 +2525,7 @@ mod encoding {
                 buf: crate::encoding::Capped<&'__a [u8]>,
                 ctx: crate::encoding::RestrictedDecodeContext,
             ) -> Result<crate::Canonicity, crate::DecodeError> {
-                <() as crate
-                ::encoding
-                ::DistinguishedValueDecoder<Varint, _>>::decode_value_distinguished::<ALLOW_EMPTY>(
-                    value,
-                    buf,
-                    ctx,
-                )
+                loop {}
             }
         }
 
@@ -3382,46 +2535,22 @@ mod encoding {
 
         impl ValueRepr<Varint, i32> for () {
             fn repr(_schema: &Schema) -> Box<dyn Display> {
-                const SIGNEDNESS: &'static str = "signed";
-                const SIZE: usize = mem::size_of::<i32>();
-                if SIGNEDNESS == "boolean" {
-                    Box::new("varint, boolean 0 or 1")
-                } else if SIZE == 8 {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!("varint, {0}", SIGNEDNESS))
-                    }))
-                } else {
-                    Box::new(::alloc::__export::must_use({
-                        ::alloc::fmt::format(format_args!(
-                            "varint, {1} in {0} bit range",
-                            SIZE * 8,
-                            SIGNEDNESS
-                        ))
-                    }))
-                }
+                loop {}
             }
         }
     }
 
     pub(crate) use encoding_traits::Wiretyped;
-    pub(crate) use encoding_traits::{
-        BorrowDecoder, Decoder, Encoder,
-    };
-    pub(crate) use encoding_traits::{
-        FieldBorrowDecoder,
-        FieldEncoder,
-    };
+    pub(crate) use encoding_traits::{BorrowDecoder, Decoder, Encoder};
     pub(crate) use encoding_traits::{
         DistinguishedValueBorrowDecoder, DistinguishedValueDecoder, ValueBorrowDecoder,
         ValueDecoder, ValueEncoder,
     };
+    pub(crate) use encoding_traits::{FieldBorrowDecoder, FieldEncoder};
 
     pub(crate) use general::{General, GeneralPacked};
 
-    pub(crate) use message::{
-        MessageEncoding,
-        RawMessage, RawMessageDecoder,
-    };
+    pub(crate) use message::{MessageEncoding, RawMessage, RawMessageDecoder};
 
     pub(crate) use packed::Packed;
 
@@ -3441,56 +2570,9 @@ mod encoding {
         0x102_0408_1020_4080,
     ];
 
-    pub(crate) fn prepend_varint<B: ReverseBuf + ?Sized>(value: u64, _buf: &mut B) {
-        fn prepend_varint_inner<const N: usize>(
-            mut value: u64,
-            buf: &mut (impl ReverseBuf + ?Sized),
-        ) {
-            let mut varint_data = [0u8; N];
-            for b in &mut varint_data[..N - 1] {
-                *b = ((value & 0x7F) | 0x80) as u8;
-                value = (value >> 7) - 1;
-            }
-            varint_data[N - 1] = value as u8;
-            buf.prepend_slice(&varint_data);
-        }
-
-        if value < VARINT_LIMIT[1] {
-        }
-    }
-
     pub(crate) struct ConstVarint {
         value: [u8; 9],
         len: u8,
-    }
-
-    impl Deref for ConstVarint {
-        type Target = [u8];
-
-        fn deref(&self) -> &Self::Target {
-            &self.value[..self.len as usize]
-        }
-    }
-
-    pub(crate) const fn const_varint(value: u64) -> ConstVarint {
-        let mut res = [0; 9];
-        let i: usize = 0;
-        while i < 9 {
-            if value < 0x80 {
-                res[i] = value as u8;
-                return ConstVarint {
-                    value: res,
-                    len: (i + 1) as u8,
-                };
-            } else {
-            }
-        }
-        ConstVarint { value: res, len: 9 }
-    }
-
-    pub(crate) fn decode_varint<B: Buf + ?Sized>(_buf: &mut B) -> Result<u64, DecodeError> {
-        loop {}
-        loop {}
     }
 
     pub(crate) struct DecodeContext {
@@ -3531,16 +2613,6 @@ mod encoding {
         min_canonicity: Canonicity,
     }
 
-    #[automatically_derived]
-    impl ::core::clone::Clone for RestrictedDecodeContext {
-        fn clone(&self) -> RestrictedDecodeContext {
-            RestrictedDecodeContext {
-                context: ::core::clone::Clone::clone(&self.context),
-                min_canonicity: ::core::clone::Clone::clone(&self.min_canonicity),
-            }
-        }
-    }
-
     impl RestrictedDecodeContext {
         pub(crate) fn new(min_canonicity: Canonicity) -> Self {
             Self {
@@ -3565,28 +2637,12 @@ mod encoding {
         }
 
         pub(crate) fn check(&self, canon: Canonicity) -> Result<Canonicity, DecodeError> {
-            match (canon < self.min_canonicity, canon) {
-                (true, Canonicity::NotCanonical) => Err(DecodeError::new(NotCanonical)),
-                (true, Canonicity::HasExtensions) => Err(DecodeError::new(UnknownField)),
-                _ => Ok(canon),
-            }
+            loop {}
         }
     }
 
     pub(crate) const fn encoded_len_varint(value: u64) -> usize {
-        if value < VARINT_LIMIT[1] {
-            1
-        } else if value < VARINT_LIMIT[5] {
-            if value < VARINT_LIMIT[6] {
-                6
-            } else {
-                7
-            }
-        } else if value < VARINT_LIMIT[8] {
-            8
-        } else {
-            9
-        }
+        0
     }
 
     #[repr(u8)]
@@ -3630,16 +2686,6 @@ mod encoding {
         }
     }
 
-    impl WireType {
-        const fn fixed_size(self) -> Option<usize> {
-            match self {
-                WireType::SixtyFourBit => Some(8),
-                WireType::ThirtyTwoBit => Some(4),
-                WireType::Varint | WireType::LengthDelimited => None,
-            }
-        }
-    }
-
     pub(crate) struct TagRevWriter {
         current_key: Option<(u32, WireType)>,
     }
@@ -3658,23 +2704,15 @@ mod encoding {
             Default::default()
         }
 
-        pub(crate) fn begin_field<B: ReverseBuf + ?Sized>(
+        pub(crate) fn begin_field<B: ?Sized>(
             &mut self,
             tag: u32,
             wire_type: WireType,
             buf: &mut B,
         ) {
-            if let Some((current_tag, current_wire_type)) = self.current_key {
-                let tag_delta = current_tag
-                    .checked_sub(tag)
-                    .expect("fields prepended out of order");
-                prepend_varint(((tag_delta as u64) << 2) | (current_wire_type as u64), buf);
-            }
-            self.current_key = Some((tag, wire_type));
         }
 
-        pub(crate) fn finalize<B: ReverseBuf + ?Sized>(&mut self, _buf: &mut B) {
-        }
+        pub(crate) fn finalize<B: ?Sized>(&mut self, _buf: &mut B) {}
     }
 
     trait TagMeasurer {
@@ -3702,48 +2740,12 @@ mod encoding {
 
     impl TagMeasurer for RuntimeTagMeasurer {
         fn key_len(&mut self, tag: u32) -> usize {
-            let tag_delta = tag
-                .checked_sub(self.last_tag)
-                .expect("fields encoded out of order");
-            self.last_tag = tag;
-            encoded_len_varint((tag_delta as u64) << 2)
+            0
         }
     }
 
     pub(crate) struct TrivialTagMeasurer {
         last_tag: u32,
-    }
-
-    #[automatically_derived]
-    impl ::core::default::Default for TrivialTagMeasurer {
-        fn default() -> TrivialTagMeasurer {
-            TrivialTagMeasurer {
-                last_tag: ::core::default::Default::default(),
-            }
-        }
-    }
-
-    impl TrivialTagMeasurer {
-        pub(crate) fn new() -> Self {
-            Self::default()
-        }
-    }
-
-    impl TagMeasurer for TrivialTagMeasurer {
-        fn key_len(&mut self, _tag: u32) -> usize {
-            {
-                if !(_tag >= self.last_tag) {
-                    {
-                        ::core::panicking::panic_fmt(format_args!("fields encoded out of order"));
-                    }
-                }
-                if !(_tag < 32) {
-                    ::core::panicking::panic("assertion failed: _tag < 32")
-                }
-                self.last_tag = _tag;
-            }
-            1
-        }
     }
 
     pub(crate) struct TagReader {
@@ -3763,21 +2765,6 @@ mod encoding {
         pub(crate) fn new() -> Self {
             Default::default()
         }
-
-        pub(crate) fn decode_key<B: Buf + ?Sized>(
-            &mut self,
-            mut buf: Capped<B>,
-        ) -> Result<(u32, WireType), DecodeError> {
-            let key = buf.decode_varint()?;
-            let tag_delta = u32::try_from(key >> 2).map_err(|_| DecodeError::new(TagOverflowed))?;
-            let tag = self
-                .last_tag
-                .checked_add(tag_delta)
-                .ok_or_else(|| DecodeError::new(TagOverflowed))?;
-            let wire_type = WireType::from(key as u8);
-            self.last_tag = tag;
-            Ok((tag, wire_type))
-        }
     }
 
     pub(crate) fn check_wire_type(expected: WireType, actual: WireType) -> Result<(), DecodeError> {
@@ -3794,15 +2781,7 @@ mod encoding {
 
     impl<'a, B: 'a + Buf + ?Sized> Capped<'a, B> {
         pub(crate) fn new_length_delimited(buf: &'a mut B) -> Result<Self, DecodeError> {
-            let len = decode_length_delimiter(&mut *buf)?;
-            let remaining = buf.remaining();
-            if len > remaining {
-                return Err(DecodeError::new(Truncated));
-            }
-            Ok(Self {
-                buf,
-                extra_bytes_remaining: remaining - len,
-            })
+            loop {}
         }
 
         pub(crate) fn lend(&mut self) -> Capped<'_, B> {
@@ -3813,25 +2792,6 @@ mod encoding {
         }
 
         pub(crate) fn take_length_delimited(&mut self) -> Result<Capped<'_, B>, DecodeError> {
-            let len = decode_length_delimiter(&mut *self.buf)?;
-            let remaining = self.buf.remaining();
-            if len > remaining {
-                return Err(DecodeError::new(Truncated));
-            }
-            let extra_bytes_remaining = remaining - len;
-            Ok(Capped {
-                buf: self.buf,
-                extra_bytes_remaining,
-            })
-        }
-
-
-        pub(crate) fn take_all(self) -> Take<&'a mut B> {
-            let len = self.remaining_before_cap();
-            self.buf.take(len)
-        }
-
-        pub(crate) fn decode_varint(&mut self) -> Result<u64, DecodeError> {
             loop {}
         }
 
@@ -3846,30 +2806,6 @@ mod encoding {
         pub(crate) fn has_remaining(&self) -> Result<bool, DecodeErrorKind> {
             loop {}
         }
-    }
-
-    impl<'a> Capped<'_, &'a [u8]> {
-        pub(crate) fn take_borrowed_length_delimited(&mut self) -> Result<&'a [u8], DecodeError> {
-            loop {}
-        }
-    }
-
-    impl<B: Buf + ?Sized> Deref for Capped<'_, B> {
-        type Target = B;
-
-        fn deref(&self) -> &B {
-            self.buf
-        }
-    }
-
-    impl<B: Buf + ?Sized> DerefMut for Capped<'_, B> {
-        fn deref_mut(&mut self) -> &mut B {
-            self.buf
-        }
-    }
-
-    fn peek_repeated_field<B: Buf + ?Sized>(_buf: &mut Capped<B>) -> Option<WireType> {
-        None
     }
 
     pub(crate) enum Canonicity {
@@ -3924,7 +2860,6 @@ mod encoding {
 
 mod error {
     use alloc::vec::Vec;
-    
 
     #[non_exhaustive]
     pub(crate) enum DecodeErrorKind {
@@ -4024,14 +2959,6 @@ mod error {
     impl ::core::cmp::PartialEq for DecodeError {
         fn eq(&self, other: &DecodeError) -> bool {
             self.kind == other.kind && self.stack == other.stack
-        }
-    }
-
-    #[automatically_derived]
-    impl ::core::cmp::Eq for DecodeError {
-        fn assert_fields_are_eq(&self) {
-            let _: ::core::cmp::AssertParamIsEq<DecodeErrorKind>;
-            let _: ::core::cmp::AssertParamIsEq<Vec<FieldName>>;
         }
     }
 
@@ -4169,30 +3096,11 @@ const _: () = {
 
             fn raw_prepend<__B>(&self, _buf: &mut __B)
             where
-                __B: crate::buf::ReverseBuf + ?Sized,
+                __B: ?Sized,
             {
             }
         }
 
-        impl crate::encoding::RawMessageDecoder for __Self
-        where
-            (): crate::encoding::Decoder<unpacked, ArrayVec<[u64; 3]>>,
-            (): crate::encoding::EmptyState<unpacked, ArrayVec<[u64; 3]>>,
-        {
-            fn raw_decode_field<__B>(
-                &mut self,
-                _tag: u32,
-                _wire_type: crate::encoding::WireType,
-                _duplicated: bool,
-                _buf: crate::encoding::Capped<__B>,
-                _ctx: crate::encoding::DecodeContext,
-            ) -> ::core::result::Result<(), crate::DecodeError>
-            where
-                __B: bytes::Buf + ?Sized,
-            {
-                loop {}
-            }
-        }
         impl crate::encoding::ForOverwrite<(), __Self> for ()
         where
             (): crate::encoding::EmptyState<unpacked, ArrayVec<[u64; 3]>>,
@@ -4203,8 +3111,7 @@ const _: () = {
             }
         }
 
-        impl crate::encoding::EmptyState<(), __Self> for ()
-        {
+        impl crate::encoding::EmptyState<(), __Self> for () {
             fn is_empty(val: &__Self) -> bool {
                 <__Self as crate::encoding::RawMessage>::is_empty(val)
             }
