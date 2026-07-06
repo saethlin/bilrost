@@ -2451,63 +2451,6 @@ where {
             }
         }
 
-        impl<__T> crate::encoding::EmptyState<Varint, __T> for ()
-        where
-            (): crate::encoding::EmptyState<(), __T>,
-        {
-            fn is_empty(__val: &__T) -> bool {
-
-                loop {}
-            }
-
-            fn clear(__val: &mut __T) {
-
-                loop {}
-            }
-        }
-
-        impl<T> crate::encoding::schema::FieldRepr<Varint, T> for ()
-        where
-            (): crate::encoding::schema::ValueRepr<Varint, T>,
-        {
-            fn repr(
-                _schema: &crate::encoding::schema::Schema,
-            ) -> crate::alloc::boxed::Box<dyn::core::fmt::Display> {
-
-                loop {}
-            }
-        }
-
-        impl<T> crate::encoding::Encoder<Varint, T> for ()
-        where
-            (): crate::encoding::EmptyState<Varint, T> + crate::encoding::ValueEncoder<Varint, T>,
-        {
-            fn encoded_len(
-                _tag: u32,
-                _value: &T,
-                _tm: &mut impl crate::encoding::TagMeasurer,
-            ) -> usize {
-
-                0
-            }
-        }
-
-        impl<'__a, T> crate::encoding::BorrowDecoder<'__a, Varint, T> for ()
-        where
-            (): crate::encoding::EmptyState<Varint, T>
-                + crate::encoding::ValueBorrowDecoder<'__a, Varint, T>,
-        {
-            fn borrow_decode(
-                _wire_type: crate::encoding::WireType,
-                _value: &mut T,
-                _buf: crate::encoding::Capped<&'__a [u8]>,
-                _ctx: crate::encoding::DecodeContext,
-            ) -> ::core::result::Result<(), crate::DecodeError> {
-
-                Ok(())
-            }
-        }
-
         fn u8_to_signed(value: u8) -> i8 {
 
             ((value >> 1) as i8) ^ (-((value & 1) as i8))
@@ -3475,63 +3418,6 @@ mod error {
     }
 }
 
-mod iter {
-
-    pub(crate) struct FlatAdapter<I>(pub I);
-
-    impl<I, K, Vs> Iterator for FlatAdapter<I>
-    where
-        I: Iterator<Item = (K, Vs)> + Sized,
-        K: Clone,
-        Vs: IntoIterator,
-    {
-        type Item = Flattening<K, Vs::IntoIter>;
-
-        fn next(&mut self) -> Option<Self::Item> {
-
-            loop {}
-        }
-    }
-
-    impl<I, K, Vs> ExactSizeIterator for FlatAdapter<I>
-    where
-        I: ExactSizeIterator<Item = (K, Vs)> + Sized,
-        K: Clone,
-        Vs: IntoIterator,
-    {
-        fn len(&self) -> usize {
-
-            loop {}
-        }
-    }
-
-    impl<I, K, Vs> DoubleEndedIterator for FlatAdapter<I>
-    where
-        I: DoubleEndedIterator<Item = (K, Vs)> + Sized,
-        K: Clone,
-        Vs: IntoIterator,
-    {
-        fn next_back(&mut self) -> Option<Self::Item> {
-
-            loop {}
-        }
-    }
-
-    pub(crate) struct Flattening<K, Vi>(K, Vi);
-
-    impl<K, Vi> Iterator for Flattening<K, Vi>
-    where
-        K: Clone,
-        Vi: Iterator,
-    {
-        type Item = (K, Vi::Item);
-
-        fn next(&mut self) -> Option<Self::Item> {
-
-            loop {}
-        }
-    }
-}
 
 use crate::encoding::Canonicity;
 use crate::error::DecodeError;
