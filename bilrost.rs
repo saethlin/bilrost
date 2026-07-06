@@ -4,18 +4,14 @@ tinyvec = { version = "1", default-features = false, features = ["alloc", "rustc
 ---
 mod encoding_traits {
     use crate::schema::FieldRepr;
-    use crate::schema::Schema;
     use crate::schema::ValueRepr;
-    use core::fmt::Display;
     pub(crate) trait Encoder<E, T: ?Sized> {}
     impl<T, E> FieldRepr<E, Option<T>> for () where (): ValueRepr<E, T> {}
 }
 mod general {
-    use crate::schema::Schema;
     use crate::schema::ValueRepr;
     use crate::EmptyState;
     use crate::MessageEncoding;
-    use core::fmt::Display;
     const PREFER_UNPACKED: u8 = 0;
     const PREFER_PACKED: u8 = 1;
     pub(crate) struct GeneralGeneric<const P: u8>;
@@ -39,7 +35,6 @@ pub(crate) mod message {
     use crate::schema::Schema;
     use crate::schema::ValueRepr;
     use core::any::Any;
-    use core::fmt::Display;
     pub(crate) struct MessageEncoding;
     pub(crate) trait RawMessage {
         const __ASSERTIONS: ();
@@ -61,30 +56,6 @@ where {
         }
     }
     impl<T> ValueRepr<MessageEncoding, T> for () where T: Any + RawMessage + RegisterFields {}
-}
-mod packed {
-    use crate::schema::Schema;
-    use crate::schema::ValueRepr;
-    use crate::value_traits::Collection;
-    use crate::GeneralPacked;
-    use core::fmt::Display;
-    pub(crate) struct Packed<E = GeneralPacked>(E);
-    impl<E, __T> crate::ForOverwrite<Packed<E>, __T> for () {
-        fn for_overwrite() -> __T {
-            panic!()
-        }
-    }
-    impl<C, T, E> ValueRepr<Packed<E>, C> for () where C: Collection<Item = T> {}
-}
-mod plain_bytes {
-    use crate::schema::Schema;
-    use crate::schema::ValueRepr;
-    use core::fmt::Display;
-    use std::borrow::Cow;
-    pub(crate) struct PlainBytes;
-    impl ValueRepr<PlainBytes, &[u8]> for () {}
-    impl<'a> crate::schema::FieldRepr<PlainBytes, Vec<Cow<'a, [u8]>>> for () {}
-    impl<'a> crate::schema::FieldRepr<PlainBytes, Vec<&'a [u8]>> for () {}
 }
 pub(crate) mod schema {
     use core::any::Any;
@@ -193,13 +164,6 @@ pub(crate) mod schema {
             }
         }
         impl<T> EmptyState<(), Box<T>> for () where (): EmptyState<(), T> {}
-        impl<T> crate::ForOverwrite<(), Vec<T>> for () {
-            fn for_overwrite() -> Vec<T> {
-                ::core::default::Default::default()
-            }
-        }
-    }
-    mod primitives {
         impl crate::ForOverwrite<(), u64> for () {
             fn for_overwrite() -> u64 {
                 0
@@ -230,19 +194,12 @@ pub(crate) mod schema {
 }
 mod unpacked {
     use crate::schema::FieldRepr;
-    use crate::schema::Schema;
     use crate::schema::ValueRepr;
     use crate::value_traits::Collection;
     use crate::value_traits::EmptyState;
     use crate::Encoder;
     use crate::GeneralPacked;
-    use core::fmt::Display;
     pub(crate) struct Unpacked<E = GeneralPacked>(E);
-    impl<E, __T> crate::ForOverwrite<Unpacked<E>, __T> for () {
-        fn for_overwrite() -> __T {
-            panic!()
-        }
-    }
     impl<C, T, E> FieldRepr<Unpacked<E>, C> for ()
     where
         C: Collection<Item = T>,
@@ -258,11 +215,6 @@ mod value_traits {
         where
             T: Sized;
     }
-    impl<__T> crate::ForOverwrite<(), ::core::option::Option<__T>> for () {
-        fn for_overwrite() -> ::core::option::Option<__T> {
-            panic!()
-        }
-    }
     impl<__T, const __N: usize> crate::ForOverwrite<(), [__T; __N]> for ()
     where
         (): crate::ForOverwrite<(), __T>,
@@ -270,10 +222,6 @@ mod value_traits {
         fn for_overwrite() -> [__T; __N] {
             ::core::array::from_fn(|_| <() as crate::ForOverwrite<(), __T>>::for_overwrite())
         }
-    }
-    impl<__T, const __N: usize> crate::EmptyState<(), [__T; __N]> for () where
-        (): crate::EmptyState<(), __T>
-    {
     }
     pub(crate) trait Collection {
         type Item;
