@@ -77,7 +77,6 @@ mod encoding {
         }
         pub(crate) trait DistinguishedValueBorrowDecoder<'a, E, T>:
         {
-            const CHECKS_EMPTY: bool;
         }
         mod generic_optional {
             use super::*;
@@ -142,15 +141,6 @@ mod encoding {
                 loop {}
             }
         }
-        impl<const P: u8> crate::encoding::ValueDecoder<GeneralGeneric<P>, u64> for () {
-            fn decode_value<__B: bytes::Buf + ?Sized>(
-                value: &mut u64,
-                buf: crate::encoding::Capped<__B>,
-                ctx: crate::encoding::DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                Ok(())
-            }
-        }
         mod delegate_to_message_encoding {
             use super::*;
             impl<const P: u8, T> ValueRepr<GeneralGeneric<P>, T> for ()
@@ -179,10 +169,6 @@ mod encoding {
         use core::any::Any;
         use core::fmt::Display;
         pub(crate) struct MessageEncoding;
-        pub(crate) fn merge_distinguished<T: RawDistinguishedMessageDecoder, B: Buf + ?Sized>(
-        ) -> Result<Canonicity, DecodeError> {
-            loop {}
-        }
         pub(crate) trait RawMessage {
             const __ASSERTIONS: ();
             fn empty() -> Self
@@ -195,12 +181,6 @@ mod encoding {
         pub(crate) trait RawMessageDecoder: RawMessage {
             fn raw_decode_field<B: Buf + ?Sized>(
             ) -> Result<(), DecodeError>
-            where
-                Self: Sized;
-        }
-        pub(crate) trait RawDistinguishedMessageDecoder: RawMessage + Eq {
-            fn raw_decode_field_distinguished<B: Buf + ?Sized>(
-            ) -> Result<Canonicity, DecodeError>
             where
                 Self: Sized;
         }
@@ -327,13 +307,10 @@ where {
     mod plain_bytes {
         use crate::encoding::schema::Schema;
         use crate::encoding::schema::ValueRepr;
-        use crate::encoding::Canonicity;
         use crate::encoding::Capped;
         use crate::encoding::DecodeContext;
         use crate::encoding::DecodeError;
-        use crate::encoding::DistinguishedValueBorrowDecoder;
         use crate::encoding::DistinguishedValueDecoder;
-        use crate::encoding::RestrictedDecodeContext;
         use crate::encoding::ValueBorrowDecoder;
         use crate::encoding::ValueDecoder;
         use crate::encoding::ValueEncoder;
@@ -468,7 +445,6 @@ where {
             }
         }
         impl<'__a, 'a> crate::encoding::BorrowDecoder<'__a, PlainBytes, Vec<&'a [u8]>> for ()
-        where
         {
             fn borrow_decode(
                 wire_type: crate::encoding::WireType,
@@ -542,12 +518,6 @@ where {
                 Ok(())
             }
         }
-    }
-    mod proxy {
-        use crate::encoding::Capped;
-        use crate::encoding::DecodeContext;
-        use crate::encoding::ForOverwrite;
-        use crate::encoding::ValueBorrowDecoder;
     }
     pub(crate) mod schema {
         use alloc::collections::btree_map::Entry;
@@ -930,10 +900,6 @@ where {
         where
             (): crate::encoding::EmptyState<(), __T>,
         {
-            fn empty() -> [__T; __N]
-            {
-                loop {}
-            }
             fn is_empty(_val: &[__T; __N]) -> bool {
                 loop {}
             }
@@ -966,11 +932,8 @@ where {
         use crate::encoding::schema::Schema;
         use crate::encoding::schema::ValueRepr;
         use crate::encoding::Buf;
-        use crate::encoding::Canonicity;
         use crate::encoding::Capped;
         use crate::encoding::DecodeContext;
-        use crate::encoding::DistinguishedValueDecoder;
-        use crate::encoding::RestrictedDecodeContext;
         use crate::encoding::ValueDecoder;
         use crate::encoding::ValueEncoder;
         use crate::encoding::WireType;
@@ -980,40 +943,6 @@ where {
         pub(crate) struct Varint;
         impl Wiretyped<Varint, bool> for () {
             const WIRE_TYPE: WireType = WireType::Varint;
-        }
-        impl Wiretyped<Varint, u8> for () {
-            const WIRE_TYPE: WireType = WireType::Varint;
-        }
-        impl ValueEncoder<Varint, u8> for () {
-            fn value_encoded_len(_value: &u8) -> usize {
-                0
-            }
-        }
-        impl ValueDecoder<Varint, u8> for () {
-            fn decode_value<B: Buf + ?Sized>(
-                __value: &mut u8,
-                mut buf: Capped<B>,
-                _ctx: DecodeContext,
-            ) -> Result<(), crate::DecodeError> {
-                loop {}
-            }
-        }
-        impl Wiretyped<Varint, u32> for () {
-            const WIRE_TYPE: WireType = WireType::Varint;
-        }
-        impl ValueEncoder<Varint, u32> for () {
-            fn value_encoded_len(_value: &u32) -> usize {
-                0
-            }
-        }
-        impl ValueDecoder<Varint, u32> for () {
-            fn decode_value<B: Buf + ?Sized>(
-                __value: &mut u32,
-                mut buf: Capped<B>,
-                _ctx: DecodeContext,
-            ) -> Result<(), DecodeError> {
-                Ok(())
-            }
         }
         impl Wiretyped<Varint, u64> for () {
             const WIRE_TYPE: WireType = WireType::Varint;
@@ -1043,7 +972,6 @@ where {
     }
     pub(crate) use encoding_traits::BorrowDecoder;
     pub(crate) use encoding_traits::Decoder;
-    pub(crate) use encoding_traits::DistinguishedValueBorrowDecoder;
     pub(crate) use encoding_traits::DistinguishedValueDecoder;
     pub(crate) use encoding_traits::Encoder;
     pub(crate) use encoding_traits::ValueBorrowDecoder;
