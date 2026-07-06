@@ -2,7 +2,6 @@
 [dependencies]
 tinyvec = { version = "1", default-features = false, features = ["alloc", "rustc_1_57"] }
 ---
-
 use core::any::Any;
 use core::any::TypeId;
 use core::fmt::Display;
@@ -12,10 +11,8 @@ use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use tinyvec::ArrayVec;
-
 trait Encoder<E, T: ?Sized> {}
 impl<T, E> FieldRepr<E, Option<T>> for () where (): ValueRepr<E, T> {}
-
 const PREFER_UNPACKED: u8 = 0;
 const PREFER_PACKED: u8 = 1;
 struct GeneralGeneric<const P: u8>;
@@ -28,7 +25,6 @@ impl<const P: u8, T> ValueRepr<GeneralGeneric<P>, T> for () where
     (): EmptyState<(), T> + ValueRepr<MessageEncoding, T>
 {
 }
-
 struct MessageEncoding;
 trait RawMessage {}
 impl<T> RegisterFields for Box<T> {
@@ -36,7 +32,6 @@ impl<T> RegisterFields for Box<T> {
 }
 impl<T> RawMessage for Box<T> where T: RawMessage {}
 impl<T> ValueRepr<MessageEncoding, T> for () where T: Any + RawMessage + RegisterFields {}
-
 trait BorrowGuard<T> {
     type WriteGuard<'a>: DerefMut<Target = T>
     where
@@ -98,7 +93,6 @@ trait FieldRepr<E, T: ?Sized> {
 trait RegisterFields {
     fn register(schema: &Schema);
 }
-
 impl<'a, T> ForOverwrite<(), Cow<'a, T>> for ()
 where
     T: 'a + ?Sized + ToOwned,
@@ -113,15 +107,12 @@ where
 }
 impl<T> ForOverwrite<(), Box<T>> for () where (): ForOverwrite<(), T> {}
 impl<T> EmptyState<(), Box<T>> for () where (): EmptyState<(), T> {}
-impl ForOverwrite<(), u64> for () {}
 impl<'a, T> ForOverwrite<(), &'a [T]> for () {}
-
 impl<A> ForOverwrite<(), tinyvec::ArrayVec<A>> for () where A: tinyvec::Array {}
 impl<A: tinyvec::Array> EmptyState<(), tinyvec::ArrayVec<A>> for () {}
 impl<T, A: tinyvec::Array<Item = T>> Collection for tinyvec::ArrayVec<A> {
     type Item = T;
 }
-
 struct Unpacked<E = GeneralPacked>(E);
 impl<C, T, E> FieldRepr<Unpacked<E>, C> for ()
 where
@@ -130,14 +121,11 @@ where
 {
 }
 impl<C, T, E> Encoder<Unpacked<E>, C> for () where C: Collection<Item = T> {}
-
 trait EmptyState<E, T: ?Sized>: ForOverwrite<E, T> {}
 trait ForOverwrite<E, T: ?Sized> {}
-impl<__T, const __N: usize> ForOverwrite<(), [__T; __N]> for () where (): ForOverwrite<(), __T> {}
 trait Collection {
     type Item;
 }
-
 struct TestAllTypes {}
 const _: () = {
     use TestAllTypes as __Self;
